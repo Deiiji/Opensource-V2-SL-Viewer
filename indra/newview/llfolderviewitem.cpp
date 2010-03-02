@@ -121,7 +121,6 @@ LLFolderViewItem::LLFolderViewItem(const LLFolderViewItem::Params& p)
 	mHasVisibleChildren(FALSE),
 	mIndentation(0),
 	mItemHeight(p.item_height),
-	mNumDescendantsSelected(0),
 	mPassedFilter(FALSE),
 	mLastFilterGeneration(-1),
 	mStringMatchOffset(std::string::npos),
@@ -468,26 +467,33 @@ void LLFolderViewItem::dirtyFilter()
 // together.
 BOOL LLFolderViewItem::setSelection(LLFolderViewItem* selection, BOOL openitem, BOOL take_keyboard_focus)
 {
-	if( selection == this )
+	if (selection == this && !mIsSelected)
 	{
-		mIsSelected = TRUE;
+		selectItem();
 		if(mListener)
 		{
 			mListener->selectItem();
 		}
 	}
-	else
+	else if (mIsSelected)	// Deselect everything else.
 	{
-		mIsSelected = FALSE;
+		deselectItem();
 	}
 	return mIsSelected;
 }
 
 BOOL LLFolderViewItem::changeSelection(LLFolderViewItem* selection, BOOL selected)
 {
-	if(selection == this && mIsSelected != selected)
+	if (selection == this && mIsSelected != selected)
 	{
-		mIsSelected = selected;
+	  	if (mIsSelected)
+		{
+			deselectItem();
+		}
+		else
+		{
+			selectItem();
+		}
 		if(mListener)
 		{
 			mListener->selectItem();
@@ -497,22 +503,33 @@ BOOL LLFolderViewItem::changeSelection(LLFolderViewItem* selection, BOOL selecte
 	return FALSE;
 }
 
-void LLFolderViewItem::recursiveDeselect(BOOL deselect_self)
+void LLFolderViewItem::deselectItem(void)
 {
-	if (mIsSelected && deselect_self)
-	{
-		mIsSelected = FALSE;
+	llassert(mIsSelected);
 
-		// update ancestors' count of selected descendents
-		LLFolderViewFolder* parent_folder = getParentFolder();
-		while(parent_folder)
-		{
-			parent_folder->mNumDescendantsSelected--;
-			parent_folder = parent_folder->getParentFolder();
-		}
+	mIsSelected = FALSE;
+
+	// Update ancestors' count of selected descendents.
+	LLFolderViewFolder* parent_folder = getParentFolder();
+	if (parent_folder)
+	{
+		parent_folder->recursiveIncrementNumDescendantsSelected(-1);
 	}
 }
 
+void LLFolderViewItem::selectItem(void)
+{
+	llassert(!mIsSelected);
+
+	mIsSelected = TRUE;
+
+	// Update ancestors' count of selected descendents.
+	LLFolderViewFolder* parent_folder = getParentFolder();
+	if (parent_folder)
+	{
+		parent_folder->recursiveIncrementNumDescendantsSelected(1);
+	}
+}
 
 BOOL LLFolderViewItem::isMovable()
 {
@@ -1045,6 +1062,7 @@ void LLFolderViewItem::draw()
 
 LLFolderViewFolder::LLFolderViewFolder( const LLFolderViewItem::Params& p ): 
 LLFolderViewItem( p ),	// 0 = no create time
+mNumDescendantsSelected(0),
 mIsOpen(FALSE),
 mExpanderHighlighted(FALSE),
 mCurHeight(0.f),
@@ -1429,6 +1447,21 @@ BOOL LLFolderViewFolder::hasFilteredDescendants()
 	return mMostFilteredDescendantGeneration >= getRoot()->getFilter()->getCurrentGeneration();
 }
 
+void LLFolderViewFolder::recursiveIncrementNumDescendantsSelected(S32 increment)
+{
+	LLFolderViewFolder* parent_folder = this;
+	do
+	{
+		parent_folder->mNumDescendantsSelected += increment;
+
+		// Make sure we don't have negative values.
+		llassert(parent_folder->mNumDescendantsSelected >= 0);
+
+		parent_folder = parent_folder->getParentFolder();
+	}
+	while(parent_folder);
+}
+
 // Passes selection information on to children and record selection
 // information if necessary.
 BOOL LLFolderViewFolder::setSelection(LLFolderViewItem* selection, BOOL openitem,
@@ -1437,7 +1470,10 @@ BOOL LLFolderViewFolder::setSelection(LLFolderViewItem* selection, BOOL openitem
 	BOOL rv = FALSE;
 	if( selection == this )
 	{
-		mIsSelected = TRUE;
+	  	if (!isSelected())
+		{
+			selectItem();
+		}
 		if(mListener)
 		{
 			mListener->selectItem();
@@ -1446,7 +1482,10 @@ BOOL LLFolderViewFolder::setSelection(LLFolderViewItem* selection, BOOL openitem
 	}
 	else
 	{
-		mIsSelected = FALSE;
+	  	if (isSelected())
+		{
+			deselectItem();
+		}
 		rv = FALSE;
 	}
 	BOOL child_selected = FALSE;
@@ -1459,7 +1498,6 @@ BOOL LLFolderViewFolder::setSelection(LLFolderViewItem* selection, BOOL openitem
 		{
 			rv = TRUE;
 			child_selected = TRUE;
-			mNumDescendantsSelected++;
 		}
 	}
 	for (items_t::iterator iter = mItems.begin();
@@ -1470,7 +1508,6 @@ BOOL LLFolderViewFolder::setSelection(LLFolderViewItem* selection, BOOL openitem
 		{
 			rv = TRUE;
 			child_selected = TRUE;
-			mNumDescendantsSelected++;
 		}
 	}
 	if(openitem && child_selected)
@@ -1480,37 +1517,39 @@ BOOL LLFolderViewFolder::setSelection(LLFolderViewItem* selection, BOOL openitem
 	return rv;
 }
 
-// This method is used to change the selection of an item. If
-// selection is 'this', then note selection as true. Returns TRUE
-// if this or a child is now selected.
-BOOL LLFolderViewFolder::changeSelection(LLFolderViewItem* selection,
-										 BOOL selected)
+// This method is used to change the selection of an item.
+// Recursively traverse all children; if 'selection' is 'this' then change
+// the select status if necessary.
+// Returns TRUE if the selection state of this folder, or of a child, was changed.
+BOOL LLFolderViewFolder::changeSelection(LLFolderViewItem* selection, BOOL selected)
 {
 	BOOL rv = FALSE;
 	if(selection == this)
 	{
-		mIsSelected = selected;
+	  	if (isSelected() != selected)
+		{
+			rv = TRUE;
+			if (selected)
+			{
+				selectItem();
+			}
+			else
+			{
+				deselectItem();
+			}
+		}
 		if(mListener && selected)
 		{
 			mListener->selectItem();
 		}
-		rv = TRUE;
 	}
 
 	for (folders_t::iterator iter = mFolders.begin();
 		iter != mFolders.end();)
 	{
 		folders_t::iterator fit = iter++;
-		if((*fit)->changeSelection(selection, selected))
+		if ((*fit)->changeSelection(selection, selected))
 		{
-			if (selected)
-			{
-				mNumDescendantsSelected++;
-			}
-			else
-			{
-				mNumDescendantsSelected--;
-			}
 			rv = TRUE;
 		}
 	}
@@ -1518,33 +1557,22 @@ BOOL LLFolderViewFolder::changeSelection(LLFolderViewItem* selection,
 		iter != mItems.end();)
 	{
 		items_t::iterator iit = iter++;
-		if((*iit)->changeSelection(selection, selected))
+		if ((*iit)->changeSelection(selection, selected))
 		{
-			if (selected)
-			{
-				mNumDescendantsSelected++;
-			}
-			else
-			{
-				mNumDescendantsSelected--;
-			}
 			rv = TRUE;
 		}
 	}
 	return rv;
 }
 
-S32 LLFolderViewFolder::extendSelection(LLFolderViewItem* selection, LLFolderViewItem* last_selected, LLDynamicArray<LLFolderViewItem*>& selected_items)
+void LLFolderViewFolder::extendSelection(LLFolderViewItem* selection, LLFolderViewItem* last_selected, LLDynamicArray<LLFolderViewItem*>& selected_items)
 {
-	S32 num_selected = 0;
-
 	// pass on to child folders first
 	for (folders_t::iterator iter = mFolders.begin();
 		iter != mFolders.end();)
 	{
 		folders_t::iterator fit = iter++;
-		num_selected += (*fit)->extendSelection(selection, last_selected, selected_items);
-		mNumDescendantsSelected += num_selected;
+		(*fit)->extendSelection(selection, last_selected, selected_items);
 	}
 
 	// handle selection of our immediate children...
@@ -1637,8 +1665,6 @@ S32 LLFolderViewFolder::extendSelection(LLFolderViewItem* selection, LLFolderVie
 			if (item->changeSelection(item, TRUE))
 			{
 				selected_items.put(item);
-				mNumDescendantsSelected++;
-				num_selected++;
 			}
 		}
 	}
@@ -1648,30 +1674,15 @@ S32 LLFolderViewFolder::extendSelection(LLFolderViewItem* selection, LLFolderVie
 		if (selection->changeSelection(selection, TRUE))
 		{
 			selected_items.put(selection);
-			mNumDescendantsSelected++;
-			num_selected++;
 		}
 	}
-
-	return num_selected;
 }
 
 void LLFolderViewFolder::recursiveDeselect(BOOL deselect_self)
 {
-	// make sure we don't have negative values
-	llassert(mNumDescendantsSelected >= 0);
-
-	if (mIsSelected && deselect_self)
+	if (isSelected() && deselect_self)
 	{
-		mIsSelected = FALSE;
-
-		// update ancestors' count of selected descendents
-		LLFolderViewFolder* parent_folder = getParentFolder();
-		while(parent_folder)
-		{
-			parent_folder->mNumDescendantsSelected--;
-			parent_folder = parent_folder->getParentFolder();
-		}
+  		deselectItem();
 	}
 
 	if (0 == mNumDescendantsSelected)
@@ -1679,14 +1690,19 @@ void LLFolderViewFolder::recursiveDeselect(BOOL deselect_self)
 		return;
 	}
 
+	// Deselect all items in this folder.
 	for (items_t::iterator iter = mItems.begin();
 		iter != mItems.end();)
 	{
 		items_t::iterator iit = iter++;
 		LLFolderViewItem* item = (*iit);
-		item->recursiveDeselect(TRUE);
+		if (item->isSelected())
+		{
+			item->deselectItem();
+		}
 	}
 
+	// Recursively deselect all folders in this folder.
 	for (folders_t::iterator iter = mFolders.begin();
 		iter != mFolders.end();)
 	{
@@ -1746,7 +1762,10 @@ void LLFolderViewFolder::removeView(LLFolderViewItem* item)
 		return;
 	}
 	// deselect without traversing hierarchy
-	item->recursiveDeselect(TRUE);
+	if (item->isSelected())
+	{
+		item->deselectItem();
+	}
 	getRoot()->removeFromSelectionList(item);
 	extractItem(item);
 	delete item;
@@ -1762,16 +1781,24 @@ void LLFolderViewFolder::extractItem( LLFolderViewItem* item )
 		// This is an evil downcast. However, it's only doing
 		// pointer comparison to find if (which it should be ) the
 		// item is in the container, so it's pretty safe.
-		LLFolderViewFolder* f = reinterpret_cast<LLFolderViewFolder*>(item);
+		LLFolderViewFolder* f = static_cast<LLFolderViewFolder*>(item);
 		folders_t::iterator ft;
 		ft = std::find(mFolders.begin(), mFolders.end(), f);
 		if(ft != mFolders.end())
 		{
+			if ((*ft)->numSelected())
+			{
+				recursiveIncrementNumDescendantsSelected(-(*ft)->numSelected());
+			}
 			mFolders.erase(ft);
 		}
 	}
 	else
 	{
+		if ((*it)->isSelected())
+		{
+			recursiveIncrementNumDescendantsSelected(-1);
+		}
 		mItems.erase(it);
 	}
 	//item has been removed, need to update filter
@@ -1935,6 +1962,10 @@ BOOL LLFolderViewFolder::isRemovable()
 BOOL LLFolderViewFolder::addItem(LLFolderViewItem* item)
 {
 	mItems.push_back(item);
+	if (item->isSelected())
+	{
+		recursiveIncrementNumDescendantsSelected(1);
+	}
 	item->setRect(LLRect(0, 0, getRect().getWidth(), 0));
 	item->setVisible(FALSE);
 	addChild( item );
@@ -1948,6 +1979,10 @@ BOOL LLFolderViewFolder::addItem(LLFolderViewItem* item)
 BOOL LLFolderViewFolder::addFolder(LLFolderViewFolder* folder)
 {
 	mFolders.push_back(folder);
+	if (folder->numSelected())
+	{
+		recursiveIncrementNumDescendantsSelected(folder->numSelected());
+	}
 	folder->setOrigin(0, 0);
 	folder->reshape(getRect().getWidth(), 0);
 	folder->setVisible(FALSE);
