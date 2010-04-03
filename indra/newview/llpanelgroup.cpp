@@ -11,13 +11,13 @@
  * ("GPL"), unless you have obtained a separate licensing agreement
  * ("Other License"), formally executed by you and Linden Lab.  Terms of
  * the GPL can be found in doc/GPL-license.txt in this distribution, or
- * online at http://secondlifegrid.net/programs/open_source/licensing/gplv2
+ * online at http://secondlife.com/developers/opensource/gplv2
  * 
  * There are special exceptions to the terms and conditions of the GPL as
  * it is applied to this Source Code. View the full text of the exception
  * in the file doc/FLOSS-exception.txt in this software distribution, or
  * online at
- * http://secondlifegrid.net/programs/open_source/licensing/flossexception
+ * http://secondlife.com/developers/opensource/flossexception
  * 
  * By copying, modifying or distributing this software, you acknowledge
  * that you have read and understood your obligations described above,
@@ -27,6 +27,7 @@
  * WARRANTIES, EXPRESS, IMPLIED OR OTHERWISE, REGARDING ITS ACCURACY,
  * COMPLETENESS OR PERFORMANCE.
  * $/LicenseInfo$
+ * 
  */
 
 #include "llviewerprecompiledheaders.h"
@@ -102,8 +103,10 @@ LLPanelGroup::LLPanelGroup()
 LLPanelGroup::~LLPanelGroup()
 {
 	LLGroupMgr::getInstance()->removeObserver(this);
-	if(LLVoiceClient::getInstance())
+	if(LLVoiceClient::instanceExists())
+	{
 		LLVoiceClient::getInstance()->removeObserver(this);
+	}
 }
 
 void LLPanelGroup::onOpen(const LLSD& key)
@@ -335,7 +338,7 @@ void LLPanelGroup::update(LLGroupChange gc)
 		childSetToolTip("group_name",gdatap->mName);
 		
 		LLGroupData agent_gdatap;
-		bool is_member = gAgent.getGroupData(mID,agent_gdatap);
+		bool is_member = gAgent.getGroupData(mID,agent_gdatap) || gAgent.isGodlike();
 		bool join_btn_visible = !is_member && gdatap->mOpenEnrollment;
 		
 		mButtonJoin->setVisible(join_btn_visible);
@@ -464,7 +467,7 @@ void LLPanelGroup::setGroupID(const LLUUID& group_id)
 		}
 
 		LLGroupData agent_gdatap;
-		bool is_member = gAgent.getGroupData(mID,agent_gdatap);
+		bool is_member = gAgent.getGroupData(mID,agent_gdatap) || gAgent.isGodlike();
 		
 		tab_roles->setVisible(is_member);
 		tab_notices->setVisible(is_member);

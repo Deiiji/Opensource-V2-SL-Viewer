@@ -12,13 +12,13 @@
  * ("GPL"), unless you have obtained a separate licensing agreement
  * ("Other License"), formally executed by you and Linden Lab.  Terms of
  * the GPL can be found in doc/GPL-license.txt in this distribution, or
- * online at http://secondlifegrid.net/programs/open_source/licensing/gplv2
+ * online at http://secondlife.com/developers/opensource/gplv2
  * 
  * There are special exceptions to the terms and conditions of the GPL as
  * it is applied to this Source Code. View the full text of the exception
  * in the file doc/FLOSS-exception.txt in this software distribution, or
  * online at
- * http://secondlifegrid.net/programs/open_source/licensing/flossexception
+ * http://secondlife.com/developers/opensource/flossexception
  * 
  * By copying, modifying or distributing this software, you acknowledge
  * that you have read and understood your obligations described above,
@@ -28,6 +28,7 @@
  * WARRANTIES, EXPRESS, IMPLIED OR OTHERWISE, REGARDING ITS ACCURACY,
  * COMPLETENESS OR PERFORMANCE.
  * $/LicenseInfo$
+ * 
  */
 
 #include "linden_common.h"
@@ -151,14 +152,16 @@ S32 LLFontGL::render(const LLWString &wstr, S32 begin_offset, F32 x, F32 y, cons
 		}
 	}
 
-	gGL.pushMatrix();
-	glLoadIdentity();
-	gGL.translatef(floorf(sCurOrigin.mX*sScaleX), floorf(sCurOrigin.mY*sScaleY), sCurOrigin.mZ);
+	gGL.pushUIMatrix();
+
+	gGL.loadUIIdentity();
+	
+	gGL.translateUI(floorf(sCurOrigin.mX*sScaleX), floorf(sCurOrigin.mY*sScaleY), sCurOrigin.mZ);
 
 	// this code snaps the text origin to a pixel grid to start with
 	F32 pixel_offset_x = llround((F32)sCurOrigin.mX) - (sCurOrigin.mX);
 	F32 pixel_offset_y = llround((F32)sCurOrigin.mY) - (sCurOrigin.mY);
-	gGL.translatef(-pixel_offset_x, -pixel_offset_y, 0.f);
+	gGL.translateUI(-pixel_offset_x, -pixel_offset_y, 0.f);
 
 	LLFastTimer t(FTM_RENDER_FONTS);
 
@@ -246,9 +249,6 @@ S32 LLFontGL::render(const LLWString &wstr, S32 begin_offset, F32 x, F32 y, cons
 	}
 
 
-	// Remember last-used texture to avoid unnecesssary bind calls.
-	LLImageGL *last_bound_texture = NULL;
-
 	const LLFontGlyphInfo* next_glyph = NULL;
 
 	for (i = begin_offset; i < begin_offset + length; i++)
@@ -268,12 +268,8 @@ S32 LLFontGL::render(const LLWString &wstr, S32 begin_offset, F32 x, F32 y, cons
 		}
 		// Per-glyph bitmap texture.
 		LLImageGL *image_gl = mFontFreetype->getFontBitmapCache()->getImageGL(fgi->mBitmapNum);
-		if (last_bound_texture != image_gl)
-		{
-			gGL.getTexUnit(0)->bind(image_gl);
-			last_bound_texture = image_gl;
-		}
-
+		gGL.getTexUnit(0)->bind(image_gl);
+	
 		if ((start_x + scaled_max_pixels) < (cur_x + fgi->mXBearing + fgi->mWidth))
 		{
 			// Not enough room for this character.
@@ -338,10 +334,7 @@ S32 LLFontGL::render(const LLWString &wstr, S32 begin_offset, F32 x, F32 y, cons
 		
 		// recursively render ellipses at end of string
 		// we've already reserved enough room
-		gGL.pushMatrix();
-		//glLoadIdentity();
-		//gGL.translatef(sCurOrigin.mX, sCurOrigin.mY, 0.0f);
-		//glScalef(sScaleX, sScaleY, 1.f);
+		gGL.pushUIMatrix();
 		renderUTF8(std::string("..."), 
 				0,
 				cur_x / sScaleX, (F32)y,
@@ -352,10 +345,10 @@ S32 LLFontGL::render(const LLWString &wstr, S32 begin_offset, F32 x, F32 y, cons
 				S32_MAX, max_pixels,
 				right_x,
 				FALSE); 
-		gGL.popMatrix();
+		gGL.popUIMatrix();
 	}
 
-	gGL.popMatrix();
+	gGL.popUIMatrix();
 
 	return chars_drawn;
 }
@@ -681,7 +674,7 @@ S32 LLFontGL::charFromPixelOffset(const llwchar* wchars, S32 begin_offset, F32 t
 	target_x *= sScaleX;
 
 	// max_chars is S32_MAX by default, so make sure we don't get overflow
-	const S32 max_index = begin_offset + llmin(S32_MAX - begin_offset, max_chars);
+	const S32 max_index = begin_offset + llmin(S32_MAX - begin_offset, max_chars - 1);
 
 	F32 scaled_max_pixels =	max_pixels * sScaleX;
 	

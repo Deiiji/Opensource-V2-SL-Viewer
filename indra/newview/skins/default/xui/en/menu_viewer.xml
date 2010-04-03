@@ -177,7 +177,8 @@
          label="Nearby Chat"
          layout="topleft"
          name="Nearby Chat"
-         shortcut="control|H">
+         shortcut="control|H"
+         use_mac_ctrl="true">
             <menu_item_check.on_check
              function="Floater.Visible"
              parameter="nearby_chat" />
@@ -353,6 +354,24 @@
             <menu_item_check.on_click
                function="ToggleControl"
                parameter="ShowParcelOwners" />
+          </menu_item_check>
+          <menu_item_check
+             label="Coordinates"
+             name="Coordinates">
+            <menu_item_check.on_click
+               function="ToggleControl"
+               parameter="NavBarShowCoordinates" />
+            <menu_item_check.on_check
+               control="NavBarShowCoordinates" />
+          </menu_item_check>
+          <menu_item_check
+             label="Parcel Properties"
+             name="Parcel Properties">
+            <menu_item_check.on_click
+               function="ToggleControl"
+               parameter="NavBarShowParcelProperties" />
+            <menu_item_check.on_check
+               control="NavBarShowParcelProperties" />
           </menu_item_check>
         </menu>
         <menu_item_separator
@@ -701,16 +720,26 @@
          name="Object"
          tear_off="true">
           <menu_item_call
-			 label="Buy"
-			 layout="topleft"
-			 name="Menu Object Take"
-			 visible="true">
-			<menu_item_call.on_click
-               function="Tools.BuyOrTake" />
-			<menu_item_call.on_enable
-               function="Tools.EnableBuyOrTake"
-               name="EnableBuyOrTake"
-               parameter="Buy,Take" />
+             label="Buy"
+             layout="topleft"
+             name="Menu Object Buy">
+            <menu_item_call.on_click
+               function="Tools.BuyOrTake"/>
+            <menu_item_call.on_visible
+               function="Tools.VisibleBuyObject"/>
+            <menu_item_call.on_enable
+               function="Tools.EnableBuyOrTake"/>
+          </menu_item_call>
+          <menu_item_call
+             label="Take"
+             layout="topleft"
+             name="Menu Object Take">
+            <menu_item_call.on_click
+               function="Tools.BuyOrTake"/>
+            <menu_item_call.on_visible
+               function="Tools.VisibleTakeObject"/>
+            <menu_item_call.on_enable
+               function="Tools.EnableBuyOrTake"/>
           </menu_item_call>
           <menu_item_call
 			 label="Take Copy"

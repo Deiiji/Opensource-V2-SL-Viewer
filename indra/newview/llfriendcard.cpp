@@ -12,13 +12,13 @@
  * ("GPL"), unless you have obtained a separate licensing agreement
  * ("Other License"), formally executed by you and Linden Lab.  Terms of
  * the GPL can be found in doc/GPL-license.txt in this distribution, or
- * online at http://secondlifegrid.net/programs/open_source/licensing/gplv2
+ * online at http://secondlife.com/developers/opensource/gplv2
  * 
  * There are special exceptions to the terms and conditions of the GPL as
  * it is applied to this Source Code. View the full text of the exception
  * in the file doc/FLOSS-exception.txt in this software distribution, or
  * online at
- * http://secondlifegrid.net/programs/open_source/licensing/flossexception
+ * http://secondlife.com/developers/opensource/flossexception
  * 
  * By copying, modifying or distributing this software, you acknowledge
  * that you have read and understood your obligations described above,
@@ -28,6 +28,7 @@
  * WARRANTIES, EXPRESS, IMPLIED OR OTHERWISE, REGARDING ITS ACCURACY,
  * COMPLETENESS OR PERFORMANCE.
  * $/LicenseInfo$
+ * 
  */
 
 #include "llviewerprecompiledheaders.h"
@@ -44,24 +45,28 @@
 
 // Constants;
 
-static const std::string INVENTORY_STRING_FRIENDS_SUBFOLDER = "InvFolder Friends";
-static const std::string INVENTORY_STRING_FRIENDS_ALL_SUBFOLDER = "InvFolder All";
+static const std::string INVENTORY_STRING_FRIENDS_SUBFOLDER = "Friends";
+static const std::string INVENTORY_STRING_FRIENDS_ALL_SUBFOLDER = "All";
 
 // helper functions
 
-// NOTE: Usage of LLTrans::getString(); in next two functions to set localized
-// folders' names is caused by a hack in the LLFolderViewItem::refreshFromListener()
-// method for protected asset types.
-// So, localized names will be got from the strings with "InvFolder LABEL_NAME"
-// in the strings.xml
+// NOTE: For now Friends & All folders are created as protected folders of the LLFolderType::FT_CALLINGCARD type.
+// So, their names will be processed in the LLFolderViewItem::refreshFromListener() to be localized
+// using "InvFolder LABEL_NAME" as LLTrans::findString argument.
+
+// We must use in this file their hard-coded names to ensure found them on different locales. EXT-5829.
+// These hard-coded names will be stored in InventoryItems but shown localized in FolderViewItems
+
+// If hack in the LLFolderViewItem::refreshFromListener() to localize protected folder is removed
+// or these folders are not protected these names should be localized in another place/way.
 inline const std::string get_friend_folder_name()
 {
-	return LLTrans::getString(INVENTORY_STRING_FRIENDS_SUBFOLDER);
+	return INVENTORY_STRING_FRIENDS_SUBFOLDER;
 }
 
 inline const std::string get_friend_all_subfolder_name()
 {
-	return LLTrans::getString(INVENTORY_STRING_FRIENDS_ALL_SUBFOLDER);
+	return INVENTORY_STRING_FRIENDS_ALL_SUBFOLDER;
 }
 
 void move_from_to_arrays(LLInventoryModel::cat_array_t& from, LLInventoryModel::cat_array_t& to)
@@ -350,9 +355,9 @@ const LLUUID& LLFriendCardsManager::findFriendAllSubfolderUUIDImpl() const
 	return findChildFolderUUID(friendFolderUUID, friendAllSubfolderName);
 }
 
-const LLUUID& LLFriendCardsManager::findChildFolderUUID(const LLUUID& parentFolderUUID, const std::string& localizedName) const
+const LLUUID& LLFriendCardsManager::findChildFolderUUID(const LLUUID& parentFolderUUID, const std::string& nonLocalizedName) const
 {
-	LLNameCategoryCollector matchFolderFunctor(localizedName);
+	LLNameCategoryCollector matchFolderFunctor(nonLocalizedName);
 
 	return get_folder_uuid(parentFolderUUID, matchFolderFunctor);
 }

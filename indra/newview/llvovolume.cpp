@@ -12,13 +12,13 @@
  * ("GPL"), unless you have obtained a separate licensing agreement
  * ("Other License"), formally executed by you and Linden Lab.  Terms of
  * the GPL can be found in doc/GPL-license.txt in this distribution, or
- * online at http://secondlifegrid.net/programs/open_source/licensing/gplv2
+ * online at http://secondlife.com/developers/opensource/gplv2
  * 
  * There are special exceptions to the terms and conditions of the GPL as
  * it is applied to this Source Code. View the full text of the exception
  * in the file doc/FLOSS-exception.txt in this software distribution, or
  * online at
- * http://secondlifegrid.net/programs/open_source/licensing/flossexception
+ * http://secondlife.com/developers/opensource/flossexception
  * 
  * By copying, modifying or distributing this software, you acknowledge
  * that you have read and understood your obligations described above,
@@ -28,6 +28,7 @@
  * WARRANTIES, EXPRESS, IMPLIED OR OTHERWISE, REGARDING ITS ACCURACY,
  * COMPLETENESS OR PERFORMANCE.
  * $/LicenseInfo$
+ * 
  */
 
 // A "volume" is a box, cylinder, sphere, or other primitive shape.
@@ -603,6 +604,9 @@ BOOL LLVOVolume::idleUpdate(LLAgent &agent, LLWorld &world, const F64 &time)
 {
 	LLViewerObject::idleUpdate(agent, world, time);
 
+	static LLFastTimer::DeclareTimer ftm("Volume");
+	LLFastTimer t(ftm);
+
 	if (mDead || mDrawable.isNull())
 	{
 		return TRUE;
@@ -622,6 +626,18 @@ BOOL LLVOVolume::idleUpdate(LLAgent &agent, LLWorld &world, const F64 &time)
 	if (mVolumeImpl)
 	{
 		mVolumeImpl->doIdleUpdate(agent, world, time);
+	}
+
+	const S32 MAX_ACTIVE_OBJECT_QUIET_FRAMES = 40;
+
+	if (mDrawable->isActive())
+	{
+		if (mDrawable->isRoot() && 
+			mDrawable->mQuietCount++ > MAX_ACTIVE_OBJECT_QUIET_FRAMES && 
+			(!mDrawable->getParent() || !mDrawable->getParent()->isActive()))
+		{
+			mDrawable->makeStatic();
+		}
 	}
 
 	return TRUE;
@@ -947,8 +963,11 @@ void LLVOVolume::updateSculptTexture()
 	if (isSculpted())
 	{
 		LLSculptParams *sculpt_params = (LLSculptParams *)getParameterEntry(LLNetworkData::PARAMS_SCULPT);
-		LLUUID id =  sculpt_params->getSculptTexture(); 
-		mSculptTexture = LLViewerTextureManager::getFetchedTexture(id, TRUE, LLViewerTexture::BOOST_NONE, LLViewerTexture::LOD_TEXTURE);
+		LLUUID id =  sculpt_params->getSculptTexture();
+		if (id.notNull())
+		{
+			mSculptTexture = LLViewerTextureManager::getFetchedTexture(id, TRUE, LLViewerTexture::BOOST_NONE, LLViewerTexture::LOD_TEXTURE);
+		}
 	}
 	else
 	{
@@ -1009,6 +1028,8 @@ void LLVOVolume::sculpt()
 		
 		if(!raw_image)
 		{
+			llassert(discard_level < 0) ;
+
 			sculpt_width = 0;
 			sculpt_height = 0;
 			sculpt_data = NULL ;
@@ -1040,7 +1061,6 @@ void LLVOVolume::sculpt()
 			if (volume != this && volume->getVolume() == getVolume())
 			{
 				gPipeline.markRebuild(volume->mDrawable, LLDrawable::REBUILD_GEOMETRY, FALSE);
-				volume->mSculptChanged = TRUE;
 			}
 		}
 	}
@@ -1072,7 +1092,7 @@ BOOL LLVOVolume::calcLOD()
 	S32 cur_detail = 0;
 	
 	F32 radius = getVolume()->mLODScaleBias.scaledVec(getScale()).length();
-	F32 distance = llmin(mDrawable->mDistanceWRTCamera, MAX_LOD_DISTANCE);
+	F32 distance = mDrawable->mDistanceWRTCamera; //llmin(mDrawable->mDistanceWRTCamera, MAX_LOD_DISTANCE);
 	distance *= sDistanceFactor;
 			
 	F32 rampDist = LLVOVolume::sLODFactor * 2;
@@ -1396,7 +1416,7 @@ BOOL LLVOVolume::updateGeometry(LLDrawable *drawable)
 		return res;
 	}
 	
-	dirtySpatialGroup();
+	dirtySpatialGroup(drawable->isState(LLDrawable::IN_REBUILD_Q1));
 
 	BOOL compiled = FALSE;
 			
@@ -1499,7 +1519,14 @@ void LLVOVolume::updateFaceSize(S32 idx)
 	else
 	{
 		const LLVolumeFace& vol_face = getVolume()->getVolumeFace(idx);
-		facep->setSize(vol_face.mVertices.size(), vol_face.mIndices.size());
+		if (LLPipeline::sUseTriStrips)
+		{
+			facep->setSize(vol_face.mVertices.size(), vol_face.mTriStrip.size());
+		}
+		else
+		{
+			facep->setSize(vol_face.mVertices.size(), vol_face.mIndices.size());
+		}
 	}
 }
 
@@ -3249,6 +3276,11 @@ void LLVolumeGeometryManager::registerFace(LLSpatialGroup* group, LLFace* facep,
 		draw_info->mExtents[0] = facep->mExtents[0];
 		draw_info->mExtents[1] = facep->mExtents[1];
 		validate_draw_info(*draw_info);
+
+		if (LLPipeline::sUseTriStrips)
+		{
+			draw_info->mDrawMode = LLRender::TRIANGLE_STRIP;
+		}
 	}
 }
 
@@ -3333,7 +3365,7 @@ void LLVolumeGeometryManager::rebuildGeom(LLSpatialGroup* group)
 			drawablep->updateFaceSize(i);
 			LLFace* facep = drawablep->getFace(i);
 
-			if (cur_total > max_total)
+			if (cur_total > max_total || facep->getIndicesCount() <= 0 || facep->getGeomCount() <= 0)
 			{
 				facep->mVertexBuffer = NULL;
 				facep->mLastVertexBuffer = NULL;

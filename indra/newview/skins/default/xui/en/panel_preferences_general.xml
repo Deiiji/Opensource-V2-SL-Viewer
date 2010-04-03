@@ -141,7 +141,34 @@
          label="General"
          name="Desired_PG"
          value="13" />
+        <combo_box.commit_callback
+		 function="Pref.MaturitySettings"/>
     </combo_box>
+    <icon
+     follows="left|top"
+     height="16"
+     image_name="Parcel_PG_Dark"
+     layout="topleft"
+     left_pad="5"
+     name="rating_icon_general"
+     top_delta="3"
+     width="18"/>
+    <icon
+     follows="left|top"
+     height="16"
+     image_name="Parcel_M_Dark"
+     layout="topleft"
+     left_pad="2"
+     name="rating_icon_moderate"
+     width="18"/>
+    <icon
+     follows="left|top"
+     height="16"
+     image_name="Parcel_R_Dark"
+     layout="topleft"
+     left_pad="2"
+     name="rating_icon_adult"
+     width="18"/>
     <text
      type="string"
      length="1"
@@ -338,12 +365,12 @@
       use_ellipses="false"
       hover="false"
      commit_on_focus_lost = "true"
-     follows="left|top"
+     follows="left|top|right"
      height="60"
      layout="topleft"
      left="50"
      name="busy_response"
-     width="440"
+     width="450"
      word_wrap="true">
        log_in_to_change
     </text_editor>

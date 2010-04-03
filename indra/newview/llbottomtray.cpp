@@ -12,13 +12,13 @@
  * ("GPL"), unless you have obtained a separate licensing agreement
  * ("Other License"), formally executed by you and Linden Lab.  Terms of
  * the GPL can be found in doc/GPL-license.txt in this distribution, or
- * online at http://secondlifegrid.net/programs/open_source/licensing/gplv2
+ * online at http://secondlife.com/developers/opensource/gplv2
  * 
  * There are special exceptions to the terms and conditions of the GPL as
  * it is applied to this Source Code. View the full text of the exception
  * in the file doc/FLOSS-exception.txt in this software distribution, or
  * online at
- * http://secondlifegrid.net/programs/open_source/licensing/flossexception
+ * http://secondlife.com/developers/opensource/flossexception
  * 
  * By copying, modifying or distributing this software, you acknowledge
  * that you have read and understood your obligations described above,
@@ -28,6 +28,7 @@
  * WARRANTIES, EXPRESS, IMPLIED OR OTHERWISE, REGARDING ITS ACCURACY,
  * COMPLETENESS OR PERFORMANCE.
  * $/LicenseInfo$
+ * 
  */
 
 #include "llviewerprecompiledheaders.h" // must be first include
@@ -70,6 +71,17 @@ namespace
 			stack->getPanelMinSize(panel->getName(), &minimal_width, NULL);
 		}
 		return minimal_width;
+	}
+
+	S32 get_panel_max_width(LLLayoutStack* stack, LLPanel* panel)
+	{
+		S32 max_width = 0;
+		llassert(stack);
+		if ( stack && panel && panel->getVisible() )
+		{
+			stack->getPanelMaxSize(panel->getName(), &max_width, NULL);
+		}
+		return max_width;
 	}
 
 	S32 get_curr_width(LLUICtrl* ctrl)
@@ -672,7 +684,7 @@ S32 LLBottomTray::processWidthDecreased(S32 delta_width)
 	}
 
 	const S32 chatbar_panel_width = mNearbyChatBar->getRect().getWidth();
-	const S32 chatbar_panel_min_width = mNearbyChatBar->getMinWidth();
+	const S32 chatbar_panel_min_width = get_panel_min_width(mToolbarStack, mNearbyChatBar);
 	if (still_should_be_processed && chatbar_panel_width > chatbar_panel_min_width)
 	{
 		// we have some space to decrease chatbar panel
@@ -745,11 +757,11 @@ void LLBottomTray::processWidthIncreased(S32 delta_width)
 	if (delta_width <= 0) return;
 
 	const S32 chiclet_panel_width = mChicletPanel->getParent()->getRect().getWidth();
-	const S32 chiclet_panel_min_width = mChicletPanel->getMinWidth();
+	static const S32 chiclet_panel_min_width = mChicletPanel->getMinWidth();
 
 	const S32 chatbar_panel_width = mNearbyChatBar->getRect().getWidth();
-	const S32 chatbar_panel_min_width = mNearbyChatBar->getMinWidth();
-	const S32 chatbar_panel_max_width = mNearbyChatBar->getMaxWidth();
+	static const S32 chatbar_panel_min_width = get_panel_min_width(mToolbarStack, mNearbyChatBar);
+	static const S32 chatbar_panel_max_width = get_panel_max_width(mToolbarStack, mNearbyChatBar);
 
 	const S32 chatbar_available_shrink_width = chatbar_panel_width - chatbar_panel_min_width;
 	const S32 available_width_chiclet = chiclet_panel_width - chiclet_panel_min_width;
@@ -926,13 +938,12 @@ void LLBottomTray::processShrinkButtons(S32* required_width, S32* buttons_freed_
 		}
 		else
 		{
-			//
-			mSpeakBtn->setLabelVisible(false);
 			S32 panel_width = mSpeakPanel->getRect().getWidth();
 			S32 possible_shrink_width = panel_width - panel_min_width;
 
 			if (possible_shrink_width > 0)
 			{
+				mSpeakBtn->setLabelVisible(false);
 				mSpeakPanel->reshape(panel_width - possible_shrink_width, mSpeakPanel->getRect().getHeight());
 
 				*required_width += possible_shrink_width;
@@ -1007,18 +1018,18 @@ void LLBottomTray::processExtendButtons(S32* available_width)
 
 	if (*available_width > 0)
 	{
-		processExtendButton(RS_BUTTON_CAMERA, available_width);
+		processExtendButton(RS_BUTTON_MOVEMENT, available_width);
 	}
 	if (*available_width > 0)
 	{
-		processExtendButton(RS_BUTTON_MOVEMENT, available_width);
+		processExtendButton(RS_BUTTON_CAMERA, available_width);
 	}
 	if (*available_width > 0)
 	{
 		S32 panel_max_width = mObjectDefaultWidthMap[RS_BUTTON_SPEAK];
 		S32 panel_width = mSpeakPanel->getRect().getWidth();
 		S32 possible_extend_width = panel_max_width - panel_width;
-		if (possible_extend_width > 0 && possible_extend_width <= *available_width)
+		if (possible_extend_width >= 0 && possible_extend_width <= *available_width)  // HACK: this button doesn't change size so possible_extend_width will be 0
 		{
 			mSpeakBtn->setLabelVisible(true);
 			mSpeakPanel->reshape(panel_max_width, mSpeakPanel->getRect().getHeight());
@@ -1187,7 +1198,7 @@ bool LLBottomTray::setVisibleAndFitWidths(EResizeState object_type, bool visible
 		{
 			// Calculate the possible shrunk width as difference between current and minimal widths
 			const S32 chatbar_shrunk_width =
-				mNearbyChatBar->getRect().getWidth() - mNearbyChatBar->getMinWidth();
+				mNearbyChatBar->getRect().getWidth() - get_panel_min_width(mToolbarStack, mNearbyChatBar);
 
 			const S32 sum_of_min_widths =
 				get_panel_min_width(mToolbarStack, mStateProcessedObjectMap[RS_BUTTON_CAMERA])   +
@@ -1211,8 +1222,8 @@ bool LLBottomTray::setVisibleAndFitWidths(EResizeState object_type, bool visible
 			if ( (available_width + possible_shrunk_width) >= minimal_width)
 			{
 				// There is enough space for minimal width, but set the result_width
-				// to current_width so buttons widths decreasing will be done in predefined order
-				result_width = current_width;
+				// to preferred_width so buttons widths decreasing will be done in predefined order
+				result_width = (preferred_width > 0) ? preferred_width : current_width;
 				decrease_width = true;
 			}
 			else

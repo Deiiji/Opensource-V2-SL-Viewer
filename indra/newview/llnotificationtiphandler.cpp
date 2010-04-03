@@ -12,13 +12,13 @@
  * ("GPL"), unless you have obtained a separate licensing agreement
  * ("Other License"), formally executed by you and Linden Lab.  Terms of
  * the GPL can be found in doc/GPL-license.txt in this distribution, or
- * online at http://secondlifegrid.net/programs/open_source/licensing/gplv2
+ * online at http://secondlife.com/developers/opensource/gplv2
  * 
  * There are special exceptions to the terms and conditions of the GPL as
  * it is applied to this Source Code. View the full text of the exception
  * in the file doc/FLOSS-exception.txt in this software distribution, or
  * online at
- * http://secondlifegrid.net/programs/open_source/licensing/flossexception
+ * http://secondlife.com/developers/opensource/flossexception
  * 
  * By copying, modifying or distributing this software, you acknowledge
  * that you have read and understood your obligations described above,
@@ -28,6 +28,7 @@
  * WARRANTIES, EXPRESS, IMPLIED OR OTHERWISE, REGARDING ITS ACCURACY,
  * COMPLETENESS OR PERFORMANCE.
  * $/LicenseInfo$
+ * 
  */
 
 
@@ -40,10 +41,11 @@
 #include "lltoastnotifypanel.h"
 #include "llviewercontrol.h"
 #include "llviewerwindow.h"
+#include "llnotificationmanager.h"
 
 using namespace LLNotificationsUI;
 
-class LLOnalineStatusToast : public LLToastPanel
+class LLOnlineStatusToast : public LLToastPanel
 {
 public:
 
@@ -56,9 +58,9 @@ public:
 		Params() {}
 	};
 
-	LLOnalineStatusToast(Params& p) : LLToastPanel(p.notification)
+	LLOnlineStatusToast(Params& p) : LLToastPanel(p.notification)
 	{
-		LLUICtrlFactory::getInstance()->buildPanel(this, "panel_online_status.xml");
+		LLUICtrlFactory::getInstance()->buildPanel(this, "panel_online_status_toast.xml");
 
 		childSetValue("avatar_icon", p.avatar_id);
 		childSetValue("message", p.message);
@@ -82,6 +84,10 @@ LLTipHandler::LLTipHandler(e_notification_type type, const LLSD& id)
 
 	// Getting a Channel for our notifications
 	mChannel = LLChannelManager::getInstance()->createNotificationChannel();
+
+	LLScreenChannel* channel = dynamic_cast<LLScreenChannel*>(mChannel);
+	if(channel)
+		channel->setOnRejectToastCallback(boost::bind(&LLTipHandler::onRejectToast, this, _1));
 }
 
 //--------------------------------------------------------------------------
@@ -145,14 +151,20 @@ bool LLTipHandler::processNotification(const LLSD& notify)
 			LLHandlerUtil::spawnIMSession(name, from_id);
 		}
 
+		// don't spawn toast for inventory accepted/declined offers if respective IM window is open (EXT-5909)
+		if (!LLHandlerUtil::canSpawnToast(notification))
+		{
+			return true;
+		}
+
 		LLToastPanel* notify_box = NULL;
 		if("FriendOffline" == notification->getName() || "FriendOnline" == notification->getName())
 		{
-			LLOnalineStatusToast::Params p;
+			LLOnlineStatusToast::Params p;
 			p.notification = notification;
 			p.message = notification->getMessage();
 			p.avatar_id = notification->getPayload()["FROM_ID"];
-			notify_box = new LLOnalineStatusToast(p);
+			notify_box = new LLOnlineStatusToast(p);
 		}
 		else
 		{
@@ -167,6 +179,8 @@ bool LLTipHandler::processNotification(const LLSD& notify)
 		p.is_tip = true;
 		p.can_be_stored = false;
 		
+		removeExclusiveNotifications(notification);
+
 		LLScreenChannel* channel = dynamic_cast<LLScreenChannel*>(mChannel);
 		if(channel)
 			channel->addToast(p);
@@ -185,4 +199,14 @@ void LLTipHandler::onDeleteToast(LLToast* toast)
 
 //--------------------------------------------------------------------------
 
+void LLTipHandler::onRejectToast(const LLUUID& id)
+{
+	LLNotificationPtr notification = LLNotifications::instance().find(id);
 
+	if (notification
+			&& LLNotificationManager::getInstance()->getHandlerForNotification(
+					notification->getType()) == this)
+	{
+		LLNotifications::instance().cancel(notification);
+	}
+}

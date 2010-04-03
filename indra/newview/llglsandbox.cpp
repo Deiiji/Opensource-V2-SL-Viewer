@@ -12,13 +12,13 @@
  * ("GPL"), unless you have obtained a separate licensing agreement
  * ("Other License"), formally executed by you and Linden Lab.  Terms of
  * the GPL can be found in doc/GPL-license.txt in this distribution, or
- * online at http://secondlifegrid.net/programs/open_source/licensing/gplv2
+ * online at http://secondlife.com/developers/opensource/gplv2
  * 
  * There are special exceptions to the terms and conditions of the GPL as
  * it is applied to this Source Code. View the full text of the exception
  * in the file doc/FLOSS-exception.txt in this software distribution, or
  * online at
- * http://secondlifegrid.net/programs/open_source/licensing/flossexception
+ * http://secondlife.com/developers/opensource/flossexception
  * 
  * By copying, modifying or distributing this software, you acknowledge
  * that you have read and understood your obligations described above,
@@ -28,6 +28,7 @@
  * WARRANTIES, EXPRESS, IMPLIED OR OTHERWISE, REGARDING ITS ACCURACY,
  * COMPLETENESS OR PERFORMANCE.
  * $/LicenseInfo$
+ * 
  */
 
 /** 
@@ -897,19 +898,21 @@ void LLViewerObjectList::renderObjectBeacons()
 		S32 last_line_width = -1;
 		// gGL.begin(LLRender::LINES); // Always happens in (line_width != last_line_width)
 		
-		for (S32 i = 0; i < mDebugBeacons.count(); i++)
+		BOOL flush = FALSE;
+		for (std::vector<LLDebugBeacon>::iterator iter = mDebugBeacons.begin(); iter != mDebugBeacons.end(); ++iter)
 		{
-			const LLDebugBeacon &debug_beacon = mDebugBeacons[i];
+			const LLDebugBeacon &debug_beacon = *iter;
 			LLColor4 color = debug_beacon.mColor;
 			color.mV[3] *= 0.25f;
 			S32 line_width = debug_beacon.mLineWidth;
 			if (line_width != last_line_width)
 			{
-				if (i > 0)
+				if (flush)
 				{
 					gGL.end();
-					gGL.flush();
 				}
+				flush = TRUE;
+				gGL.flush();
 				glLineWidth( (F32)line_width );
 				last_line_width = line_width;
 				gGL.begin(LLRender::LINES);
@@ -936,18 +939,20 @@ void LLViewerObjectList::renderObjectBeacons()
 		S32 last_line_width = -1;
 		// gGL.begin(LLRender::LINES); // Always happens in (line_width != last_line_width)
 		
-		for (S32 i = 0; i < mDebugBeacons.count(); i++)
+		BOOL flush = FALSE;
+		for (std::vector<LLDebugBeacon>::iterator iter = mDebugBeacons.begin(); iter != mDebugBeacons.end(); ++iter)
 		{
-			const LLDebugBeacon &debug_beacon = mDebugBeacons[i];
+			const LLDebugBeacon &debug_beacon = *iter;
 
 			S32 line_width = debug_beacon.mLineWidth;
 			if (line_width != last_line_width)
 			{
-				if (i > 0)
+				if (flush)
 				{
 					gGL.end();
-					gGL.flush();
 				}
+				flush = TRUE;
+				gGL.flush();
 				glLineWidth( (F32)line_width );
 				last_line_width = line_width;
 				gGL.begin(LLRender::LINES);
@@ -969,9 +974,9 @@ void LLViewerObjectList::renderObjectBeacons()
 		gGL.flush();
 		glLineWidth(1.f);
 
-		for (S32 i = 0; i < mDebugBeacons.count(); i++)
+		for (std::vector<LLDebugBeacon>::iterator iter = mDebugBeacons.begin(); iter != mDebugBeacons.end(); ++iter)
 		{
-			LLDebugBeacon &debug_beacon = mDebugBeacons[i];
+			LLDebugBeacon &debug_beacon = *iter;
 			if (debug_beacon.mString == "")
 			{
 				continue;

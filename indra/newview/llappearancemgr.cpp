@@ -12,13 +12,13 @@
  * ("GPL"), unless you have obtained a separate licensing agreement
  * ("Other License"), formally executed by you and Linden Lab.  Terms of
  * the GPL can be found in doc/GPL-license.txt in this distribution, or
- * online at http://secondlifegrid.net/programs/open_source/licensing/gplv2
+ * online at http://secondlife.com/developers/opensource/gplv2
  * 
  * There are special exceptions to the terms and conditions of the GPL as
  * it is applied to this Source Code. View the full text of the exception
  * in the file doc/FLOSS-exception.txt in this software distribution, or
  * online at
- * http://secondlifegrid.net/programs/open_source/licensing/flossexception
+ * http://secondlife.com/developers/opensource/flossexception
  * 
  * By copying, modifying or distributing this software, you acknowledge
  * that you have read and understood your obligations described above,
@@ -28,6 +28,7 @@
  * WARRANTIES, EXPRESS, IMPLIED OR OTHERWISE, REGARDING ITS ACCURACY,
  * COMPLETENESS OR PERFORMANCE.
  * $/LicenseInfo$
+ * 
  */
 
 #include "llviewerprecompiledheaders.h"
@@ -301,50 +302,52 @@ void LLOutfitFetch::done()
 	delete this;
 }
 
-class LLUpdateAppearanceOnDestroy: public LLInventoryCallback
+LLUpdateAppearanceOnDestroy::LLUpdateAppearanceOnDestroy():
+	mFireCount(0)
 {
-public:
-	LLUpdateAppearanceOnDestroy():
-		mFireCount(0)
-	{
-	}
+}
 
-	virtual ~LLUpdateAppearanceOnDestroy()
+LLUpdateAppearanceOnDestroy::~LLUpdateAppearanceOnDestroy()
+{
+	llinfos << "done update appearance on destroy" << llendl;
+	
+	if (!LLApp::isExiting())
 	{
-		llinfos << "done update appearance on destroy" << llendl;
-
-		if (!LLApp::isExiting())
-		{
-			LLAppearanceManager::instance().updateAppearanceFromCOF();
-		}
+		LLAppearanceManager::instance().updateAppearanceFromCOF();
 	}
+}
 
-	/* virtual */ void fire(const LLUUID& inv_item)
-	{
-		llinfos << "callback fired" << llendl;
-		mFireCount++;
-	}
-private:
-	U32 mFireCount;
-};
+void LLUpdateAppearanceOnDestroy::fire(const LLUUID& inv_item)
+{
+	llinfos << "callback fired" << llendl;
+	mFireCount++;
+}
 
 struct LLFoundData
 {
-	LLFoundData() : mAssetType(LLAssetType::AT_NONE), mWearable(NULL) {}
+	LLFoundData() :
+		mAssetType(LLAssetType::AT_NONE),
+		mWearableType(WT_INVALID),
+		mWearable(NULL) {}
+
 	LLFoundData(const LLUUID& item_id,
-		    const LLUUID& asset_id,
-		    const std::string& name,
-		    LLAssetType::EType asset_type) :
+				const LLUUID& asset_id,
+				const std::string& name,
+				const LLAssetType::EType& asset_type,
+				const EWearableType& wearable_type
+		) :
 		mItemID(item_id),
 		mAssetID(asset_id),
 		mName(name),
 		mAssetType(asset_type),
+		mWearableType(wearable_type),
 		mWearable( NULL ) {}
 	
 	LLUUID mItemID;
 	LLUUID mAssetID;
 	std::string mName;
 	LLAssetType::EType mAssetType;
+	EWearableType mWearableType;
 	LLWearable* mWearable;
 };
 
@@ -355,14 +358,26 @@ public:
 	LLWearableHoldingPattern();
 	~LLWearableHoldingPattern();
 
-	bool pollCompletion();
+	bool pollFetchCompletion();
+	void onFetchCompletion();
 	bool isFetchCompleted();
 	bool isTimedOut();
+
+	void checkMissingWearables();
+	bool pollMissingWearables();
+	bool isMissingCompleted();
+	void recoverMissingWearable(EWearableType type);
+	void clearCOFLinksForMissingWearables();
+	
+	void onAllComplete();
 	
 	typedef std::list<LLFoundData> found_list_t;
 	found_list_t mFoundList;
 	LLInventoryModel::item_array_t mObjItems;
 	LLInventoryModel::item_array_t mGestItems;
+	typedef std::set<S32> type_set_t;
+	type_set_t mTypesToRecover;
+	type_set_t mTypesToLink;
 	S32 mResolved;
 	LLTimer mWaitTime;
 	bool mFired;
@@ -385,20 +400,107 @@ bool LLWearableHoldingPattern::isFetchCompleted()
 
 bool LLWearableHoldingPattern::isTimedOut()
 {
-	static F32 max_wait_time = 20.0;  // give up if wearable fetches haven't completed in max_wait_time seconds.
+	static F32 max_wait_time = 60.0;  // give up if wearable fetches haven't completed in max_wait_time seconds.
 	return mWaitTime.getElapsedTimeF32() > max_wait_time; 
 }
 
-bool LLWearableHoldingPattern::pollCompletion()
+void LLWearableHoldingPattern::checkMissingWearables()
+{
+	std::vector<S32> found_by_type(WT_COUNT,0);
+	std::vector<S32> requested_by_type(WT_COUNT,0);
+	for (found_list_t::iterator it = mFoundList.begin(); it != mFoundList.end(); ++it)
+	{
+		LLFoundData &data = *it;
+		if (data.mWearableType < WT_COUNT)
+			requested_by_type[data.mWearableType]++;
+		if (data.mWearable)
+			found_by_type[data.mWearableType]++;
+	}
+
+	for (S32 type = 0; type < WT_COUNT; ++type)
+	{
+		llinfos << "type " << type << " requested " << requested_by_type[type] << " found " << found_by_type[type] << llendl;
+		if (found_by_type[type] > 0)
+			continue;
+		if (
+			// Need to recover if at least one wearable of that type
+			// was requested but none was found (prevent missing
+			// pants)
+			(requested_by_type[type] > 0) ||  
+			// or if type is a body part and no wearables were found.
+			((type == WT_SHAPE) || (type == WT_SKIN) || (type == WT_HAIR) || (type == WT_EYES)))
+		{
+			mTypesToRecover.insert(type);
+			mTypesToLink.insert(type);
+			recoverMissingWearable((EWearableType)type);
+			llwarns << "need to replace " << type << llendl; 
+		}
+	}
+
+	mWaitTime.reset();
+	if (!pollMissingWearables())
+	{
+		doOnIdleRepeating(boost::bind(&LLWearableHoldingPattern::pollMissingWearables,this));
+	}
+}
+
+void LLWearableHoldingPattern::onAllComplete()
+{
+	// Activate all gestures in this folder
+	if (mGestItems.count() > 0)
+	{
+		llinfos << "Activating " << mGestItems.count() << " gestures" << llendl;
+		
+		LLGestureManager::instance().activateGestures(mGestItems);
+		
+		// Update the inventory item labels to reflect the fact
+		// they are active.
+		LLViewerInventoryCategory* catp =
+			gInventory.getCategory(LLAppearanceManager::instance().getCOF());
+		
+		if (catp)
+		{
+			gInventory.updateCategory(catp);
+			gInventory.notifyObservers();
+		}
+	}
+
+	// Update wearables.
+	llinfos << "Updating agent wearables with " << mResolved << " wearable items " << llendl;
+	LLAppearanceManager::instance().updateAgentWearables(this, false);
+	
+	// Update attachments to match those requested.
+	LLVOAvatar* avatar = gAgent.getAvatarObject();
+	if( avatar )
+	{
+		llinfos << "Updating " << mObjItems.count() << " attachments" << llendl;
+		LLAgentWearables::userUpdateAttachments(mObjItems);
+	}
+
+	if (isFetchCompleted() && isMissingCompleted())
+	{
+		// Only safe to delete if all wearable callbacks and all missing wearables completed.
+		delete this;
+	}
+}
+
+void LLWearableHoldingPattern::onFetchCompletion()
+{
+	checkMissingWearables();
+}
+
+// Runs as an idle callback until all wearables are fetched (or we time out).
+bool LLWearableHoldingPattern::pollFetchCompletion()
 {
 	bool completed = isFetchCompleted();
 	bool timed_out = isTimedOut();
 	bool done = completed || timed_out;
-	
-	llinfos << "polling, done status: " << completed << " timed out? " << timed_out << " elapsed " << mWaitTime.getElapsedTimeF32() << llendl;
 
 	if (done)
 	{
+		llinfos << "polling, done status: " << completed << " timed out " << timed_out
+				<< " elapsed " << mWaitTime.getElapsedTimeF32() << llendl;
+
 		mFired = true;
 		
 		if (timed_out)
@@ -406,45 +508,195 @@ bool LLWearableHoldingPattern::pollCompletion()
 			llwarns << "Exceeded max wait time for wearables, updating appearance based on what has arrived" << llendl;
 		}
 
-		// Activate all gestures in this folder
-		if (mGestItems.count() > 0)
-		{
-			llinfos << "Activating " << mGestItems.count() << " gestures" << llendl;
-			
-			LLGestureManager::instance().activateGestures(mGestItems);
-			
-			// Update the inventory item labels to reflect the fact
-			// they are active.
-			LLViewerInventoryCategory* catp =
-				gInventory.getCategory(LLAppearanceManager::instance().getCOF());
-
-			if (catp)
-			{
-				gInventory.updateCategory(catp);
-				gInventory.notifyObservers();
-			}
-		}
-
-		// Update wearables.
-		llinfos << "Updating agent wearables with " << mResolved << " wearable items " << llendl;
-		LLAppearanceManager::instance().updateAgentWearables(this, false);
-		
-		// Update attachments to match those requested.
-		LLVOAvatar* avatar = gAgent.getAvatarObject();
-		if( avatar )
-		{
-			llinfos << "Updating " << mObjItems.count() << " attachments" << llendl;
-			LLAgentWearables::userUpdateAttachments(mObjItems);
-		}
-
-		if (completed)
-		{
-			// Only safe to delete if all wearable callbacks completed.
-			delete this;
-		}
+		onFetchCompletion();
 	}
 	return done;
 }
+
+class RecoveredItemLinkCB: public LLInventoryCallback
+{
+public:
+	RecoveredItemLinkCB(EWearableType type, LLWearable *wearable, LLWearableHoldingPattern* holder):
+		mHolder(holder),
+		mWearable(wearable),
+		mType(type)
+	{
+	}
+	void fire(const LLUUID& item_id)
+	{
+		llinfos << "Recovered item link for type " << mType << llendl;
+		mHolder->mTypesToLink.erase(mType);
+		// Add wearable to FoundData for actual wearing
+		LLViewerInventoryItem *item = gInventory.getItem(item_id);
+		LLViewerInventoryItem *linked_item = item ? item->getLinkedItem() : NULL;
+
+		if (linked_item)
+		{
+			gInventory.addChangedMask(LLInventoryObserver::LABEL, linked_item->getUUID());
+			
+			if (item)
+			{
+				LLFoundData found(linked_item->getUUID(),
+						  linked_item->getAssetUUID(),
+						  linked_item->getName(),
+						  linked_item->getType(),
+						  linked_item->isWearableType() ? linked_item->getWearableType() : WT_INVALID
+						  );
+				found.mWearable = mWearable;
+				mHolder->mFoundList.push_front(found);
+			}
+			else
+			{
+				llwarns << "inventory item not found for recovered wearable" << llendl;
+			}
+		}
+		else
+		{
+			llwarns << "inventory link not found for recovered wearable" << llendl;
+		}
+	}
+private:
+	LLWearableHoldingPattern* mHolder;
+	LLWearable *mWearable;
+	EWearableType mType;
+};
+
+class RecoveredItemCB: public LLInventoryCallback
+{
+public:
+	RecoveredItemCB(EWearableType type, LLWearable *wearable, LLWearableHoldingPattern* holder):
+		mHolder(holder),
+		mWearable(wearable),
+		mType(type)
+	{
+	}
+	void fire(const LLUUID& item_id)
+	{
+		llinfos << "Recovered item for type " << mType << llendl;
+		LLViewerInventoryItem *itemp = gInventory.getItem(item_id);
+		mWearable->setItemID(item_id);
+		LLPointer<LLInventoryCallback> cb = new RecoveredItemLinkCB(mType,mWearable,mHolder);
+		mHolder->mTypesToRecover.erase(mType);
+		llassert(itemp);
+		if (itemp)
+		{
+			link_inventory_item( gAgent.getID(),
+					     item_id,
+					     LLAppearanceManager::instance().getCOF(),
+					     itemp->getName(),
+					     LLAssetType::AT_LINK,
+					     cb);
+		}
+	}
+private:
+	LLWearableHoldingPattern* mHolder;
+	LLWearable *mWearable;
+	EWearableType mType;
+};
+
+void LLWearableHoldingPattern::recoverMissingWearable(EWearableType type)
+{
+		// Try to recover by replacing missing wearable with a new one.
+	LLNotificationsUtil::add("ReplacedMissingWearable");
+	lldebugs << "Wearable " << LLWearableDictionary::getTypeLabel(type)
+			 << " could not be downloaded.  Replaced inventory item with default wearable." << llendl;
+	LLWearable* wearable = LLWearableList::instance().createNewWearable(type);
+
+	// Add a new one in the lost and found folder.
+	const LLUUID lost_and_found_id = gInventory.findCategoryUUIDForType(LLFolderType::FT_LOST_AND_FOUND);
+	LLPointer<LLInventoryCallback> cb = new RecoveredItemCB(type,wearable,this);
+
+	create_inventory_item(gAgent.getID(),
+						  gAgent.getSessionID(),
+						  lost_and_found_id,
+						  wearable->getTransactionID(),
+						  wearable->getName(),
+						  wearable->getDescription(),
+						  wearable->getAssetType(),
+						  LLInventoryType::IT_WEARABLE,
+						  wearable->getType(),
+						  wearable->getPermissions().getMaskNextOwner(),
+						  cb);
+}
+
+bool LLWearableHoldingPattern::isMissingCompleted()
+{
+	return mTypesToLink.size()==0 && mTypesToRecover.size()==0;
+}
+
+void LLWearableHoldingPattern::clearCOFLinksForMissingWearables()
+{
+	for (found_list_t::iterator it = mFoundList.begin(); it != mFoundList.end(); ++it)
+	{
+		LLFoundData &data = *it;
+		if ((data.mWearableType < WT_COUNT) && (!data.mWearable))
+		{
+			// Wearable link that was never resolved; remove links to it from COF
+			llinfos << "removing link for unresolved item " << data.mItemID.asString() << llendl;
+			LLAppearanceManager::instance().removeCOFItemLinks(data.mItemID,false);
+		}
+	}
+}
+
+bool LLWearableHoldingPattern::pollMissingWearables()
+{
+	bool timed_out = isTimedOut();
+	bool missing_completed = isMissingCompleted();
+	bool done = timed_out || missing_completed;
+	
+	llinfos << "polling missing wearables, waiting for items " << mTypesToRecover.size()
+			<< " links " << mTypesToLink.size()
+			<< " wearables, timed out " << timed_out
+			<< " elapsed " << mWaitTime.getElapsedTimeF32()
+			<< " done " << done << llendl;
+
+	if (done)
+	{
+		clearCOFLinksForMissingWearables();
+		onAllComplete();
+	}
+	return done;
+}
+
+static void onWearableAssetFetch(LLWearable* wearable, void* data)
+{
+	LLWearableHoldingPattern* holder = (LLWearableHoldingPattern*)data;
+	holder->mResolved += 1;  // just counting callbacks, not successes.
+	llinfos << "onWearableAssetFetch, resolved count " << holder->mResolved << " of requested " << holder->mFoundList.size() << llendl;
+	if (wearable)
+	{
+		llinfos << "wearable found, type " << wearable->getType() << " asset " << wearable->getAssetID() << llendl;
+	}
+	else
+	{
+		llwarns << "no wearable found" << llendl;
+	}
+
+	if (holder->mFired)
+	{
+		llwarns << "called after holder fired" << llendl;
+		return;
+	}
+
+	if (!wearable)
+	{
+		return;
+	}
+
+	for (LLWearableHoldingPattern::found_list_t::iterator iter = holder->mFoundList.begin();
+		 iter != holder->mFoundList.end(); ++iter)
+	{
+		LLFoundData& data = *iter;
+		if(wearable->getAssetID() == data.mAssetID)
+		{
+			data.mWearable = wearable;
+			// Failing this means inventory or asset server are corrupted in a way we don't handle.
+			llassert((data.mWearableType < WT_COUNT) && (wearable->getType() == data.mWearableType));
+			break;
+		}
+	}
+}
+
 
 static void removeDuplicateItems(LLInventoryModel::item_array_t& items)
 {
@@ -471,30 +723,6 @@ static void removeDuplicateItems(LLInventoryModel::item_array_t& items)
 		new_items.put(*it);
 	}
 	items = new_items;
-}
-
-static void onWearableAssetFetch(LLWearable* wearable, void* data)
-{
-	LLWearableHoldingPattern* holder = (LLWearableHoldingPattern*)data;
-	if (holder->mFired)
-	{
-		llwarns << "called after holder fired" << llendl;
-	}
-
-	if(wearable)
-	{
-		for (LLWearableHoldingPattern::found_list_t::iterator iter = holder->mFoundList.begin();
-			 iter != holder->mFoundList.end(); ++iter)
-		{
-			LLFoundData& data = *iter;
-			if(wearable->getAssetID() == data.mAssetID)
-			{
-				data.mWearable = wearable;
-				break;
-			}
-		}
-	}
-	holder->mResolved += 1;
 }
 
 const LLUUID LLAppearanceManager::getCOF() const
@@ -581,46 +809,90 @@ void LLAppearanceManager::shallowCopyCategory(const LLUUID& src_id, const LLUUID
 void LLAppearanceManager::shallowCopyCategoryContents(const LLUUID& src_id, const LLUUID& dst_id,
 													  LLPointer<LLInventoryCallback> cb)
 {
-	LLInventoryModel::cat_array_t cats;
-	LLInventoryModel::item_array_t items;
-	gInventory.collectDescendents(src_id, cats, items,
-								  LLInventoryModel::EXCLUDE_TRASH);
-	for (S32 i = 0; i < items.count(); ++i)
+	LLInventoryModel::cat_array_t* cats;
+	LLInventoryModel::item_array_t* items;
+	gInventory.getDirectDescendentsOf(src_id, cats, items);
+	for (LLInventoryModel::item_array_t::const_iterator iter = items->begin();
+		 iter != items->end();
+		 ++iter)
 	{
-		const LLViewerInventoryItem* item = items.get(i).get();
-		if (item->getActualType() == LLAssetType::AT_LINK)
+		const LLViewerInventoryItem* item = (*iter);
+		switch (item->getActualType())
 		{
-			link_inventory_item(gAgent.getID(),
-								item->getLinkedUUID(),
-								dst_id,
-								item->getName(),
-								LLAssetType::AT_LINK, cb);
-		}
-		else if (item->getActualType() == LLAssetType::AT_LINK_FOLDER)
-		{
-			LLViewerInventoryCategory *catp = item->getLinkedCategory();
-			// Skip copying outfit links.
-			if (catp && catp->getPreferredType() != LLFolderType::FT_OUTFIT)
+			case LLAssetType::AT_LINK:
 			{
 				link_inventory_item(gAgent.getID(),
 									item->getLinkedUUID(),
 									dst_id,
 									item->getName(),
-									LLAssetType::AT_LINK_FOLDER, cb);
+									LLAssetType::AT_LINK, cb);
+				break;
 			}
-		}
-		else
-		{
-			copy_inventory_item(
-				gAgent.getID(),
-				item->getPermissions().getOwner(),
-				item->getUUID(),
-				dst_id,
-				item->getName(),
-				cb);
+			case LLAssetType::AT_LINK_FOLDER:
+			{
+				LLViewerInventoryCategory *catp = item->getLinkedCategory();
+				// Skip copying outfit links.
+				if (catp && catp->getPreferredType() != LLFolderType::FT_OUTFIT)
+				{
+					link_inventory_item(gAgent.getID(),
+										item->getLinkedUUID(),
+										dst_id,
+										item->getName(),
+										LLAssetType::AT_LINK_FOLDER, cb);
+				}
+				break;
+			}
+			case LLAssetType::AT_CLOTHING:
+			case LLAssetType::AT_OBJECT:
+			case LLAssetType::AT_BODYPART:
+			case LLAssetType::AT_GESTURE:
+			{
+				copy_inventory_item(gAgent.getID(),
+									item->getPermissions().getOwner(),
+									item->getUUID(),
+									dst_id,
+									item->getName(),
+									cb);
+				break;
+			}
+			default:
+				// Ignore non-outfit asset types
+				break;
 		}
 	}
 }
+
+BOOL LLAppearanceManager::getCanMakeFolderIntoOutfit(const LLUUID& folder_id)
+{
+	// These are the wearable items that are required for considering this
+	// folder as containing a complete outfit.
+	U32 required_wearables = 0;
+	required_wearables |= 1LL << WT_SHAPE;
+	required_wearables |= 1LL << WT_SKIN;
+	required_wearables |= 1LL << WT_HAIR;
+	required_wearables |= 1LL << WT_EYES;
+
+	// These are the wearables that the folder actually contains.
+	U32 folder_wearables = 0;
+	LLInventoryModel::cat_array_t* cats;
+	LLInventoryModel::item_array_t* items;
+	gInventory.getDirectDescendentsOf(folder_id, cats, items);
+	for (LLInventoryModel::item_array_t::const_iterator iter = items->begin();
+		 iter != items->end();
+		 ++iter)
+	{
+		const LLViewerInventoryItem* item = (*iter);
+		if (item->isWearableType())
+		{
+			const EWearableType wearable_type = item->getWearableType();
+			folder_wearables |= 1LL << wearable_type;
+		}
+	}
+
+	// If the folder contains the required wearables, return TRUE.
+	return ((required_wearables & folder_wearables) == required_wearables);
+}
+
 
 void LLAppearanceManager::purgeBaseOutfitLink(const LLUUID& category)
 {
@@ -718,7 +990,8 @@ void LLAppearanceManager::linkAll(const LLUUID& category,
 
 void LLAppearanceManager::updateCOF(const LLUUID& category, bool append)
 {
-	llinfos << "starting" << llendl;
+	LLViewerInventoryCategory *pcat = gInventory.getCategory(category);
+	llinfos << "starting, cat " << (pcat ? pcat->getName() : "[UNKNOWN]") << llendl;
 
 	const LLUUID cof = getCOF();
 
@@ -858,6 +1131,22 @@ void LLAppearanceManager::updateAgentWearables(LLWearableHoldingPattern* holder,
 //	dec_busy_count();
 }
 
+static void remove_non_link_items(LLInventoryModel::item_array_t &items)
+{
+	LLInventoryModel::item_array_t pruned_items;
+	for (LLInventoryModel::item_array_t::const_iterator iter = items.begin();
+		 iter != items.end();
+		 ++iter)
+	{
+ 		const LLViewerInventoryItem *item = (*iter);
+		if (item && item->getIsLinkType())
+		{
+			pruned_items.push_back((*iter));
+		}
+	}
+	items = pruned_items;
+}
+
 void LLAppearanceManager::updateAppearanceFromCOF()
 {
 	// update dirty flag to see if the state of the COF matches
@@ -871,13 +1160,17 @@ void LLAppearanceManager::updateAppearanceFromCOF()
 	bool follow_folder_links = true;
 	LLUUID current_outfit_id = getCOF();
 
-	// Find all the wearables that are in the COF's subtree.	
+	// Find all the wearables that are in the COF's subtree.
 	lldebugs << "LLAppearanceManager::updateFromCOF()" << llendl;
 	LLInventoryModel::item_array_t wear_items;
 	LLInventoryModel::item_array_t obj_items;
 	LLInventoryModel::item_array_t gest_items;
 	getUserDescendents(current_outfit_id, wear_items, obj_items, gest_items, follow_folder_links);
-	
+	// Get rid of non-links in case somehow the COF was corrupted.
+	remove_non_link_items(wear_items);
+	remove_non_link_items(obj_items);
+	remove_non_link_items(gest_items);
+
 	if(!wear_items.count())
 	{
 		LLNotificationsUtil::add("CouldNotPutOnOutfit");
@@ -893,17 +1186,34 @@ void LLAppearanceManager::updateAppearanceFromCOF()
 	// wearables can be resolved immediately, then the
 	// callback will be called (and this object deleted)
 	// before the final getNextData().
+
+	// BAP future cleanup - no point having found_container when
+	// mFoundList already has all the info.
 	LLDynamicArray<LLFoundData> found_container;
 	for(S32 i = 0; i  < wear_items.count(); ++i)
 	{
 		LLViewerInventoryItem *item = wear_items.get(i);
 		LLViewerInventoryItem *linked_item = item ? item->getLinkedItem() : NULL;
-		if (item && linked_item)
+		if (item && item->getIsLinkType() && linked_item)
 		{
 			LLFoundData found(linked_item->getUUID(),
 							  linked_item->getAssetUUID(),
 							  linked_item->getName(),
-							  linked_item->getType());
+							  linked_item->getType(),
+							  linked_item->isWearableType() ? linked_item->getWearableType() : WT_INVALID
+				);
+
+#if 0
+			// Fault injection: uncomment this block to test asset
+			// fetch failures (should be replaced by new defaults in
+			// lost&found).
+			if (found.mWearableType == WT_SHAPE || found.mWearableType == WT_JACKET)
+			{
+				found.mAssetID.generate(); // Replace with new UUID, guaranteed not to exist in DB
+				
+			}
+#endif
+
 			holder->mFoundList.push_front(found);
 			found_container.put(found);
 		}
@@ -911,11 +1221,11 @@ void LLAppearanceManager::updateAppearanceFromCOF()
 		{
 			if (!item)
 			{
-				llwarns << "attempt to wear a null item " << llendl;
+				llwarns << "Attempt to wear a null item " << llendl;
 			}
 			else if (!linked_item)
 			{
-				llwarns << "attempt to wear a broken link " << item->getName() << llendl;
+				llwarns << "Attempt to wear a broken link [ name:" << item->getName() << " ] " << llendl;
 			}
 		}
 	}
@@ -923,7 +1233,9 @@ void LLAppearanceManager::updateAppearanceFromCOF()
 	for(S32 i = 0; i < found_container.count(); ++i)
 	{
 		LLFoundData& found = found_container.get(i);
-				
+
+		llinfos << "waiting for onWearableAssetFetch callback, asset " << found.mAssetID.asString() << llendl;
+
 		// Fetch the wearables about to be worn.
 		LLWearableList::instance().getAsset(found.mAssetID,
 											found.mName,
@@ -933,9 +1245,9 @@ void LLAppearanceManager::updateAppearanceFromCOF()
 
 	}
 
-	if (!holder->pollCompletion())
+	if (!holder->pollFetchCompletion())
 	{
-		doOnIdleRepeating(boost::bind(&LLWearableHoldingPattern::pollCompletion,holder));
+		doOnIdleRepeating(boost::bind(&LLWearableHoldingPattern::pollFetchCompletion,holder));
 	}
 
 }
@@ -1442,6 +1754,13 @@ BOOL LLAppearanceManager::getIsInCOF(const LLUUID& obj_id) const
 BOOL LLAppearanceManager::getIsProtectedCOFItem(const LLUUID& obj_id) const
 {
 	if (!getIsInCOF(obj_id)) return FALSE;
+
+	// If a non-link somehow ended up in COF, allow deletion.
+	const LLInventoryObject *obj = gInventory.getObject(obj_id);
+	if (obj && !obj->getIsLinkType())
+	{
+		return FALSE;
+	}
 
 	// For now, don't allow direct deletion from the COF.  Instead, force users
 	// to choose "Detach" or "Take Off".

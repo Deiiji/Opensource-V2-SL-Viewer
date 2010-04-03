@@ -12,13 +12,13 @@
  * ("GPL"), unless you have obtained a separate licensing agreement
  * ("Other License"), formally executed by you and Linden Lab.  Terms of
  * the GPL can be found in doc/GPL-license.txt in this distribution, or
- * online at http://secondlifegrid.net/programs/open_source/licensing/gplv2
+ * online at http://secondlife.com/developers/opensource/gplv2
  * 
  * There are special exceptions to the terms and conditions of the GPL as
  * it is applied to this Source Code. View the full text of the exception
  * in the file doc/FLOSS-exception.txt in this software distribution, or
  * online at
- * http://secondlifegrid.net/programs/open_source/licensing/flossexception
+ * http://secondlife.com/developers/opensource/flossexception
  * 
  * By copying, modifying or distributing this software, you acknowledge
  * that you have read and understood your obligations described above,
@@ -28,6 +28,7 @@
  * WARRANTIES, EXPRESS, IMPLIED OR OTHERWISE, REGARDING ITS ACCURACY,
  * COMPLETENESS OR PERFORMANCE.
  * $/LicenseInfo$
+ * 
  */
 
 #include "llviewerprecompiledheaders.h"
@@ -338,7 +339,12 @@ void LLViewerCamera::setPerspective(BOOL for_selection,
 	{
 		// make a tiny little viewport
 		// anything drawn into this viewport will be "selected"
-		GLint*		viewport = (GLint*) gGLViewport;
+
+		GLint viewport[4];
+		viewport[0] = gViewerWindow->getWorldViewRectRaw().mLeft;
+		viewport[1] = gViewerWindow->getWorldViewRectRaw().mBottom;
+		viewport[2] = gViewerWindow->getWorldViewRectRaw().getWidth();
+		viewport[3] = gViewerWindow->getWorldViewRectRaw().getHeight();
 		
 		proj_mat = gl_pick_matrix(x+width/2.f, y_from_bot+height/2.f, (GLfloat) width, (GLfloat) height, viewport);
 
@@ -405,6 +411,9 @@ void LLViewerCamera::setPerspective(BOOL for_selection,
 	
 	if (for_selection && (width > 1 || height > 1))
 	{
+		// NB: as of this writing, i believe the code below is broken (doesn't take into account the world view, assumes entire window)
+		// however, it is also unused (the GL matricies are used for selection, (see LLCamera::sphereInFrustum())) and so i'm not
+		// comfortable hacking on it.
 		calculateFrustumPlanesFromWindow((F32)(x - width / 2) / (F32)gViewerWindow->getWindowWidthScaled() - 0.5f,
 								(F32)(y_from_bot - height / 2) / (F32)gViewerWindow->getWindowHeightScaled() - 0.5f,
 								(F32)(x + width / 2) / (F32)gViewerWindow->getWindowWidthScaled() - 0.5f,

@@ -1,9 +1,8 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes" ?>
 <panel
  label="General"
- follows="all"
  height="604"
- width="303"
+ width="304"
  class="panel_group_general"
  name="general_tab">
     <panel.string
@@ -26,7 +25,7 @@ Hover your mouse over the options for more help.
       top="0"
       left="0"
       height="129"
-      width="313"
+      width="304"
       layout="topleft">
     <texture_picker
      follows="left|top"
@@ -242,14 +241,17 @@ Hover your mouse over the options for more help.
          tool_tip="Sets whether your group contains information rated as Moderate"
          top_pad="4"
          width="190">
+			<combo_item name="select_mature" value="Select">
+			- Select Mature -
+			</combo_item>
+            <combo_box.item
+             label="Moderate Content"
+             name="mature"
+             value="Mature" />
             <combo_box.item
              label="General Content"
              name="pg"
              value="Not Mature" />
-             <combo_box.item
-             label="Moderate Content"
-             name="mature"
-             value="Mature" />
         </combo_box>
         <check_box
          follows="left|top"

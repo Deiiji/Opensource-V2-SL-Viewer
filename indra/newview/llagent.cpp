@@ -12,13 +12,13 @@
  * ("GPL"), unless you have obtained a separate licensing agreement
  * ("Other License"), formally executed by you and Linden Lab.  Terms of
  * the GPL can be found in doc/GPL-license.txt in this distribution, or
- * online at http://secondlifegrid.net/programs/open_source/licensing/gplv2
+ * online at http://secondlife.com/developers/opensource/gplv2
  * 
  * There are special exceptions to the terms and conditions of the GPL as
  * it is applied to this Source Code. View the full text of the exception
  * in the file doc/FLOSS-exception.txt in this software distribution, or
  * online at
- * http://secondlifegrid.net/programs/open_source/licensing/flossexception
+ * http://secondlife.com/developers/opensource/flossexception
  * 
  * By copying, modifying or distributing this software, you acknowledge
  * that you have read and understood your obligations described above,
@@ -28,6 +28,7 @@
  * WARRANTIES, EXPRESS, IMPLIED OR OTHERWISE, REGARDING ITS ACCURACY,
  * COMPLETENESS OR PERFORMANCE.
  * $/LicenseInfo$
+ * 
  */
 
 #include "llviewerprecompiledheaders.h"
@@ -3018,6 +3019,9 @@ void LLAgent::endAnimationUpdateUI()
 //-----------------------------------------------------------------------------
 void LLAgent::updateCamera()
 {
+	static LLFastTimer::DeclareTimer ftm("Camera");
+	LLFastTimer t(ftm);
+
 	//Ventrella - changed camera_skyward to the new global "mCameraUpVector"
 	mCameraUpVector = LLVector3::z_axis;
 	//LLVector3	camera_skyward(0.f, 0.f, 1.f);
@@ -4836,9 +4840,14 @@ void LLAgent::onAnimStop(const LLUUID& id)
 	}
 }
 
-BOOL LLAgent::isGodlike() const
+bool LLAgent::isGodlike() const
 {
 	return mAgentAccess.isGodlike();
+}
+
+bool LLAgent::isGodlikeWithoutAdminMenuFakery() const
+{
+	return mAgentAccess.isGodlikeWithoutAdminMenuFakery();
 }
 
 U8 LLAgent::getGodLevel() const
@@ -5837,15 +5846,22 @@ void LLAgent::processAgentCachedTextureResponse(LLMessageSystem *mesgsys, void *
 		mesgsys->getUUIDFast(_PREHASH_WearableData, _PREHASH_TextureID, texture_id, texture_block);
 		mesgsys->getU8Fast(_PREHASH_WearableData, _PREHASH_TextureIndex, texture_index, texture_block);
 
-		if (texture_id.notNull() 
-			&& (S32)texture_index < BAKED_NUM_INDICES 
+		if ((S32)texture_index < BAKED_NUM_INDICES 
 			&& gAgentQueryManager.mActiveCacheQueries[texture_index] == query_id)
 		{
-			//llinfos << "Received cached texture " << (U32)texture_index << ": " << texture_id << llendl;
-			avatarp->setCachedBakedTexture(LLVOAvatarDictionary::bakedToLocalTextureIndex((EBakedTextureIndex)texture_index), texture_id);
-			//avatarp->setTETexture( LLVOAvatar::sBakedTextureIndices[texture_index], texture_id );
-			gAgentQueryManager.mActiveCacheQueries[texture_index] = 0;
-			num_results++;
+			if (texture_id.notNull())
+			{
+				//llinfos << "Received cached texture " << (U32)texture_index << ": " << texture_id << llendl;
+				avatarp->setCachedBakedTexture(LLVOAvatarDictionary::bakedToLocalTextureIndex((EBakedTextureIndex)texture_index), texture_id);
+				//avatarp->setTETexture( LLVOAvatar::sBakedTextureIndices[texture_index], texture_id );
+				gAgentQueryManager.mActiveCacheQueries[texture_index] = 0;
+				num_results++;
+			}
+			else
+			{
+				// no cache of this bake. request upload.
+				avatarp->requestLayerSetUpload((EBakedTextureIndex)texture_index);
+			}
 		}
 	}
 

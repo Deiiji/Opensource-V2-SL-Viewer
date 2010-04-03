@@ -12,13 +12,13 @@
  * ("GPL"), unless you have obtained a separate licensing agreement
  * ("Other License"), formally executed by you and Linden Lab.  Terms of
  * the GPL can be found in doc/GPL-license.txt in this distribution, or
- * online at http://secondlifegrid.net/programs/open_source/licensing/gplv2
+ * online at http://secondlife.com/developers/opensource/gplv2
  * 
  * There are special exceptions to the terms and conditions of the GPL as
  * it is applied to this Source Code. View the full text of the exception
  * in the file doc/FLOSS-exception.txt in this software distribution, or
  * online at
- * http://secondlifegrid.net/programs/open_source/licensing/flossexception
+ * http://secondlife.com/developers/opensource/flossexception
  * 
  * By copying, modifying or distributing this software, you acknowledge
  * that you have read and understood your obligations described above,
@@ -28,6 +28,7 @@
  * WARRANTIES, EXPRESS, IMPLIED OR OTHERWISE, REGARDING ITS ACCURACY,
  * COMPLETENESS OR PERFORMANCE.
  * $/LicenseInfo$
+ * 
  */
 
 #include "llviewerprecompiledheaders.h"
@@ -50,6 +51,7 @@
 #include "llcallbacklist.h"
 #include "llparcel.h"
 #include "llaudioengine.h"  // for gAudiop
+#include "llurldispatcher.h"
 #include "llvoavatar.h"
 #include "llvoavatarself.h"
 #include "llviewerregion.h"
@@ -700,9 +702,9 @@ void LLViewerMedia::updateMedia(void *dummy_arg)
 	impl_list::iterator iter = sViewerMediaImplList.begin();
 	impl_list::iterator end = sViewerMediaImplList.end();
 
-	for(; iter != end; iter++)
+	for(; iter != end;)
 	{
-		LLViewerMediaImpl* pimpl = *iter;
+		LLViewerMediaImpl* pimpl = *iter++;
 		pimpl->update();
 		pimpl->calculateInterest();
 	}
@@ -722,6 +724,7 @@ void LLViewerMedia::updateMedia(void *dummy_arg)
 	std::vector<LLViewerMediaImpl*> proximity_order;
 	
 	bool inworld_media_enabled = gSavedSettings.getBOOL("AudioStreamingMedia");
+	bool inworld_audio_enabled = gSavedSettings.getBOOL("AudioStreamingMusic");
 	U32 max_instances = gSavedSettings.getU32("PluginInstancesTotal");
 	U32 max_normal = gSavedSettings.getU32("PluginInstancesNormal");
 	U32 max_low = gSavedSettings.getU32("PluginInstancesLow");
@@ -849,7 +852,14 @@ void LLViewerMedia::updateMedia(void *dummy_arg)
 				new_priority = LLPluginClassMedia::PRIORITY_UNLOADED;
 			}
 		}
-					
+		// update the audio stream here as well
+		if( !inworld_audio_enabled)
+		{
+			if(LLViewerMedia::isParcelAudioPlaying() && gAudiop && LLViewerMedia::hasParcelAudio())
+			{
+				gAudiop->stopInternetStream();
+			}
+		}
 		pimpl->setPriority(new_priority);
 		
 		if(pimpl->getUsedInUI())
@@ -944,7 +954,10 @@ void LLViewerMedia::setAllMediaEnabled(bool val)
 			LLViewerParcelMedia::play(LLViewerParcelMgr::getInstance()->getAgentParcel());
 		}
 		
-		if (!LLViewerMedia::isParcelAudioPlaying() && gAudiop && LLViewerMedia::hasParcelAudio())
+		if (gSavedSettings.getBOOL("AudioStreamingMusic") &&
+			!LLViewerMedia::isParcelAudioPlaying() &&
+			gAudiop && 
+			LLViewerMedia::hasParcelAudio())
 		{
 			gAudiop->startInternetStream(LLViewerMedia::getParcelAudioURL());
 		}
@@ -970,9 +983,121 @@ bool LLViewerMedia::isParcelAudioPlaying()
 	return (LLViewerMedia::hasParcelAudio() && gAudiop && LLAudioEngine::AUDIO_PLAYING == gAudiop->isInternetStreamPlaying());
 }
 
+/////////////////////////////////////////////////////////////////////////////////////////
+// static
+void LLViewerMedia::clearAllCookies()
+{
+	// Clear all cookies for all plugins
+	impl_list::iterator iter = sViewerMediaImplList.begin();
+	impl_list::iterator end = sViewerMediaImplList.end();
+	for (; iter != end; iter++)
+	{
+		LLViewerMediaImpl* pimpl = *iter;
+		if(pimpl->mMediaSource)
+		{
+			pimpl->mMediaSource->clear_cookies();
+		}
+	}
+	
+	// FIXME: this may not be sufficient, since the on-disk cookie file won't get written until some browser instance exits cleanly.
+	// It also won't clear cookies for other accounts, or for any account if we're not logged in, and won't do anything at all if there are no webkit plugins loaded.
+	// Until such time as we can centralize cookie storage, the following hack should cover these cases:
+	
+	// HACK: Look for cookie files in all possible places and delete them.
+	// NOTE: this assumes knowledge of what happens inside the webkit plugin (it's what adds 'browser_profile' to the path and names the cookie file)
+	
+	// Places that cookie files can be:
+	// <getOSUserAppDir>/browser_profile/cookies
+	// <getOSUserAppDir>/first_last/browser_profile/cookies  (note that there may be any number of these!)
+	
+	std::string base_dir = gDirUtilp->getOSUserAppDir() + gDirUtilp->getDirDelimiter();
+	std::string target;
+	std::string filename;
+	
+	lldebugs << "base dir = " << base_dir << llendl;
+
+	// The non-logged-in version is easy
+	target = base_dir;
+	target += "browser_profile";
+	target += gDirUtilp->getDirDelimiter();
+	target += "cookies";
+	lldebugs << "target = " << target << llendl;
+	if(LLFile::isfile(target))
+	{
+		LLFile::remove(target);
+	}
+	
+	// the hard part: iterate over all user directories and delete the cookie file from each one
+	while(gDirUtilp->getNextFileInDir(base_dir, "*_*", filename, false))
+	{
+		target = base_dir;
+		target += filename;
+		target += gDirUtilp->getDirDelimiter();
+		target += "browser_profile";
+		target += gDirUtilp->getDirDelimiter();
+		target += "cookies";
+		lldebugs << "target = " << target << llendl;
+		if(LLFile::isfile(target))
+		{	
+			LLFile::remove(target);
+		}
+	}
+	
+	
+}
+	
+/////////////////////////////////////////////////////////////////////////////////////////
+// static 
+void LLViewerMedia::clearAllCaches()
+{
+	// Clear all plugins' caches
+	impl_list::iterator iter = sViewerMediaImplList.begin();
+	impl_list::iterator end = sViewerMediaImplList.end();
+	for (; iter != end; iter++)
+	{
+		LLViewerMediaImpl* pimpl = *iter;
+		pimpl->clearCache();
+	}
+}
+	
+/////////////////////////////////////////////////////////////////////////////////////////
+// static 
+void LLViewerMedia::setCookiesEnabled(bool enabled)
+{
+	// Set the "cookies enabled" flag for all loaded plugins
+	impl_list::iterator iter = sViewerMediaImplList.begin();
+	impl_list::iterator end = sViewerMediaImplList.end();
+	for (; iter != end; iter++)
+	{
+		LLViewerMediaImpl* pimpl = *iter;
+		if(pimpl->mMediaSource)
+		{
+			pimpl->mMediaSource->enable_cookies(enabled);
+		}
+	}
+}
+	
+/////////////////////////////////////////////////////////////////////////////////////////
+// static 
+void LLViewerMedia::setProxyConfig(bool enable, const std::string &host, int port)
+{
+	// Set the proxy config for all loaded plugins
+	impl_list::iterator iter = sViewerMediaImplList.begin();
+	impl_list::iterator end = sViewerMediaImplList.end();
+	for (; iter != end; iter++)
+	{
+		LLViewerMediaImpl* pimpl = *iter;
+		if(pimpl->mMediaSource)
+		{
+			pimpl->mMediaSource->proxy_setup(enable, host, port);
+		}
+	}
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////
+// static 
 bool LLViewerMedia::hasInWorldMedia()
 {
-	if (! gSavedSettings.getBOOL("AudioStreamingMedia")) return false;
 	if (sInWorldMediaDisabled) return false;
 	impl_list::iterator iter = sViewerMediaImplList.begin();
 	impl_list::iterator end = sViewerMediaImplList.end();
@@ -1080,7 +1205,8 @@ LLViewerMediaImpl::LLViewerMediaImpl(	  const LLUUID& texture_id,
 	mBackgroundColor(LLColor4::white),
 	mNavigateSuspended(false),
 	mNavigateSuspendedDeferred(false),
-	mIsUpdated(false)
+	mIsUpdated(false),
+	mTrustedBrowser(false)
 { 
 
 	// Set up the mute list observer if it hasn't been set up already.
@@ -1219,6 +1345,19 @@ LLPluginClassMedia* LLViewerMediaImpl::newSourceFromMediaType(std::string media_
 		std::string user_data_path = gDirUtilp->getOSUserAppDir();
 		user_data_path += gDirUtilp->getDirDelimiter();
 
+		// Fix for EXT-5960 - make browser profile specific to user (cache, cookies etc.)
+		// If the linden username returned is blank, that can only mean we are
+		// at the login page displaying login Web page or Web browser test via Develop menu.
+		// In this case we just use whatever gDirUtilp->getOSUserAppDir() gives us (this
+		// is what we always used before this change)
+		std::string linden_user_dir = gDirUtilp->getLindenUserDir();
+		if ( ! linden_user_dir.empty() )
+		{
+			// gDirUtilp->getLindenUserDir() is whole path, not just Linden name
+			user_data_path = linden_user_dir;
+			user_data_path += gDirUtilp->getDirDelimiter();
+		};
+
 		// See if the plugin executable exists
 		llstat s;
 		if(LLFile::stat(launcher_name, &s))
@@ -1233,7 +1372,22 @@ LLPluginClassMedia* LLViewerMediaImpl::newSourceFromMediaType(std::string media_
 		{
 			LLPluginClassMedia* media_source = new LLPluginClassMedia(owner);
 			media_source->setSize(default_width, default_height);
-			if (media_source->init(launcher_name, plugin_name, gSavedSettings.getBOOL("PluginAttachDebuggerToPlugins"), user_data_path))
+			media_source->setUserDataPath(user_data_path);
+			media_source->setLanguageCode(LLUI::getLanguage());
+
+			// collect 'cookies enabled' setting from prefs and send to embedded browser
+			bool cookies_enabled = gSavedSettings.getBOOL( "CookiesEnabled" );
+			media_source->enable_cookies( cookies_enabled );
+
+			// collect 'plugins enabled' setting from prefs and send to embedded browser
+			bool plugins_enabled = gSavedSettings.getBOOL( "BrowserPluginsEnabled" );
+			media_source->setPluginsEnabled( plugins_enabled );
+
+			// collect 'javascript enabled' setting from prefs and send to embedded browser
+			bool javascript_enabled = gSavedSettings.getBOOL( "BrowserJavascriptEnabled" );
+			media_source->setJavascriptEnabled( javascript_enabled );
+
+			if (media_source->init(launcher_name, plugin_name, gSavedSettings.getBOOL("PluginAttachDebuggerToPlugins")))
 			{
 				return media_source;
 			}
@@ -1293,6 +1447,8 @@ bool LLViewerMediaImpl::initializePlugin(const std::string& media_type)
 		media_source->setBrowserUserAgent(LLViewerMedia::getCurrentUserAgent());
 		media_source->focus(mHasFocus);
 		media_source->setBackgroundColor(mBackgroundColor);
+		
+		media_source->proxy_setup(gSavedSettings.getBOOL("BrowserProxyEnabled"), gSavedSettings.getString("BrowserProxyAddress"), gSavedSettings.getS32("BrowserProxyPort"));
 		
 		if(mClearCache)
 		{
@@ -2330,6 +2486,14 @@ void LLViewerMediaImpl::handleMediaEvent(LLPluginClassMedia* plugin, LLPluginCla
 {
 	switch(event)
 	{
+		case MEDIA_EVENT_CLICK_LINK_NOFOLLOW:
+		{
+			LL_DEBUGS("Media") << "MEDIA_EVENT_CLICK_LINK_NOFOLLOW, uri is: " << plugin->getClickURL() << LL_ENDL; 
+			std::string url = plugin->getClickURL();
+			LLURLDispatcher::dispatch(url, NULL, mTrustedBrowser);
+
+		}
+		break;
 		case MEDIA_EVENT_PLUGIN_FAILED_LAUNCH:
 		{
 			// The plugin failed to load properly.  Make sure the timer doesn't retry.

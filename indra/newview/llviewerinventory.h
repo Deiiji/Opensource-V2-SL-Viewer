@@ -12,13 +12,13 @@
  * ("GPL"), unless you have obtained a separate licensing agreement
  * ("Other License"), formally executed by you and Linden Lab.  Terms of
  * the GPL can be found in doc/GPL-license.txt in this distribution, or
- * online at http://secondlifegrid.net/programs/open_source/licensing/gplv2
+ * online at http://secondlife.com/developers/opensource/gplv2
  * 
  * There are special exceptions to the terms and conditions of the GPL as
  * it is applied to this Source Code. View the full text of the exception
  * in the file doc/FLOSS-exception.txt in this software distribution, or
  * online at
- * http://secondlifegrid.net/programs/open_source/licensing/flossexception
+ * http://secondlife.com/developers/opensource/flossexception
  * 
  * By copying, modifying or distributing this software, you acknowledge
  * that you have read and understood your obligations described above,
@@ -28,6 +28,7 @@
  * WARRANTIES, EXPRESS, IMPLIED OR OTHERWISE, REGARDING ITS ACCURACY,
  * COMPLETENESS OR PERFORMANCE.
  * $/LicenseInfo$
+ * 
  */
 
 #ifndef LL_LLVIEWERINVENTORY_H
@@ -63,10 +64,12 @@ protected:
 public:
 	virtual LLAssetType::EType getType() const;
 	virtual const LLUUID& getAssetUUID() const;
+	virtual const LLUUID& getProtectedAssetUUID() const; // returns LLUUID::null if current agent does not have permission to expose this asset's UUID to the user
 	virtual const std::string& getName() const;
 	virtual S32 getSortField() const;
 	virtual void setSortField(S32 sortField);
 	virtual const LLPermissions& getPermissions() const;
+	virtual const bool getIsFullPerm() const; // 'fullperm' in the popular sense: modify-ok & copy-ok & transfer-ok, no special god rules applied
 	virtual const LLUUID& getCreatorUUID() const;
 	virtual const std::string& getDescription() const;
 	virtual const LLSaleInfo& getSaleInfo() const;

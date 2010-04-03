@@ -12,13 +12,13 @@
  * ("GPL"), unless you have obtained a separate licensing agreement
  * ("Other License"), formally executed by you and Linden Lab.  Terms of
  * the GPL can be found in doc/GPL-license.txt in this distribution, or
- * online at http://secondlifegrid.net/programs/open_source/licensing/gplv2
+ * online at http://secondlife.com/developers/opensource/gplv2
  * 
  * There are special exceptions to the terms and conditions of the GPL as
  * it is applied to this Source Code. View the full text of the exception
  * in the file doc/FLOSS-exception.txt in this software distribution, or
  * online at
- * http://secondlifegrid.net/programs/open_source/licensing/flossexception
+ * http://secondlife.com/developers/opensource/flossexception
  * 
  * By copying, modifying or distributing this software, you acknowledge
  * that you have read and understood your obligations described above,
@@ -28,6 +28,7 @@
  * WARRANTIES, EXPRESS, IMPLIED OR OTHERWISE, REGARDING ITS ACCURACY,
  * COMPLETENESS OR PERFORMANCE.
  * $/LicenseInfo$
+ * 
  */
 
 #include "llviewerprecompiledheaders.h"
@@ -702,9 +703,9 @@ bool LLAppViewer::init()
 	settings_map["account"] = &gSavedPerAccountSettings;
 
 	LLUI::initClass(settings_map,
-					LLUIImageList::getInstance(),
-					ui_audio_callback,
-					&LLUI::sGLScaleFactor);
+		LLUIImageList::getInstance(),
+		ui_audio_callback,
+		&LLUI::sGLScaleFactor);
 	
 	// Setup paths and LLTrans after LLUI::initClass has been called
 	LLUI::setupPaths();
@@ -1515,7 +1516,7 @@ bool LLAppViewer::cleanup()
 	LLAvatarIconIDCache::getInstance()->save();
 
 	llinfos << "Shutting down Threads" << llendflush;
-	
+
 	// Let threads finish
 	LLTimer idleTimer;
 	idleTimer.reset();
@@ -1529,19 +1530,26 @@ bool LLAppViewer::cleanup()
 		pending += LLVFSThread::updateClass(0);
 		pending += LLLFSThread::updateClass(0);
 		F64 idle_time = idleTimer.getElapsedTimeF64();
-		if (!pending || idle_time >= max_idle_time)
+		if(!pending)
+		{
+			break ; //done
+		}
+		else if(idle_time >= max_idle_time)
 		{
 			llwarns << "Quitting with pending background tasks." << llendl;
 			break;
 		}
 	}
-	
+
 	// Delete workers first
 	// shotdown all worker threads before deleting them in case of co-dependencies
 	sTextureCache->shutdown();
 	sTextureFetch->shutdown();
 	sImageDecodeThread->shutdown();
 	
+	sTextureFetch->shutDownTextureCacheThread() ;
+	sTextureFetch->shutDownImageDecodeThread() ;
+
 	delete sTextureCache;
     sTextureCache = NULL;
 	delete sTextureFetch;
@@ -2191,10 +2199,12 @@ bool LLAppViewer::initConfiguration()
 
 	// Display splash screen.  Must be after above check for previous
 	// crash as this dialog is always frontmost.
-	std::ostringstream splash_msg;
-	splash_msg << "Loading " << LLTrans::getString("SECOND_LIFE") << "...";
+	std::string splash_msg;
+	LLStringUtil::format_map_t args;
+	args["[APP_NAME]"] = LLTrans::getString("SECOND_LIFE");
+	splash_msg = LLTrans::getString("StartupLoading", args);
 	LLSplashScreen::show();
-	LLSplashScreen::update(splash_msg.str());
+	LLSplashScreen::update(splash_msg);
 
 	//LLVolumeMgr::initClass();
 	LLVolumeMgr* volume_manager = new LLVolumeMgr();
@@ -3035,11 +3045,11 @@ bool LLAppViewer::initCache()
 	
 	if (mPurgeCache)
 	{
-		LLSplashScreen::update("Clearing cache...");
+		LLSplashScreen::update(LLTrans::getString("StartupClearingCache"));
 		purgeCache();
 	}
 
-	LLSplashScreen::update("Initializing Texture Cache...");
+	LLSplashScreen::update(LLTrans::getString("StartupInitializingTextureCache"));
 	
 	// Init the texture cache
 	// Allocate 80% of the cache size for textures
@@ -3052,7 +3062,7 @@ bool LLAppViewer::initCache()
 	S64 extra = LLAppViewer::getTextureCache()->initCache(LL_PATH_CACHE, texture_cache_size, read_only);
 	texture_cache_size -= extra;
 
-	LLSplashScreen::update("Initializing VFS...");
+	LLSplashScreen::update(LLTrans::getString("StartupInitializingVFS"));
 	
 	// Init the VFS
 	S64 vfs_size = cache_size - texture_cache_size;
@@ -3593,13 +3603,15 @@ void LLAppViewer::idle()
 
 	{
 		// Handle pending gesture processing
+		static LLFastTimer::DeclareTimer ftm("Agent Position");
+		LLFastTimer t(ftm);
 		LLGestureManager::instance().update();
 
 		gAgent.updateAgentPosition(gFrameDTClamped, yaw, current_mouse.mX, current_mouse.mY);
 	}
 
 	{
-		LLFastTimer t(FTM_OBJECTLIST_UPDATE); // Actually "object update"
+		LLFastTimer t(FTM_OBJECTLIST_UPDATE); 
 		
         if (!(logoutRequestSent() && hasSavedFinalSnapshot()))
 		{
@@ -3633,6 +3645,8 @@ void LLAppViewer::idle()
 	//
 
 	{
+		static LLFastTimer::DeclareTimer ftm("HUD Effects");
+		LLFastTimer t(ftm);
 		LLSelectMgr::getInstance()->updateEffects();
 		LLHUDManager::getInstance()->cleanupEffects();
 		LLHUDManager::getInstance()->sendEffects();
@@ -3817,7 +3831,7 @@ void LLAppViewer::idleShutdown()
 		S32 finished_uploads = total_uploads - pending_uploads;
 		F32 percent = 100.f * finished_uploads / total_uploads;
 		gViewerWindow->setProgressPercent(percent);
-		gViewerWindow->setProgressString("Saving your settings...");
+		gViewerWindow->setProgressString(LLTrans::getString("SavingSettings"));
 		return;
 	}
 
@@ -3829,7 +3843,7 @@ void LLAppViewer::idleShutdown()
 		// Wait for a LogoutReply message
 		gViewerWindow->setShowProgress(TRUE);
 		gViewerWindow->setProgressPercent(100.f);
-		gViewerWindow->setProgressString("Logging out...");
+		gViewerWindow->setProgressString(LLTrans::getString("LoggingOut"));
 		return;
 	}
 
@@ -3889,7 +3903,7 @@ void LLAppViewer::sendLogoutRequest()
 static F32 CheckMessagesMaxTime = CHECK_MESSAGES_DEFAULT_MAX_TIME;
 #endif
 
-static LLFastTimer::DeclareTimer FTM_IDLE_NETWORK("Network");
+static LLFastTimer::DeclareTimer FTM_IDLE_NETWORK("Idle Network");
 
 void LLAppViewer::idleNetwork()
 {

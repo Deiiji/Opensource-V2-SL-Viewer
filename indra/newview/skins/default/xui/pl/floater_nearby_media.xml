@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<floater name="nearby_media" title="MEDIA W POBLIŻU">
+	<string name="media_item_count_format">
+		(%ld media items)
+	</string>
+	<string name="default_location_text">
+		Nieznane
+	</string>
+	<string name="empty_item_text">
+		&lt;pusty&gt;
+	</string>
+	<string name="default_parcel_media_name">
+		&lt;Brak mediów&gt;
+	</string>
+	<string name="default_parcel_media_tool_tip">
+		Włącz/Wyłącz media w Posiadłości
+	</string>
+	<panel name="nearby_media_panel">
+		<panel>
+			<text name="media_item_count">
+				(?? media items)
+			</text>
+			<button name="all_nearby_media_enable_btn" tool_tip="Włącz/Wyłącz wszystkie media w pobliżu"/>
+		</panel>
+		<panel>
+			<button name="parcel_media_enable_btn" tool_tip="Włącz/Wyłącz media w posiadłości"/>
+			<text name="parcel_media_name">
+				&lt;Brak mediów&gt;
+			</text>
+		</panel>
+		<panel name="parcel_media_ctrls">
+			<button name="parcel_media_play_btn" tool_tip="Odtwarzaj media"/>
+			<button name="parcel_media_pause_btn" tool_tip="Zatrzymaj media"/>
+			<button name="parcel_media_stop_btn" tool_tip="Wyłącz media"/>
+		</panel>
+		<panel name="parcel_audio_ctrls">
+			<button name="parcel_audio_play_btn" tool_tip="Odtwarzaj audio"/>
+			<button name="parcel_audio_pause_btn" tool_tip="Zatrzymaj audio"/>
+			<button name="parcel_audio_stop_btn" tool_tip="Wyłącz audio"/>
+		</panel>
+		<panel>
+			<scroll_list name="media_list">
+				<scroll_list.columns label="Włącz/Wyłącz" name="media_stop_ctrl"/>
+				<scroll_list.columns label="Nazwa" name="media_name"/>
+			</scroll_list>
+		</panel>
+		<panel>
+			<check_box label="Automatyczne odtwarzanie mediów" name="media_auto_play_btn" tool_tip="Automatyczne odtwarzanie mediów" value="true"/>
+		</panel>
+	</panel>
+</floater>

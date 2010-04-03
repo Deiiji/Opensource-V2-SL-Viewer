@@ -13,13 +13,13 @@
  * ("GPL"), unless you have obtained a separate licensing agreement
  * ("Other License"), formally executed by you and Linden Lab.  Terms of
  * the GPL can be found in doc/GPL-license.txt in this distribution, or
- * online at http://secondlifegrid.net/programs/open_source/licensing/gplv2
+ * online at http://secondlife.com/developers/opensource/gplv2
  * 
  * There are special exceptions to the terms and conditions of the GPL as
  * it is applied to this Source Code. View the full text of the exception
  * in the file doc/FLOSS-exception.txt in this software distribution, or
  * online at
- * http://secondlifegrid.net/programs/open_source/licensing/flossexception
+ * http://secondlife.com/developers/opensource/flossexception
  * 
  * By copying, modifying or distributing this software, you acknowledge
  * that you have read and understood your obligations described above,
@@ -29,12 +29,14 @@
  * WARRANTIES, EXPRESS, IMPLIED OR OTHERWISE, REGARDING ITS ACCURACY,
  * COMPLETENESS OR PERFORMANCE.
  * $/LicenseInfo$
+ * 
  */
 #include "llviewerprecompiledheaders.h"
 
 #include "llloginhandler.h"
 
 // viewer includes
+#include "lllogininstance.h"        // to check if logged in yet
 #include "llpanellogin.h"			// save_password_to_disk()
 #include "llstartup.h"				// getStartupState()
 #include "llurlsimstring.h"
@@ -169,6 +171,13 @@ bool LLLoginHandler::handle(const LLSD& tokens,
 							const LLSD& query_map,
 							LLMediaCtrl* web)
 {
+	// do nothing if we are already logged in
+	if (LLLoginInstance::getInstance()->authSuccess())
+	{
+		LL_WARNS_ONCE("SLURL") << "Already logged in! Ignoring login SLapp." << LL_ENDL;
+		return true;
+	}
+
 	if (tokens.size() == 1
 		&& tokens[0].asString() == "show")
 	{

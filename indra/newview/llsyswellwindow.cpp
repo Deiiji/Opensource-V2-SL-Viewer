@@ -11,13 +11,13 @@
  * ("GPL"), unless you have obtained a separate licensing agreement
  * ("Other License"), formally executed by you and Linden Lab.  Terms of
  * the GPL can be found in doc/GPL-license.txt in this distribution, or
- * online at http://secondlifegrid.net/programs/open_source/licensing/gplv2
+ * online at http://secondlife.com/developers/opensource/gplv2
  * 
  * There are special exceptions to the terms and conditions of the GPL as
  * it is applied to this Source Code. View the full text of the exception
  * in the file doc/FLOSS-exception.txt in this software distribution, or
  * online at
- * http://secondlifegrid.net/programs/open_source/licensing/flossexception
+ * http://secondlife.com/developers/opensource/flossexception
  * 
  * By copying, modifying or distributing this software, you acknowledge
  * that you have read and understood your obligations described above,
@@ -27,6 +27,7 @@
  * WARRANTIES, EXPRESS, IMPLIED OR OTHERWISE, REGARDING ITS ACCURACY,
  * COMPLETENESS OR PERFORMANCE.
  * $/LicenseInfo$
+ * 
  */
 
 
@@ -211,22 +212,25 @@ void LLSysWellWindow::reshapeWindow()
 	// it includes height from floater top to list top and from floater bottom and list bottom
 	static S32 parent_list_delta_height = getRect().getHeight() - mMessageList->getRect().getHeight();
 
-	S32 notif_list_height = mMessageList->getItemsRect().getHeight() + 2 * mMessageList->getBorderWidth();
-
-	LLRect curRect = getRect();
-
-	S32 new_window_height = notif_list_height + parent_list_delta_height;
-
-	if (new_window_height > MAX_WINDOW_HEIGHT)
+	if (isDocked()) // Don't reshape undocked Well window. See EXT-5715.
 	{
-		new_window_height = MAX_WINDOW_HEIGHT;
-	}
-	S32 newY = curRect.mTop + new_window_height - curRect.getHeight();
-	S32 newWidth = curRect.getWidth() < MIN_WINDOW_WIDTH ? MIN_WINDOW_WIDTH
+		S32 notif_list_height = mMessageList->getItemsRect().getHeight() + 2 * mMessageList->getBorderWidth();
+
+		LLRect curRect = getRect();
+
+		S32 new_window_height = notif_list_height + parent_list_delta_height;
+
+		if (new_window_height > MAX_WINDOW_HEIGHT)
+		{
+			new_window_height = MAX_WINDOW_HEIGHT;
+		}
+		S32 newY = curRect.mTop + new_window_height - curRect.getHeight();
+		S32 newWidth = curRect.getWidth() < MIN_WINDOW_WIDTH ? MIN_WINDOW_WIDTH
 			: curRect.getWidth();
-	curRect.setLeftTopAndSize(curRect.mLeft, newY, newWidth, new_window_height);
-	reshape(curRect.getWidth(), curRect.getHeight(), TRUE);
-	setRect(curRect);
+		curRect.setLeftTopAndSize(curRect.mLeft, newY, newWidth, new_window_height);
+		reshape(curRect.getWidth(), curRect.getHeight(), TRUE);
+		setRect(curRect);
+	}
 
 	// update notification channel state
 	// update on a window reshape is important only when a window is visible and docked

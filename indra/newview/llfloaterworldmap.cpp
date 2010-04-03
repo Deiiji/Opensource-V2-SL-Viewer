@@ -13,13 +13,13 @@
  * ("GPL"), unless you have obtained a separate licensing agreement
  * ("Other License"), formally executed by you and Linden Lab.  Terms of
  * the GPL can be found in doc/GPL-license.txt in this distribution, or
- * online at http://secondlifegrid.net/programs/open_source/licensing/gplv2
+ * online at http://secondlife.com/developers/opensource/gplv2
  * 
  * There are special exceptions to the terms and conditions of the GPL as
  * it is applied to this Source Code. View the full text of the exception
  * in the file doc/FLOSS-exception.txt in this software distribution, or
  * online at
- * http://secondlifegrid.net/programs/open_source/licensing/flossexception
+ * http://secondlife.com/developers/opensource/flossexception
  * 
  * By copying, modifying or distributing this software, you acknowledge
  * that you have read and understood your obligations described above,
@@ -29,6 +29,7 @@
  * WARRANTIES, EXPRESS, IMPLIED OR OTHERWISE, REGARDING ITS ACCURACY,
  * COMPLETENESS OR PERFORMANCE.
  * $/LicenseInfo$
+ * 
  */
 
 /*
@@ -359,9 +360,7 @@ BOOL LLFloaterWorldMap::handleScrollWheel(S32 x, S32 y, S32 clicks)
 {
 	if (!isMinimized() && isFrontmost())
 	{
-		LLRect area;
-		childGetRect("search_results", area);
-		if(!area.pointInRect(x, y))
+		if(mPanel->pointInView(x, y))
 		{
 			F32 slider_value = (F32)childGetValue("zoom slider").asReal();
 			slider_value += ((F32)clicks * -0.3333f);

@@ -1,16 +1,16 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
-<floater name="Water Floater" title="ÉDITEUR D&apos;EAU AVANCÉE">
+<floater name="Water Floater" title="ÉDITEUR D&apos;EAU AVANCÉ">
 	<floater.string name="WLDefaultWaterNames">
 		Default:Glassy:Pond:Murky:Second Plague:SNAKE!!!:Valdez
 	</floater.string>
 	<text name="KeyFramePresetsText" width="120">
-		Préréglages eau :
+		Préréglages :
 	</text>
 	<button label="Nouveau" label_selected="Nouveau" name="WaterNewPreset"/>
 	<button label="Enregistrer" label_selected="Enregistrer" left_delta="75" name="WaterSavePreset" width="75"/>
 	<button label="Supprimer" label_selected="Supprimer" left_delta="80" name="WaterDeletePreset"/>
 	<tab_container name="Water Tabs">
-		<panel label="Paramètres" name="Settings">
+		<panel label="PARAMÈTRES" name="Settings">
 			<text name="BHText">
 				Couleur du brouillard dans l&apos;eau
 			</text>
@@ -34,7 +34,7 @@
 				Décalage Fresnel
 			</text>
 			<text name="DensMultText">
-				Réfraction au dessus
+				Réfraction au-dessus
 			</text>
 			<text name="WaterScaleBelowText">
 				Réfraction en dessous
@@ -43,7 +43,7 @@
 				Multiplicateur de flou
 			</text>
 		</panel>
-		<panel label="Image" name="Waves">
+		<panel label="IMAGE" name="Waves">
 			<text name="BHText">
 				Direction grande vague
 			</text>

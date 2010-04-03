@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<floater name="private_call" title="ROZMOWA GŁOSOWA: NIEZNANA OSOBA">
+	<floater.string name="unknown_person">
+		Nieznana osoba
+	</floater.string>
+	<floater.string name="call_prefix">
+		Dzwoń:
+	</floater.string>
+	<panel name="bottom_panel">
+		<button label="Zakończ" name="end_btn"/>
+	</panel>
+</floater>

@@ -12,13 +12,13 @@
  * ("GPL"), unless you have obtained a separate licensing agreement
  * ("Other License"), formally executed by you and Linden Lab.  Terms of
  * the GPL can be found in doc/GPL-license.txt in this distribution, or
- * online at http://secondlifegrid.net/programs/open_source/licensing/gplv2
+ * online at http://secondlife.com/developers/opensource/gplv2
  * 
  * There are special exceptions to the terms and conditions of the GPL as
  * it is applied to this Source Code. View the full text of the exception
  * in the file doc/FLOSS-exception.txt in this software distribution, or
  * online at
- * http://secondlifegrid.net/programs/open_source/licensing/flossexception
+ * http://secondlife.com/developers/opensource/flossexception
  * 
  * By copying, modifying or distributing this software, you acknowledge
  * that you have read and understood your obligations described above,
@@ -28,6 +28,7 @@
  * WARRANTIES, EXPRESS, IMPLIED OR OTHERWISE, REGARDING ITS ACCURACY,
  * COMPLETENESS OR PERFORMANCE.
  * $/LicenseInfo$
+ * 
  */
 
 //
@@ -69,6 +70,7 @@ class LLHUDIcon;
 class LLWindow;
 class LLRootView;
 class LLViewerWindowListener;
+class LLPopupView;
 
 #define PICK_HALF_WIDTH 5
 #define PICK_DIAMETER (2 * PICK_HALF_WIDTH + 1)
@@ -300,6 +302,11 @@ public:
 	BOOL			handleKey(KEY key, MASK mask);
 	void			handleScrollWheel	(S32 clicks);
 
+	// add and remove views from "popup" layer
+	void			addPopup(LLView* popup);
+	void			removePopup(LLView* popup);
+	void			clearPopups();
+
 	// Hide normal UI when a logon fails, re-show everything when logon is attempted again
 	void			setNormalControlsVisible( BOOL visible );
 	void			setMenuBackgroundColor(bool god_mode = false, bool dev_grid = false);
@@ -458,6 +465,7 @@ protected:
 	LLHandle<LLView> mWorldViewPlaceholder;	// widget that spans the portion of screen dedicated to rendering the 3d world
 	LLHandle<LLView> mNonSideTrayView;		// parent of world view + bottom bar, etc...everything but the side tray
 	LLHandle<LLView> mFloaterViewHolder;	// container for floater_view
+	LLPopupView*	mPopupView;			// container for transient popups
 	
 	class LLDebugText* mDebugText; // Internal class for debug text
 	
@@ -477,7 +485,7 @@ protected:
 private:
 	// Object temporarily hovered over while dragging
 	LLPointer<LLViewerObject>	mDragHoveredObject;
-};	
+};
 
 void toggle_flying(void*);
 void toggle_first_person();

@@ -12,13 +12,13 @@
  * ("GPL"), unless you have obtained a separate licensing agreement
  * ("Other License"), formally executed by you and Linden Lab.  Terms of
  * the GPL can be found in doc/GPL-license.txt in this distribution, or
- * online at http://secondlifegrid.net/programs/open_source/licensing/gplv2
+ * online at http://secondlife.com/developers/opensource/gplv2
  * 
  * There are special exceptions to the terms and conditions of the GPL as
  * it is applied to this Source Code. View the full text of the exception
  * in the file doc/FLOSS-exception.txt in this software distribution, or
  * online at
- * http://secondlifegrid.net/programs/open_source/licensing/flossexception
+ * http://secondlife.com/developers/opensource/flossexception
  * 
  * By copying, modifying or distributing this software, you acknowledge
  * that you have read and understood your obligations described above,
@@ -28,6 +28,7 @@
  * WARRANTIES, EXPRESS, IMPLIED OR OTHERWISE, REGARDING ITS ACCURACY,
  * COMPLETENESS OR PERFORMANCE.
  * $/LicenseInfo$
+ * 
  */
 
 //*****************************************************************************
@@ -609,7 +610,9 @@ void LLTaskInvFVBridge::performAction(LLFolderView* folder, LLInventoryModel* mo
 		{
 			if (price > 0 && price > gStatusBar->getBalance())
 			{
-				LLFloaterBuyCurrency::buyCurrency("This costs", price);
+				LLStringUtil::format_map_t args;
+				args["AMOUNT"] = llformat("%d", price);
+				LLFloaterBuyCurrency::buyCurrency(LLTrans::getString("this_costs", args), price);
 			}
 			else
 			{
@@ -770,8 +773,8 @@ BOOL LLTaskCategoryBridge::startDrag(EDragAndDropType* type, LLUUID* id) const
 		LLViewerObject* object = gObjectList.findObject(mPanel->getTaskUUID());
 		if(object)
 		{
-			LLInventoryItem* inv = NULL;
-			if((inv = (LLInventoryItem*)object->getInventoryObject(mUUID)))
+			const LLInventoryItem *inv = dynamic_cast<LLInventoryItem*>(object->getInventoryObject(mUUID));
+			if (inv)
 			{
 				const LLPermissions& perm = inv->getPermissions();
 				bool can_copy = gAgent.allowOperation(PERM_COPY, perm,
@@ -1188,7 +1191,8 @@ public:
 	LLTaskObjectBridge(
 		LLPanelObjectInventory* panel,
 		const LLUUID& uuid,
-		const std::string& name);
+		const std::string& name,
+		U32 flags = 0);
 
 	virtual LLUIImagePtr getIcon() const;
 };
@@ -1196,8 +1200,9 @@ public:
 LLTaskObjectBridge::LLTaskObjectBridge(
 	LLPanelObjectInventory* panel,
 	const LLUUID& uuid,
-	const std::string& name) :
-	LLTaskInvFVBridge(panel, uuid, name)
+	const std::string& name,
+	U32 flags) :
+	LLTaskInvFVBridge(panel, uuid, name, flags)
 {
 }
 
@@ -1442,9 +1447,15 @@ LLTaskInvFVBridge* LLTaskInvFVBridge::createObjectBridge(LLPanelObjectInventory*
 		//									   object->getName());
 		break;
 	case LLAssetType::AT_OBJECT:
+		{
+		item = dynamic_cast<LLInventoryItem*>(object);
+		U32 flags = ( NULL == item ? 0 : item->getFlags() );
+
 		new_bridge = new LLTaskObjectBridge(panel,
 											object->getUUID(),
-											object->getName());
+											object->getName(),
+											flags);
+		}
 		break;
 	case LLAssetType::AT_NOTECARD:
 		new_bridge = new LLTaskNotecardBridge(panel,
@@ -1575,18 +1586,25 @@ void LLPanelObjectInventory::reset()
 	LLRect dummy_rect(0, 1, 1, 0);
 	LLFolderView::Params p;
 	p.name = "task inventory";
+	p.title = "task inventory";
 	p.task_id = getTaskUUID();
 	p.parent_panel = this;
-	p.tool_tip= p.name;
+	p.tool_tip= LLTrans::getString("PanelContentsTooltip");
 	mFolders = LLUICtrlFactory::create<LLFolderView>(p);
 	// this ensures that we never say "searching..." or "no items found"
 	mFolders->getFilter()->setShowFolderState(LLInventoryFilter::SHOW_ALL_FOLDERS);
 	mFolders->setCallbackRegistrar(&mCommitCallbackRegistrar);
 
+	if (hasFocus())
+	{
+		LLEditMenuHandler::gEditMenuHandler = mFolders;
+	}
+
 	LLRect scroller_rect(0, getRect().getHeight(), getRect().getWidth(), 0);
 	LLScrollContainer::Params scroll_p;
 	scroll_p.name("task inventory scroller");
 	scroll_p.rect(scroller_rect);
+	scroll_p.tab_stop(true);
 	scroll_p.follows.flags(FOLLOWS_ALL);
 	mScroller = LLUICtrlFactory::create<LLScrollContainer>(scroll_p);
 	addChild(mScroller);
@@ -1636,7 +1654,7 @@ void LLPanelObjectInventory::updateInventory()
 	// We're still interested in this task's inventory.
 	std::set<LLUUID> selected_items;
 	BOOL inventory_has_focus = FALSE;
-	if (mHaveInventory && mFolders->getNumSelectedDescendants())
+	if (mHaveInventory)
 	{
 		mFolders->getSelectionList(selected_items);
 		inventory_has_focus = gFocusMgr.childHasKeyboardFocus(mFolders);

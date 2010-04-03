@@ -12,13 +12,13 @@
  * ("GPL"), unless you have obtained a separate licensing agreement
  * ("Other License"), formally executed by you and Linden Lab.  Terms of
  * the GPL can be found in doc/GPL-license.txt in this distribution, or
- * online at http://secondlifegrid.net/programs/open_source/licensing/gplv2
+ * online at http://secondlife.com/developers/opensource/gplv2
  * 
  * There are special exceptions to the terms and conditions of the GPL as
  * it is applied to this Source Code. View the full text of the exception
  * in the file doc/FLOSS-exception.txt in this software distribution, or
  * online at
- * http://secondlifegrid.net/programs/open_source/licensing/flossexception
+ * http://secondlife.com/developers/opensource/flossexception
  * 
  * By copying, modifying or distributing this software, you acknowledge
  * that you have read and understood your obligations described above,
@@ -28,6 +28,7 @@
  * WARRANTIES, EXPRESS, IMPLIED OR OTHERWISE, REGARDING ITS ACCURACY,
  * COMPLETENESS OR PERFORMANCE.
  * $/LicenseInfo$
+ * 
  */
 
 #include "llviewerprecompiledheaders.h"
@@ -357,7 +358,7 @@ void LLIMModel::LLIMSession::sessionInitReplyReceived(const LLUUID& new_session_
 	}
 }
 
-void LLIMModel::LLIMSession::addMessage(const std::string& from, const LLUUID& from_id, const std::string& utf8_text, const std::string& time)
+void LLIMModel::LLIMSession::addMessage(const std::string& from, const LLUUID& from_id, const std::string& utf8_text, const std::string& time, const bool is_history)
 {
 	LLSD message;
 	message["from"] = from;
@@ -365,6 +366,7 @@ void LLIMModel::LLIMSession::addMessage(const std::string& from, const LLUUID& f
 	message["message"] = utf8_text;
 	message["time"] = time; 
 	message["index"] = (LLSD::Integer)mMsgs.size(); 
+	message["is_history"] = is_history;
 
 	mMsgs.push_front(message); 
 
@@ -393,7 +395,7 @@ void LLIMModel::LLIMSession::addMessagesFromHistory(const std::list<LLSD>& histo
 		std::string timestamp = msg[IM_TIME];
 		std::string text = msg[IM_TEXT];
 
-		addMessage(from, from_id, text, timestamp);
+		addMessage(from, from_id, text, timestamp, true);
 
 		it++;
 	}
@@ -407,11 +409,11 @@ void LLIMModel::LLIMSession::chatFromLogFile(LLLogChat::ELogLineType type, const
 
 	if (type == LLLogChat::LOG_LINE)
 	{
-		self->addMessage("", LLSD(), msg["message"].asString(), "");
+		self->addMessage("", LLSD(), msg["message"].asString(), "", true);
 	}
 	else if (type == LLLogChat::LOG_LLSD)
 	{
-		self->addMessage(msg["from"].asString(), msg["from_id"].asUUID(), msg["message"].asString(), msg["time"].asString());
+		self->addMessage(msg["from"].asString(), msg["from_id"].asUUID(), msg["message"].asString(), msg["time"].asString(), true);
 	}
 }
 
@@ -607,10 +609,10 @@ bool LLIMModel::clearSession(const LLUUID& session_id)
 	return true;
 }
 
-void LLIMModel::getMessages(const LLUUID& session_id, std::list<LLSD>& messages, int start_index)
+void LLIMModel::getMessagesSilently(const LLUUID& session_id, std::list<LLSD>& messages, int start_index)
 {
 	LLIMSession* session = findIMSession(session_id);
-	if (!session) 
+	if (!session)
 	{
 		llwarns << "session " << session_id << "does not exist " << llendl;
 		return;
@@ -618,7 +620,7 @@ void LLIMModel::getMessages(const LLUUID& session_id, std::list<LLSD>& messages,
 
 	int i = session->mMsgs.size() - start_index;
 
-	for (std::list<LLSD>::iterator iter = session->mMsgs.begin(); 
+	for (std::list<LLSD>::iterator iter = session->mMsgs.begin();
 		iter != session->mMsgs.end() && i > 0;
 		iter++)
 	{
@@ -626,6 +628,16 @@ void LLIMModel::getMessages(const LLUUID& session_id, std::list<LLSD>& messages,
 		msg = *iter;
 		messages.push_back(*iter);
 		i--;
+	}
+}
+
+void LLIMModel::sendNoUnreadMessages(const LLUUID& session_id)
+{
+	LLIMSession* session = findIMSession(session_id);
+	if (!session)
+	{
+		llwarns << "session " << session_id << "does not exist " << llendl;
+		return;
 	}
 
 	session->mNumUnread = 0;
@@ -636,6 +648,13 @@ void LLIMModel::getMessages(const LLUUID& session_id, std::list<LLSD>& messages,
 	arg["num_unread"] = 0;
 	arg["participant_unread"] = session->mParticipantUnreadMessageCount;
 	mNoUnreadMsgsSignal(arg);
+}
+
+void LLIMModel::getMessages(const LLUUID& session_id, std::list<LLSD>& messages, int start_index)
+{
+	getMessagesSilently(session_id, messages, start_index);
+
+	sendNoUnreadMessages(session_id);
 }
 
 bool LLIMModel::addToHistory(const LLUUID& session_id, const std::string& from, const LLUUID& from_id, const std::string& utf8_text) {
@@ -716,13 +735,22 @@ LLIMModel::LLIMSession* LLIMModel::addMessageSilently(const LLUUID& session_id, 
 		return NULL;
 	}
 
-	addToHistory(session_id, from, from_id, utf8_text);
-	if (log2file) logToFile(session_id, from, from_id, utf8_text);
+	// replace interactive system message marker with correct from string value
+	std::string from_name = from;
+	if (INTERACTIVE_SYSTEM_FROM == from)
+	{
+		from_name = SYSTEM_FROM;
+	}
+
+	addToHistory(session_id, from_name, from_id, utf8_text);
+	if (log2file) logToFile(session_id, from_name, from_id, utf8_text);
 
 	session->mNumUnread++;
 
 	//update count of unread messages from real participant
-	if (!(from_id.isNull() || from_id == gAgentID || SYSTEM_FROM == from))
+	if (!(from_id.isNull() || from_id == gAgentID || SYSTEM_FROM == from)
+			// we should increment counter for interactive system messages()
+			|| INTERACTIVE_SYSTEM_FROM == from)
 	{
 		++(session->mParticipantUnreadMessageCount);
 	}
@@ -951,7 +979,42 @@ void LLIMModel::sendMessage(const std::string& utf8_text,
 	}
 
 	// Add the recipient to the recent people list.
-	LLRecentPeople::instance().add(other_participant_id);
+	bool is_not_group_id = LLGroupMgr::getInstance()->getGroupData(other_participant_id) == NULL;
+
+	if (is_not_group_id)
+	{
+			
+#if 0
+		//use this code to add only online members	
+		LLIMSpeakerMgr* speaker_mgr = LLIMModel::getInstance()->getSpeakerManager(im_session_id);
+		LLSpeakerMgr::speaker_list_t speaker_list;
+		speaker_mgr->getSpeakerList(&speaker_list, true);
+		for(LLSpeakerMgr::speaker_list_t::iterator it = speaker_list.begin(); it != speaker_list.end(); it++)
+		{
+			const LLPointer<LLSpeaker>& speakerp = *it;
+
+			LLRecentPeople::instance().add(speakerp->mID);
+		}
+#else
+		LLIMModel::LLIMSession* session = LLIMModel::getInstance()->findIMSession(im_session_id);
+		if( session == 0)//??? shouldn't really happen
+		{
+			LLRecentPeople::instance().add(other_participant_id);
+		}
+		else
+		{
+			for(std::vector<LLUUID>::iterator it = session->mInitialTargetIDs.begin();
+				it!=session->mInitialTargetIDs.end();++it)
+			{
+				const LLUUID id = *it;
+
+				LLRecentPeople::instance().add(id);
+			}
+		}
+#endif
+	}
+
+	
 }
 
 void session_starter_helper(
@@ -1472,6 +1535,8 @@ LLCallDialog::LLCallDialog(const LLSD& payload)
 	  mLifetime(DEFAULT_LIFETIME)
 {
 	setAutoFocus(FALSE);
+	// force docked state since this floater doesn't save it between recreations
+	setDocked(true);
 }
 
 void LLCallDialog::getAllowedRect(LLRect& rect)
@@ -1527,7 +1592,7 @@ void LLCallDialog::onOpen(const LLSD& key)
 	LLDockableFloater::onOpen(key);
 
 	// it should be over the all floaters. EXT-5116
-	gFloaterView->bringToFront(this);
+	gFloaterView->bringToFront(this, FALSE);
 }
 
 void LLCallDialog::setIcon(const LLSD& session_id, const LLSD& participant_id)

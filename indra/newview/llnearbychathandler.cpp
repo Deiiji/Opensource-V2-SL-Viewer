@@ -12,13 +12,13 @@
  * ("GPL"), unless you have obtained a separate licensing agreement
  * ("Other License"), formally executed by you and Linden Lab.  Terms of
  * the GPL can be found in doc/GPL-license.txt in this distribution, or
- * online at http://secondlifegrid.net/programs/open_source/licensing/gplv2
+ * online at http://secondlife.com/developers/opensource/gplv2
  * 
  * There are special exceptions to the terms and conditions of the GPL as
  * it is applied to this Source Code. View the full text of the exception
  * in the file doc/FLOSS-exception.txt in this software distribution, or
  * online at
- * http://secondlifegrid.net/programs/open_source/licensing/flossexception
+ * http://secondlife.com/developers/opensource/flossexception
  * 
  * By copying, modifying or distributing this software, you acknowledge
  * that you have read and understood your obligations described above,
@@ -28,12 +28,14 @@
  * WARRANTIES, EXPRESS, IMPLIED OR OTHERWISE, REGARDING ITS ACCURACY,
  * COMPLETENESS OR PERFORMANCE.
  * $/LicenseInfo$
+ * 
  */
 
 #include "llviewerprecompiledheaders.h"
 
 #include "llnearbychathandler.h"
 
+#include "llbottomtray.h"
 #include "llchatitemscontainerctrl.h"
 #include "llnearbychat.h"
 #include "llrecentpeople.h"
@@ -175,10 +177,11 @@ void LLNearbyChatScreenChannel::addNotification(LLSD& notification)
 	if(m_active_toasts.size())
 	{
 		LLUUID fromID = notification["from_id"].asUUID();		// agent id or object id
+		std::string from = notification["from"].asString();
 		LLToast* toast = m_active_toasts[0];
 		LLNearbyChatToastPanel* panel = dynamic_cast<LLNearbyChatToastPanel*>(toast->getPanel());
 
-		if(panel && panel->messageID() == fromID && panel->canAddText())
+		if(panel && panel->messageID() == fromID && panel->getFromName() == from && panel->canAddText())
 		{
 			panel->addMessage(notification);
 			toast->reshapeToPanel();
@@ -266,24 +269,23 @@ void LLNearbyChatScreenChannel::showToastsBottom()
 			}
 			break;
 		}
-		else
-		{
-			toast_rect = toast->getRect();
-			toast_rect.setLeftTopAndSize(getRect().mLeft , toast_top, toast_rect.getWidth() ,toast_rect.getHeight());
-		
-			toast->setRect(toast_rect);
-			toast->setIsHidden(false);
-			toast->setVisible(TRUE);
+		bottom = toast_top - toast->getTopPad();
+	}
 
-			if(!toast->hasFocus())
-			{
-				// Fixing Z-order of toasts (EXT-4862)
-				// Next toast will be positioned under this one.
-				gFloaterView->sendChildToBack(toast);
-			}
-			
-			bottom = toast->getRect().mTop - toast->getTopPad();
-		}		
+	// use reverse order to provide correct z-order and avoid toast blinking
+	for(std::vector<LLToast*>::reverse_iterator it = m_active_toasts.rbegin(); it != m_active_toasts.rend(); ++it)
+	{
+		LLToast* toast = (*it);
+		S32 toast_top = bottom + toast->getTopPad();
+
+		toast_rect = toast->getRect();
+		toast_rect.setLeftTopAndSize(getRect().mLeft , toast_top, toast_rect.getWidth() ,toast_rect.getHeight());
+
+		toast->setRect(toast_rect);
+		toast->setIsHidden(false);
+		toast->setVisible(TRUE);
+
+		bottom = toast->getRect().mBottom - margin;
 	}
 }
 
@@ -319,9 +321,9 @@ LLNearbyChatHandler::~LLNearbyChatHandler()
 void LLNearbyChatHandler::initChannel()
 {
 	LLNearbyChat* nearby_chat = LLFloaterReg::getTypedInstance<LLNearbyChat>("nearby_chat", LLSD());
+	LLView* chat_box = LLBottomTray::getInstance()->getChildView("chat_box");
 	S32 channel_right_bound = nearby_chat->getRect().mRight;
-	S32 channel_width = nearby_chat->getRect().mRight; 
-	mChannel->init(channel_right_bound - channel_width, channel_right_bound);
+	mChannel->init(chat_box->getRect().mLeft, channel_right_bound);
 }
 
 

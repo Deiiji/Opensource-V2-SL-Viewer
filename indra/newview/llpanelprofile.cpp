@@ -12,13 +12,13 @@
 * ("GPL"), unless you have obtained a separate licensing agreement
 * ("Other License"), formally executed by you and Linden Lab.  Terms of
 * the GPL can be found in doc/GPL-license.txt in this distribution, or
-* online at http://secondlifegrid.net/programs/open_source/licensing/gplv2
+* online at http://secondlife.com/developers/opensource/gplv2
 * 
 * There are special exceptions to the terms and conditions of the GPL as
 * it is applied to this Source Code. View the full text of the exception
 * in the file doc/FLOSS-exception.txt in this software distribution, or
 * online at
-* http://secondlifegrid.net/programs/open_source/licensing/flossexception
+* http://secondlife.com/developers/opensource/flossexception
 * 
 * By copying, modifying or distributing this software, you acknowledge
 * that you have read and understood your obligations described above,
@@ -28,6 +28,7 @@
 * WARRANTIES, EXPRESS, IMPLIED OR OTHERWISE, REGARDING ITS ACCURACY,
 * COMPLETENESS OR PERFORMANCE.
 * $/LicenseInfo$
+* 
 */
 
 #include "llviewerprecompiledheaders.h"
@@ -171,15 +172,13 @@ void LLPanelProfile::onOpen(const LLSD& key)
 		}
 		else if (panel == "classified_details")
 		{
-			LLUUID classified_id = key["classified_id"].asUUID();
-			LLUUID avatar_id     = key["classified_avatar_id"].asUUID();
-			LLUUID snapshot_id   = key["classified_snapshot_id"].asUUID();
-			std::string name     = key["classified_name"].asString();
-			std::string desc     = key["classified_desc"].asString();
 			LLPanelPicks* picks = dynamic_cast<LLPanelPicks *>(getTabContainer()[PANEL_PICKS]);
 			if (picks)
 			{
-				picks->openClassifiedInfo(classified_id, avatar_id, snapshot_id, name, desc);
+				LLSD params = key;
+				params.erase("show_tab_panel");
+				params.erase("open_tab_name");
+				picks->openClassifiedInfo(params);
 			}
 		}
 	}

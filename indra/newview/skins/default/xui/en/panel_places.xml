@@ -65,7 +65,7 @@ background_visible="true"
      visible="false"
      width="315" />
     <panel
-     height="19"
+     height="23"
      layout="topleft"
      left="4"
      name="button_panel"
@@ -129,7 +129,8 @@ background_visible="true"
          label="Close"
          layout="topleft"
          name="close_btn"
-         left_pad="3"
+         right="-10"
+         top="1"
          width="60" />
     </panel>
 </panel>

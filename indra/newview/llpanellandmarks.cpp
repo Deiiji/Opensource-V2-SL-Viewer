@@ -12,13 +12,13 @@
  * ("GPL"), unless you have obtained a separate licensing agreement
  * ("Other License"), formally executed by you and Linden Lab.  Terms of
  * the GPL can be found in doc/GPL-license.txt in this distribution, or
- * online at http://secondlifegrid.net/programs/open_source/licensing/gplv2
+ * online at http://secondlife.com/developers/opensource/gplv2
  * 
  * There are special exceptions to the terms and conditions of the GPL as
  * it is applied to this Source Code. View the full text of the exception
  * in the file doc/FLOSS-exception.txt in this software distribution, or
  * online at
- * http://secondlifegrid.net/programs/open_source/licensing/flossexception
+ * http://secondlife.com/developers/opensource/flossexception
  * 
  * By copying, modifying or distributing this software, you acknowledge
  * that you have read and understood your obligations described above,
@@ -28,6 +28,7 @@
  * WARRANTIES, EXPRESS, IMPLIED OR OTHERWISE, REGARDING ITS ACCURACY,
  * COMPLETENESS OR PERFORMANCE.
  * $/LicenseInfo$
+ * 
  */
 
 #include "llviewerprecompiledheaders.h"
@@ -70,6 +71,10 @@ static const std::string TRASH_BUTTON_NAME = "trash_btn";
 // helper functions
 static void filter_list(LLPlacesInventoryPanel* inventory_list, const std::string& string);
 static bool category_has_descendents(LLPlacesInventoryPanel* inventory_list);
+static void collapse_all_folders(LLFolderView* root_folder);
+static void expand_all_folders(LLFolderView* root_folder);
+static bool has_expanded_folders(LLFolderView* root_folder);
+static bool has_collapsed_folders(LLFolderView* root_folder);
 
 /**
  * Functor counting expanded and collapsed folders in folder view tree to know
@@ -531,7 +536,7 @@ void LLLandmarksPanel::initLandmarksInventoryPanel()
 	// subscribe to have auto-rename functionality while creating New Folder
 	mLandmarksInventoryPanel->setSelectCallback(boost::bind(&LLInventoryPanel::onSelectionChange, mLandmarksInventoryPanel, _1, _2));
 
-	initAccordion("tab_landmarks", mLandmarksInventoryPanel, true);
+	mMyLandmarksAccordionTab = initAccordion("tab_landmarks", mLandmarksInventoryPanel, true);
 }
 
 void LLLandmarksPanel::initMyInventoryPanel()
@@ -585,7 +590,7 @@ void LLLandmarksPanel::initLandmarksPanel(LLPlacesInventoryPanel* inventory_list
 	inventory_list->saveFolderState();
 }
 
-void LLLandmarksPanel::initAccordion(const std::string& accordion_tab_name, LLPlacesInventoryPanel* inventory_list,	bool expand_tab)
+LLAccordionCtrlTab* LLLandmarksPanel::initAccordion(const std::string& accordion_tab_name, LLPlacesInventoryPanel* inventory_list,	bool expand_tab)
 {
 	LLAccordionCtrlTab* accordion_tab = getChild<LLAccordionCtrlTab>(accordion_tab_name);
 
@@ -593,6 +598,7 @@ void LLLandmarksPanel::initAccordion(const std::string& accordion_tab_name, LLPl
 	accordion_tab->setDropDownStateChangedCallback(
 		boost::bind(&LLLandmarksPanel::onAccordionExpandedCollapsed, this, _2, inventory_list));
 	accordion_tab->setDisplayChildren(expand_tab);
+	return accordion_tab;
 }
 
 void LLLandmarksPanel::onAccordionExpandedCollapsed(const LLSD& param, LLPlacesInventoryPanel* inventory_list)
@@ -653,9 +659,6 @@ void LLLandmarksPanel::initListCommandsHandlers()
 
 	mListCommands->childSetAction(OPTIONS_BUTTON_NAME, boost::bind(&LLLandmarksPanel::onActionsButtonClick, this));
 	mListCommands->childSetAction(TRASH_BUTTON_NAME, boost::bind(&LLLandmarksPanel::onTrashButtonClick, this));
-	mListCommands->getChild<LLButton>(ADD_BUTTON_NAME)->setHeldDownCallback(boost::bind(&LLLandmarksPanel::onAddButtonHeldDown, this));
-	static const LLSD add_landmark_command("add_landmark");
-	mListCommands->childSetAction(ADD_BUTTON_NAME, boost::bind(&LLLandmarksPanel::onAddAction, this, add_landmark_command));
 
 	LLDragAndDropButton* trash_btn = mListCommands->getChild<LLDragAndDropButton>(TRASH_BUTTON_NAME);
 	trash_btn->setDragAndDropHandler(boost::bind(&LLLandmarksPanel::handleDragAndDropToTrash, this
@@ -673,6 +676,8 @@ void LLLandmarksPanel::initListCommandsHandlers()
 	mGearLandmarkMenu = LLUICtrlFactory::getInstance()->createFromFile<LLMenuGL>("menu_places_gear_landmark.xml", gMenuHolder, LLViewerMenuHolderGL::child_registry_t::instance());
 	mGearFolderMenu = LLUICtrlFactory::getInstance()->createFromFile<LLMenuGL>("menu_places_gear_folder.xml", gMenuHolder, LLViewerMenuHolderGL::child_registry_t::instance());
 	mMenuAdd = LLUICtrlFactory::getInstance()->createFromFile<LLMenuGL>("menu_place_add_button.xml", gMenuHolder, LLViewerMenuHolderGL::child_registry_t::instance());
+
+	mListCommands->childSetAction(ADD_BUTTON_NAME, boost::bind(&LLLandmarksPanel::showActionMenu, this, mMenuAdd, ADD_BUTTON_NAME));
 }
 
 
@@ -684,37 +689,30 @@ void LLLandmarksPanel::updateListCommands()
 	// keep Options & Add Landmark buttons always enabled
 	mListCommands->childSetEnabled(ADD_FOLDER_BUTTON_NAME, add_folder_enabled);
 	mListCommands->childSetEnabled(TRASH_BUTTON_NAME, trash_enabled);
-	mListCommands->childSetEnabled(OPTIONS_BUTTON_NAME,getCurSelectedItem() != NULL);
 }
 
 void LLLandmarksPanel::onActionsButtonClick()
 {
+	LLMenuGL* menu = mGearFolderMenu;
+
 	LLFolderViewItem* cur_item = NULL;
 	if(mCurrentSelectedList)
+	{
 		cur_item = mCurrentSelectedList->getRootFolder()->getCurSelectedItem();
-	
-	if(!cur_item)
-		return;
-	
-	LLFolderViewEventListener* listenerp = cur_item->getListener();
-	
-	LLMenuGL* menu  =NULL;
-	if (listenerp->getInventoryType() == LLInventoryType::IT_LANDMARK)
-	{
-		menu = mGearLandmarkMenu;
-	}
-	else if (listenerp->getInventoryType() == LLInventoryType::IT_CATEGORY)
-	{
-		mGearFolderMenu->getChild<LLMenuItemCallGL>("expand")->setVisible(!cur_item->isOpen());
-		mGearFolderMenu->getChild<LLMenuItemCallGL>("collapse")->setVisible(cur_item->isOpen());
-		menu = mGearFolderMenu;
-	}
-	showActionMenu(menu,OPTIONS_BUTTON_NAME);
-}
+		if(!cur_item)
+			return;
 
-void LLLandmarksPanel::onAddButtonHeldDown()
-{
-	showActionMenu(mMenuAdd,ADD_BUTTON_NAME);
+		LLFolderViewEventListener* listenerp = cur_item->getListener();
+		if(!listenerp)
+			return;
+
+		if (listenerp->getInventoryType() == LLInventoryType::IT_LANDMARK)
+		{
+			menu = mGearLandmarkMenu;
+		}
+	}
+
+	showActionMenu(menu,OPTIONS_BUTTON_NAME);
 }
 
 void LLLandmarksPanel::showActionMenu(LLMenuGL* menu, std::string spawning_view_name)
@@ -776,6 +774,17 @@ void LLLandmarksPanel::onAddAction(const LLSD& userdata) const
 							"category"), gInventory.findCategoryUUIDForType(
 							LLFolderType::FT_LANDMARK));
 		}
+		else
+		{
+			//in case My Landmarks tab is completely empty (thus cannot be determined as being selected)
+			menu_create_inventory_item(mLandmarksInventoryPanel->getRootFolder(), NULL, LLSD("category"), 
+				gInventory.findCategoryUUIDForType(LLFolderType::FT_LANDMARK));
+
+			if (mMyLandmarksAccordionTab)
+			{
+				mMyLandmarksAccordionTab->changeOpenClose(false);
+			}
+		}
 	}
 }
 
@@ -806,26 +815,33 @@ void LLLandmarksPanel::onClipboardAction(const LLSD& userdata) const
 
 void LLLandmarksPanel::onFoldingAction(const LLSD& userdata)
 {
-	if(!mCurrentSelectedList) return;
-
-	LLFolderView* root_folder = mCurrentSelectedList->getRootFolder();
 	std::string command_name = userdata.asString();
 
 	if ("expand_all" == command_name)
 	{
-		root_folder->setOpenArrangeRecursively(TRUE, LLFolderViewFolder::RECURSE_DOWN);
-		root_folder->arrangeAll();
+		expand_all_folders(mFavoritesInventoryPanel->getRootFolder());
+		expand_all_folders(mLandmarksInventoryPanel->getRootFolder());
+		expand_all_folders(mMyInventoryPanel->getRootFolder());
+		expand_all_folders(mLibraryInventoryPanel->getRootFolder());
+
+		for (accordion_tabs_t::const_iterator iter = mAccordionTabs.begin(); iter != mAccordionTabs.end(); ++iter)
+		{
+			(*iter)->changeOpenClose(false);
+		}
 	}
 	else if ("collapse_all" == command_name)
 	{
-		root_folder->setOpenArrangeRecursively(FALSE, LLFolderViewFolder::RECURSE_DOWN);
+		collapse_all_folders(mFavoritesInventoryPanel->getRootFolder());
+		collapse_all_folders(mLandmarksInventoryPanel->getRootFolder());
+		collapse_all_folders(mMyInventoryPanel->getRootFolder());
+		collapse_all_folders(mLibraryInventoryPanel->getRootFolder());
 
-		// The top level folder is invisible, it must be open to
-		// display its sub-folders.
-		root_folder->openTopLevelFolders();
-		root_folder->arrangeAll();
+		for (accordion_tabs_t::const_iterator iter = mAccordionTabs.begin(); iter != mAccordionTabs.end(); ++iter)
+		{
+			(*iter)->changeOpenClose(true);
+		}
 	}
-	else if ( "sort_by_date" == command_name)
+	else if ("sort_by_date" == command_name)
 	{
 		mSortByDate = !mSortByDate;
 		updateSortOrder(mLandmarksInventoryPanel, mSortByDate);
@@ -834,7 +850,10 @@ void LLLandmarksPanel::onFoldingAction(const LLSD& userdata)
 	}
 	else
 	{
-		root_folder->doToSelected(&gInventory, userdata);
+		if(mCurrentSelectedList)
+		{
+			mCurrentSelectedList->getRootFolder()->doToSelected(&gInventory, userdata);
+		}
 	}
 }
 
@@ -854,53 +873,88 @@ bool LLLandmarksPanel::isActionEnabled(const LLSD& userdata) const
 {
 	std::string command_name = userdata.asString();
 
-
-	LLPlacesFolderView* rootFolderView = mCurrentSelectedList ?
+	LLPlacesFolderView* root_folder_view = mCurrentSelectedList ?
 		static_cast<LLPlacesFolderView*>(mCurrentSelectedList->getRootFolder()) : NULL;
 
-	if (NULL == rootFolderView) return false;
-
-	// disable some commands for multi-selection. EXT-1757
-	if (rootFolderView->getSelectedCount() > 1)
+	if ("collapse_all" == command_name)
 	{
-		if (   "teleport"		== command_name 
+		bool disable_collapse_all =	!has_expanded_folders(mFavoritesInventoryPanel->getRootFolder())
+									&& !has_expanded_folders(mLandmarksInventoryPanel->getRootFolder())
+									&& !has_expanded_folders(mMyInventoryPanel->getRootFolder())
+									&& !has_expanded_folders(mLibraryInventoryPanel->getRootFolder());
+		if (disable_collapse_all)
+		{
+			for (accordion_tabs_t::const_iterator iter = mAccordionTabs.begin(); iter != mAccordionTabs.end(); ++iter)
+			{
+				if ((*iter)->isExpanded())
+				{
+					disable_collapse_all = false;
+					break;
+				}
+			}
+		}
+
+		return !disable_collapse_all;
+	}
+	else if ("expand_all" == command_name)
+	{
+		bool disable_expand_all = !has_collapsed_folders(mFavoritesInventoryPanel->getRootFolder())
+								  && !has_collapsed_folders(mLandmarksInventoryPanel->getRootFolder())
+								  && !has_collapsed_folders(mMyInventoryPanel->getRootFolder())
+								  && !has_collapsed_folders(mLibraryInventoryPanel->getRootFolder());
+		if (disable_expand_all)
+		{
+			for (accordion_tabs_t::const_iterator iter = mAccordionTabs.begin(); iter != mAccordionTabs.end(); ++iter)
+			{
+				if (!(*iter)->isExpanded())
+				{
+					disable_expand_all = false;
+					break;
+				}
+			}
+		}
+
+		return !disable_expand_all;
+	}
+	else if ("sort_by_date"	== command_name)
+	{
+		// disable "sort_by_date" for Favorites accordion because
+		// it has its own items order. EXT-1758
+		if (mCurrentSelectedList == mFavoritesInventoryPanel)
+		{
+			return false;
+		}
+	}
+	else if (!root_folder_view && "category" != command_name)
+	{
+		return false;
+	}
+	else if (  "paste"		== command_name
+			|| "rename"		== command_name
+			|| "cut"		== command_name
+			|| "copy"		== command_name
+			|| "delete"		== command_name
+			|| "collapse"	== command_name
+			|| "expand"		== command_name
+			)
+	{
+		return canSelectedBeModified(command_name);
+	}
+	else if (  "teleport"		== command_name
 			|| "more_info"		== command_name
 			|| "rename"			== command_name
 			|| "show_on_map"	== command_name
 			|| "copy_slurl"		== command_name
 			)
+	{
+		// disable some commands for multi-selection. EXT-1757
+		if (root_folder_view &&
+		    root_folder_view->getSelectedCount() > 1)
 		{
 			return false;
 		}
-
 	}
-
-	// disable some commands for Favorites accordion. EXT-1758
-	if (mCurrentSelectedList == mFavoritesInventoryPanel)
-	{
-		if (   "expand_all"		== command_name
-			|| "collapse_all"	== command_name
-			|| "sort_by_date"	== command_name
-			)
-			return false;
-	}
-
-	LLCheckFolderState checker;
-	rootFolderView->applyFunctorRecursively(checker);
-
-	// We assume that the root folder is always expanded so we enable "collapse_all"
-	// command when we have at least one more expanded folder.
-	if (checker.getExpandedFolders() < 2 && "collapse_all" == command_name)
-	{
-		return false;
-	}
-
-	if (checker.getCollapsedFolders() < 1 && "expand_all" == command_name)
-	{
-		return false;
-	}
-
-	if("category" == command_name)
+	else if("category" == command_name)
 	{
 		// we can add folder only in Landmarks Accordion
 		if (mCurrentSelectedList == mLandmarksInventoryPanel)
@@ -908,11 +962,8 @@ bool LLLandmarksPanel::isActionEnabled(const LLSD& userdata) const
 			// ... but except Received folder
 			return !isReceivedFolderSelected();
 		}
-		else return false;
-	}
-	else if("paste" == command_name || "rename" == command_name || "cut" == command_name || "delete" == command_name)
-	{
-		return canSelectedBeModified(command_name);
+		//"Add a folder" is enabled by default (case when My Landmarks is empty)
+		else return true;
 	}
 	else if("create_pick" == command_name)
 	{
@@ -971,6 +1022,9 @@ bool LLLandmarksPanel::canSelectedBeModified(const std::string& command_name) co
 {
 	// validate own rules first
 
+	LLFolderViewItem* selected = getCurSelectedItem();
+	if (!selected) return false;
+
 	// nothing can be modified in Library
 	if (mLibraryInventoryPanel == mCurrentSelectedList) return false;
 
@@ -997,24 +1051,41 @@ bool LLLandmarksPanel::canSelectedBeModified(const std::string& command_name) co
 	}
 
 	// then ask LLFolderView permissions
+
+	LLFolderView* root_folder = mCurrentSelectedList->getRootFolder();
+
+	if ("copy" == command_name)
+	{
+		return root_folder->canCopy();
+	}
+	else if ("collapse" == command_name)
+	{
+		return selected->isOpen();
+	}
+	else if ("expand" == command_name)
+	{
+		return !selected->isOpen();
+	}
+
 	if (can_be_modified)
 	{
-		LLFolderViewItem* selected = getCurSelectedItem();
+		LLFolderViewEventListener* listenerp = selected->getListener();
+
 		if ("cut" == command_name)
 		{
-			can_be_modified = mCurrentSelectedList->getRootFolder()->canCut();
+			can_be_modified = root_folder->canCut();
 		}
 		else if ("rename" == command_name)
 		{
-			can_be_modified = selected ? selected->getListener()->isItemRenameable() : false;
+			can_be_modified = listenerp ? listenerp->isItemRenameable() : false;
 		}
 		else if ("delete" == command_name)
 		{
-			can_be_modified = selected ? selected->getListener()->isItemRemovable(): false;
+			can_be_modified = listenerp ? listenerp->isItemRemovable() : false;
 		}
 		else if("paste" == command_name)
 		{
-			return mCurrentSelectedList->getRootFolder()->canPaste();
+			can_be_modified = root_folder->canPaste();
 		}
 		else
 		{
@@ -1197,5 +1268,55 @@ static bool category_has_descendents(LLPlacesInventoryPanel* inventory_list)
 	}
 
 	return false;
+}
+
+static void collapse_all_folders(LLFolderView* root_folder)
+{
+	if (!root_folder)
+		return;
+
+	root_folder->setOpenArrangeRecursively(FALSE, LLFolderViewFolder::RECURSE_DOWN);
+
+	// The top level folder is invisible, it must be open to
+	// display its sub-folders.
+	root_folder->openTopLevelFolders();
+	root_folder->arrangeAll();
+}
+
+static void expand_all_folders(LLFolderView* root_folder)
+{
+	if (!root_folder)
+		return;
+
+	root_folder->setOpenArrangeRecursively(TRUE, LLFolderViewFolder::RECURSE_DOWN);
+	root_folder->arrangeAll();
+}
+
+static bool has_expanded_folders(LLFolderView* root_folder)
+{
+	LLCheckFolderState checker;
+	root_folder->applyFunctorRecursively(checker);
+
+	// We assume that the root folder is always expanded so we enable "collapse_all"
+	// command when we have at least one more expanded folder.
+	if (checker.getExpandedFolders() < 2)
+	{
+		return false;
+	}
+
+	return true;
+}
+
+static bool has_collapsed_folders(LLFolderView* root_folder)
+{
+	LLCheckFolderState checker;
+	root_folder->applyFunctorRecursively(checker);
+
+	if (checker.getCollapsedFolders() < 1)
+	{
+		return false;
+	}
+
+	return true;
 }
 // EOF

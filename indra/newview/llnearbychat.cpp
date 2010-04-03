@@ -12,13 +12,13 @@
  * ("GPL"), unless you have obtained a separate licensing agreement
  * ("Other License"), formally executed by you and Linden Lab.  Terms of
  * the GPL can be found in doc/GPL-license.txt in this distribution, or
- * online at http://secondlifegrid.net/programs/open_source/licensing/gplv2
+ * online at http://secondlife.com/developers/opensource/gplv2
  * 
  * There are special exceptions to the terms and conditions of the GPL as
  * it is applied to this Source Code. View the full text of the exception
  * in the file doc/FLOSS-exception.txt in this software distribution, or
  * online at
- * http://secondlifegrid.net/programs/open_source/licensing/flossexception
+ * http://secondlife.com/developers/opensource/flossexception
  * 
  * By copying, modifying or distributing this software, you acknowledge
  * that you have read and understood your obligations described above,
@@ -28,6 +28,7 @@
  * WARRANTIES, EXPRESS, IMPLIED OR OTHERWISE, REGARDING ITS ACCURACY,
  * COMPLETENESS OR PERFORMANCE.
  * $/LicenseInfo$
+ * 
  */
 
 #include "llviewerprecompiledheaders.h"
@@ -278,6 +279,13 @@ void LLNearbyChat::processChatHistoryStyleUpdate(const LLSD& newvalue)
 		nearby_chat->updateChatHistoryStyle();
 }
 
+bool isTwoWordsName(const std::string& name)
+{
+	//checking for a single space
+	S32 pos = name.find(' ', 0);
+	return std::string::npos != pos && name.rfind(' ', name.length()) == pos && 0 != pos && name.length()-1 != pos;
+}
+
 void LLNearbyChat::loadHistory()
 {
 	LLSD do_not_log;
@@ -303,6 +311,19 @@ void LLNearbyChat::loadHistory()
 		chat.mFromID = from_id;
 		chat.mText = msg[IM_TEXT].asString();
 		chat.mTimeStr = msg[IM_TIME].asString();
+		chat.mChatStyle = CHAT_STYLE_HISTORY;
+
+		chat.mSourceType = CHAT_SOURCE_AGENT;
+		if (from_id.isNull() && SYSTEM_FROM == from)
+		{	
+			chat.mSourceType = CHAT_SOURCE_SYSTEM;
+			
+		}
+		else if (from_id.isNull())
+		{
+			chat.mSourceType = isTwoWordsName(from) ? CHAT_SOURCE_UNKNOWN : CHAT_SOURCE_OBJECT;
+		}
+
 		addMessage(chat, true, do_not_log);
 
 		it++;

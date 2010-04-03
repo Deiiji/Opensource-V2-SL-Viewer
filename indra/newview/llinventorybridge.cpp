@@ -12,13 +12,13 @@
  * ("GPL"), unless you have obtained a separate licensing agreement
  * ("Other License"), formally executed by you and Linden Lab.  Terms of
  * the GPL can be found in doc/GPL-license.txt in this distribution, or
- * online at http://secondlifegrid.net/programs/open_source/licensing/gplv2
+ * online at http://secondlife.com/developers/opensource/gplv2
  * 
  * There are special exceptions to the terms and conditions of the GPL as
  * it is applied to this Source Code. View the full text of the exception
  * in the file doc/FLOSS-exception.txt in this software distribution, or
  * online at
- * http://secondlifegrid.net/programs/open_source/licensing/flossexception
+ * http://secondlife.com/developers/opensource/flossexception
  * 
  * By copying, modifying or distributing this software, you acknowledge
  * that you have read and understood your obligations described above,
@@ -28,9 +28,13 @@
  * WARRANTIES, EXPRESS, IMPLIED OR OTHERWISE, REGARDING ITS ACCURACY,
  * COMPLETENESS OR PERFORMANCE.
  * $/LicenseInfo$
+ * 
  */
 
 #include "llviewerprecompiledheaders.h"
+// external projects
+#include "lltransfersourceasset.h"
+
 #include "llinventorybridge.h"
 
 #include "llagent.h"
@@ -100,7 +104,7 @@ std::string ICON_NAME[ICON_NAME_COUNT] =
 	"Inv_Script",
 	"Inv_Clothing",
 	"Inv_Object",
-	"Inv_Object",
+	"Inv_Object_Multi",
 	"Inv_Notecard",
 	"Inv_Skin",
 	"Inv_Snapshot",
@@ -583,7 +587,16 @@ void LLInvFVBridge::getClipboardEntries(bool show_asset_id,
 			if (show_asset_id)
 			{
 				items.push_back(std::string("Copy Asset UUID"));
-				if ( (! ( isItemPermissive() || gAgent.isGodlike() ) )
+
+				bool is_asset_knowable = false;
+
+				LLViewerInventoryItem* inv_item = gInventory.getItem(mUUID);
+				if (inv_item)
+				{
+					is_asset_knowable = is_asset_id_knowable(inv_item->getType());
+				}
+				if ( !is_asset_knowable // disable menu item for Inventory items with unknown asset. EXT-5308
+					 || (! ( isItemPermissive() || gAgent.isGodlike() ) )
 					 || (flags & FIRST_SELECTED_ITEM) == 0)
 				{
 					disabled_items.push_back(std::string("Copy Asset UUID"));
@@ -671,13 +684,14 @@ void LLInvFVBridge::addTrashContextMenuOptions(menuentry_vec_t &items,
 void LLInvFVBridge::addDeleteContextMenuOptions(menuentry_vec_t &items,
 												menuentry_vec_t &disabled_items)
 {
+
+	const LLInventoryObject *obj = getInventoryObject();
+
 	// Don't allow delete as a direct option from COF folder.
-	if (isCOFFolder())
+	if (obj && obj->getIsLinkType() && isCOFFolder())
 	{
 		return;
 	}
-
-	const LLInventoryObject *obj = getInventoryObject();
 
 	// "Remove link" and "Delete" are the same operation.
 	if (obj && obj->getIsLinkType() && !get_is_item_worn(mUUID))
@@ -1065,9 +1079,9 @@ void LLItemBridge::performAction(LLFolderView* folder, LLInventoryModel* model, 
 	else if ("copy_uuid" == action)
 	{
 		// Single item only
-		LLInventoryItem* item = model->getItem(mUUID);
+		LLViewerInventoryItem* item = static_cast<LLViewerInventoryItem*>(getItem());
 		if(!item) return;
-		LLUUID asset_id = item->getAssetUUID();
+		LLUUID asset_id = item->getProtectedAssetUUID();
 		std::string buffer;
 		asset_id.toString(buffer);
 
@@ -1107,7 +1121,7 @@ void LLItemBridge::performAction(LLFolderView* folder, LLInventoryModel* model, 
 
 void LLItemBridge::selectItem()
 {
-	LLViewerInventoryItem* item = (LLViewerInventoryItem*)getItem();
+	LLViewerInventoryItem* item = static_cast<LLViewerInventoryItem*>(getItem());
 	if(item && !item->isComplete())
 	{
 		item->fetchFromServer();
@@ -1116,7 +1130,7 @@ void LLItemBridge::selectItem()
 
 void LLItemBridge::restoreItem()
 {
-	LLViewerInventoryItem* item = (LLViewerInventoryItem*)getItem();
+	LLViewerInventoryItem* item = static_cast<LLViewerInventoryItem*>(getItem());
 	if(item)
 	{
 		LLInventoryModel* model = getInventoryModel();
@@ -1131,7 +1145,7 @@ void LLItemBridge::restoreToWorld()
 	//Similar functionality to the drag and drop rez logic
 	bool remove_from_inventory = false;
 
-	LLViewerInventoryItem* itemp = (LLViewerInventoryItem*)getItem();
+	LLViewerInventoryItem* itemp = static_cast<LLViewerInventoryItem*>(getItem());
 	if (itemp)
 	{
 		LLMessageSystem* msg = gMessageSystem;
@@ -1424,11 +1438,7 @@ BOOL LLItemBridge::isItemPermissive() const
 	LLViewerInventoryItem* item = getItem();
 	if(item)
 	{
-		U32 mask = item->getPermissions().getMaskBase();
-		if((mask & PERM_ITEM_UNRESTRICTED) == PERM_ITEM_UNRESTRICTED)
-		{
-			return TRUE;
-		}
+		return item->getIsFullPerm();
 	}
 	return FALSE;
 }
@@ -1925,7 +1935,7 @@ bool LLFindCOFValidItems::operator()(LLInventoryCategory* cat,
 	// - links to attachments
 	// - links to gestures
 	// - links to ensemble folders
-	LLViewerInventoryItem *linked_item = ((LLViewerInventoryItem*)item)->getLinkedItem(); // BAP - safe?
+	LLViewerInventoryItem *linked_item = ((LLViewerInventoryItem*)item)->getLinkedItem();
 	if (linked_item)
 	{
 		LLAssetType::EType type = linked_item->getType();
@@ -1936,7 +1946,7 @@ bool LLFindCOFValidItems::operator()(LLInventoryCategory* cat,
 	}
 	else
 	{
-		LLViewerInventoryCategory *linked_category = ((LLViewerInventoryItem*)item)->getLinkedCategory(); // BAP - safe?
+		LLViewerInventoryCategory *linked_category = ((LLViewerInventoryItem*)item)->getLinkedCategory();
 		// BAP remove AT_NONE support after ensembles are fully working?
 		return (linked_category &&
 				((linked_category->getPreferredType() == LLFolderType::FT_NONE) ||
@@ -2681,8 +2691,7 @@ void LLFolderBridge::buildContextMenu(LLMenuGL& menu, U32 flags)
 		LLViewerInventoryCategory *cat =  getCategory();
 		// BAP removed protected check to re-enable standard ops in untyped folders.
 		// Not sure what the right thing is to do here.
-		if (!isCOFFolder() && cat && cat->getPreferredType()!=LLFolderType::FT_OUTFIT /*&&
-			LLAssetType::lookupIsProtectedCategoryType(cat->getPreferredType())*/)
+		if (!isCOFFolder() && cat && (cat->getPreferredType() != LLFolderType::FT_OUTFIT))
 		{
 			// Do not allow to create 2-level subfolder in the Calling Card/Friends folder. EXT-694.
 			if (!LLFriendCardsManager::instance().isCategoryInFriendFolder(cat))
@@ -2962,8 +2971,6 @@ void LLFolderBridge::modifyOutfit(BOOL append)
 	LLViewerInventoryCategory* cat = getCategory();
 	if(!cat) return;
 
-	// BAP - was:
-	// wear_inventory_category_on_avatar( cat, append );
 	LLAppearanceManager::instance().wearInventoryCategory( cat, FALSE, append );
 }
 
@@ -3802,7 +3809,9 @@ std::string LLGestureBridge::getLabelSuffix() const
 {
 	if( LLGestureManager::instance().isGestureActive(mUUID) )
 	{
-		return LLItemBridge::getLabelSuffix() + " (active)";
+		LLStringUtil::format_map_t args;
+		args["[GESLABEL]"] =  LLItemBridge::getLabelSuffix();
+		return  LLTrans::getString("ActiveGesture", args);
 	}
 	else
 	{
@@ -4151,7 +4160,7 @@ std::string LLObjectBridge::getLabelSuffix() const
 
 		// e.g. "(worn on ...)" / "(attached to ...)"
 		LLStringUtil::format_map_t args;
-		args["[ATTACHMENT_POINT]"] =  attachment_point_name.c_str();
+		args["[ATTACHMENT_POINT]"] =  LLTrans::getString(attachment_point_name);
 		return LLItemBridge::getLabelSuffix() + LLTrans::getString("WornOnAttachmentPoint", args);
 	}
 	else
@@ -4270,7 +4279,7 @@ void LLObjectBridge::buildContextMenu(LLMenuGL& menu, U32 flags)
 				items.push_back(std::string("Attach Separator"));
 				items.push_back(std::string("Detach From Yourself"));
 			}
-			else if (!isItemInTrash() && !isLinkedObjectInTrash() && !isLinkedObjectMissing())
+			else if (!isItemInTrash() && !isLinkedObjectInTrash() && !isLinkedObjectMissing() && !isCOFFolder())
 			{
 				items.push_back(std::string("Attach Separator"));
 				items.push_back(std::string("Object Wear"));
@@ -4696,7 +4705,7 @@ void LLWearableBridge::buildContextMenu(LLMenuGL& menu, U32 flags)
 			disabled_items.push_back(std::string("Wearable Edit"));
 		}
 		// Don't allow items to be worn if their baseobj is in the trash.
-		if (isLinkedObjectInTrash() || isLinkedObjectMissing())
+		if (isLinkedObjectInTrash() || isLinkedObjectMissing() || isCOFFolder())
 		{
 			disabled_items.push_back(std::string("Wearable Wear"));
 			disabled_items.push_back(std::string("Wearable Add"));
@@ -5350,7 +5359,10 @@ LLUIImagePtr LLLinkItemBridge::getIcon() const
 {
 	if (LLViewerInventoryItem *item = getItem())
 	{
-		return get_item_icon(item->getActualType(), item->getInventoryType(), 0, FALSE);
+		U32 attachment_point = (item->getFlags() & 0xff); // low byte of inventory flags
+		bool is_multi =  LLInventoryItem::II_FLAGS_OBJECT_HAS_MULTIPLE_ITEMS & item->getFlags();
+
+		return get_item_icon(item->getActualType(), item->getInventoryType(), attachment_point, is_multi);
 	}
 	return get_item_icon(LLAssetType::AT_LINK, LLInventoryType::IT_NONE, 0, FALSE);
 }

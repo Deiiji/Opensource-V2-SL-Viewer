@@ -12,13 +12,13 @@
  * ("GPL"), unless you have obtained a separate licensing agreement
  * ("Other License"), formally executed by you and Linden Lab.  Terms of
  * the GPL can be found in doc/GPL-license.txt in this distribution, or
- * online at http://secondlifegrid.net/programs/open_source/licensing/gplv2
+ * online at http://secondlife.com/developers/opensource/gplv2
  * 
  * There are special exceptions to the terms and conditions of the GPL as
  * it is applied to this Source Code. View the full text of the exception
  * in the file doc/FLOSS-exception.txt in this software distribution, or
  * online at
- * http://secondlifegrid.net/programs/open_source/licensing/flossexception
+ * http://secondlife.com/developers/opensource/flossexception
  * 
  * By copying, modifying or distributing this software, you acknowledge
  * that you have read and understood your obligations described above,
@@ -28,6 +28,7 @@
  * WARRANTIES, EXPRESS, IMPLIED OR OTHERWISE, REGARDING ITS ACCURACY,
  * COMPLETENESS OR PERFORMANCE.
  * $/LicenseInfo$
+ * 
  */
 
 #ifndef LL_LLLOCATIONHISTORY_H
@@ -41,11 +42,13 @@
 #include <boost/function.hpp>
 
 class LLSD;
-
+/**
+ * This enum is responsible for identifying of history item.
+ */
 enum ELocationType {
-	 TYPED_REGION_SURL//region name or surl 
-	,LANDMARK  // name of landmark
-	,TELEPORT_HISTORY 
+	 TYPED_REGION_SLURL//item added after the user had typed a region name or slurl 
+	,LANDMARK  // item has been loaded from landmark folder
+	,TELEPORT_HISTORY // item from session teleport history
 	};
 class LLLocationHistoryItem {
 			
@@ -109,9 +112,16 @@ class LLLocationHistory: public LLSingleton<LLLocationHistory>
 	LOG_CLASS(LLLocationHistory);
 
 public:
+	enum EChangeType
+	{
+		 ADD
+		,CLEAR
+		,LOAD
+	};
+	
 	typedef std::vector<LLLocationHistoryItem>	location_list_t;
-	typedef boost::function<void()>		loaded_callback_t;
-	typedef boost::signals2::signal<void()> loaded_signal_t;
+	typedef boost::function<void(EChangeType event)>			history_changed_callback_t;
+	typedef boost::signals2::signal<void(EChangeType event)>	history_changed_signal_t;
 	
 	LLLocationHistory();
 	
@@ -120,8 +130,8 @@ public:
 	void                    removeItems();
 	size_t					getItemCount() const	{ return mItems.size(); }
 	const location_list_t&	getItems() const		{ return mItems; }
-	bool					getMatchingItems(std::string substring, location_list_t& result) const;
-	boost::signals2::connection	setLoadedCallback(loaded_callback_t cb) { return mLoadedSignal.connect(cb); }
+	bool					getMatchingItems(const std::string& substring, location_list_t& result) const;
+	boost::signals2::connection	setChangedCallback(history_changed_callback_t cb) { return mChangedSignal.connect(cb); }
 	
 	void					save() const;
 	void					load();
@@ -131,7 +141,7 @@ private:
 
 	location_list_t			mItems;
 	std::string							mFilename; /// File to store the history to.
-	loaded_signal_t						mLoadedSignal;
+	history_changed_signal_t			mChangedSignal;
 };
 
 #endif

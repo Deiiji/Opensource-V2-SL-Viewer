@@ -12,13 +12,13 @@
  * ("GPL"), unless you have obtained a separate licensing agreement
  * ("Other License"), formally executed by you and Linden Lab.  Terms of
  * the GPL can be found in doc/GPL-license.txt in this distribution, or
- * online at http://secondlifegrid.net/programs/open_source/licensing/gplv2
+ * online at http://secondlife.com/developers/opensource/gplv2
  * 
  * There are special exceptions to the terms and conditions of the GPL as
  * it is applied to this Source Code. View the full text of the exception
  * in the file doc/FLOSS-exception.txt in this software distribution, or
  * online at
- * http://secondlifegrid.net/programs/open_source/licensing/flossexception
+ * http://secondlife.com/developers/opensource/flossexception
  * 
  * By copying, modifying or distributing this software, you acknowledge
  * that you have read and understood your obligations described above,
@@ -28,6 +28,7 @@
  * WARRANTIES, EXPRESS, IMPLIED OR OTHERWISE, REGARDING ITS ACCURACY,
  * COMPLETENESS OR PERFORMANCE.
  * $/LicenseInfo$
+ * 
  */
 
 #include "llviewerprecompiledheaders.h"
@@ -48,6 +49,7 @@
 #include "llsidetray.h"
 
 #include "llinventorybridge.h"
+#include "llinventorypanel.h"
 #include "llfloaterinventory.h"
 
 #include "llviewerassettype.h"
@@ -525,7 +527,7 @@ bool LLViewerInventoryCategory::fetchDescendents()
 		// 2 = folders by date
 		// Need to mask off anything but the first bit.
 		// This comes from LLInventoryFilter from llfolderview.h
-		U32 sort_order = gSavedSettings.getU32("InventorySortOrder") & 0x1;
+		U32 sort_order = gSavedSettings.getU32(LLInventoryPanel::DEFAULT_SORT_ORDER) & 0x1;
 
 		// *NOTE: For bug EXT-2879, originally commented out
 		// gAgent.getRegion()->getCapability in order to use the old
@@ -1163,6 +1165,40 @@ const LLUUID& LLViewerInventoryItem::getAssetUUID() const
 	}
 
 	return LLInventoryItem::getAssetUUID();
+}
+
+const LLUUID& LLViewerInventoryItem::getProtectedAssetUUID() const
+{
+	if (const LLViewerInventoryItem *linked_item = getLinkedItem())
+	{
+		return linked_item->getProtectedAssetUUID();
+	}
+
+	// check for conditions under which we may return a visible UUID to the user
+	bool item_is_fullperm = getIsFullPerm();
+	bool agent_is_godlike = gAgent.isGodlikeWithoutAdminMenuFakery();
+	if (item_is_fullperm || agent_is_godlike)
+	{
+		return LLInventoryItem::getAssetUUID();
+	}
+
+	return LLUUID::null;
+}
+
+const bool LLViewerInventoryItem::getIsFullPerm() const
+{
+	LLPermissions item_permissions = getPermissions();
+
+	// modify-ok & copy-ok & transfer-ok
+	return ( item_permissions.allowOperationBy(PERM_MODIFY,
+						   gAgent.getID(),
+						   gAgent.getGroupID()) &&
+		 item_permissions.allowOperationBy(PERM_COPY,
+						   gAgent.getID(),
+						   gAgent.getGroupID()) &&
+		 item_permissions.allowOperationBy(PERM_TRANSFER,
+						   gAgent.getID(),
+						   gAgent.getGroupID()) );
 }
 
 const std::string& LLViewerInventoryItem::getName() const

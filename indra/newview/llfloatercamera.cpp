@@ -12,13 +12,13 @@
  * ("GPL"), unless you have obtained a separate licensing agreement
  * ("Other License"), formally executed by you and Linden Lab.  Terms of
  * the GPL can be found in doc/GPL-license.txt in this distribution, or
- * online at http://secondlifegrid.net/programs/open_source/licensing/gplv2
+ * online at http://secondlife.com/developers/opensource/gplv2
  * 
  * There are special exceptions to the terms and conditions of the GPL as
  * it is applied to this Source Code. View the full text of the exception
  * in the file doc/FLOSS-exception.txt in this software distribution, or
  * online at
- * http://secondlifegrid.net/programs/open_source/licensing/flossexception
+ * http://secondlife.com/developers/opensource/flossexception
  * 
  * By copying, modifying or distributing this software, you acknowledge
  * that you have read and understood your obligations described above,
@@ -28,6 +28,7 @@
  * WARRANTIES, EXPRESS, IMPLIED OR OTHERWISE, REGARDING ITS ACCURACY,
  * COMPLETENESS OR PERFORMANCE.
  * $/LicenseInfo$
+ * 
  */
 
 #include "llviewerprecompiledheaders.h"
@@ -241,6 +242,7 @@ LLFloaterCamera::LLFloaterCamera(const LLSD& val)
 BOOL LLFloaterCamera::postBuild()
 {
 	setIsChrome(TRUE);
+	setTitleVisible(TRUE); // restore title visibility after chrome applying
 
 	mRotate = getChild<LLJoystickCameraRotate>(ORBIT);
 	mZoom = getChild<LLPanelCameraZoom>(ZOOM);
@@ -293,6 +295,31 @@ void LLFloaterCamera::setMode(ECameraControlMode mode)
 	}
 	
 	updateState();
+}
+
+void LLFloaterCamera::setModeTitle(const ECameraControlMode mode)
+{
+	std::string title; 
+	switch(mode)
+	{
+	case CAMERA_CTRL_MODE_ORBIT:
+		title = getString("orbit_mode_title");
+		break;
+	case CAMERA_CTRL_MODE_PAN:
+		title = getString("pan_mode_title");
+		break;
+	case CAMERA_CTRL_MODE_AVATAR_VIEW:
+		title = getString("avatar_view_mode_title");
+		break;
+	case CAMERA_CTRL_MODE_FREE_CAMERA:
+		title = getString("free_mode_title");
+		break;
+	default:
+		// title should be provided for all modes
+		llassert(false);
+		break;
+	}
+	setTitle(title);
 }
 
 void LLFloaterCamera::switchMode(ECameraControlMode mode)
@@ -354,6 +381,10 @@ void LLFloaterCamera::updateState()
 	childSetVisible(ZOOM, CAMERA_CTRL_MODE_AVATAR_VIEW != mCurrMode);
 	childSetVisible(PRESETS, CAMERA_CTRL_MODE_AVATAR_VIEW == mCurrMode);
 
+	updateCameraPresetButtons();
+	setModeTitle(mCurrMode);
+
+
 	//hiding or showing the panel with controls by reshaping the floater
 	bool showControls = CAMERA_CTRL_MODE_FREE_CAMERA != mCurrMode;
 	if (showControls == childIsVisible(CONTROLS)) return;
@@ -384,6 +415,16 @@ void LLFloaterCamera::updateState()
 	}
 }
 
+void LLFloaterCamera::updateCameraPresetButtons()
+{
+	ECameraPreset preset = (ECameraPreset) gSavedSettings.getU32("CameraPreset");
+	
+	childSetValue("rear_view",		preset == CAMERA_PRESET_REAR_VIEW);
+	childSetValue("group_view",		preset == CAMERA_PRESET_GROUP_VIEW);
+	childSetValue("front_view",		preset == CAMERA_PRESET_FRONT_VIEW);
+	childSetValue("mouselook_view",	gAgent.cameraMouselook());
+}
+
 void LLFloaterCamera::onClickCameraPresets(const LLSD& param)
 {
 	std::string name = param.asString();
@@ -405,4 +446,7 @@ void LLFloaterCamera::onClickCameraPresets(const LLSD& param)
 		gAgent.changeCameraToMouselook();
 	}
 
+	LLFloaterCamera* camera_floater = LLFloaterCamera::findInstance();
+	if (camera_floater)
+		camera_floater->updateCameraPresetButtons();
 }

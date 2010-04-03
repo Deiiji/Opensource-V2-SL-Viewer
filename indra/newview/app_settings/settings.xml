@@ -1563,6 +1563,28 @@
       <key>Value</key>
       <integer>1</integer>
     </map>
+    <key>BrowserJavascriptEnabled</key>
+    <map>
+      <key>Comment</key>
+      <string>Enable Javascript in the built-in Web browser?</string>
+      <key>Persist</key>
+      <integer>1</integer>
+      <key>Type</key>
+      <string>Boolean</string>
+      <key>Value</key>
+      <integer>1</integer>
+    </map>
+    <key>BrowserPluginsEnabled</key>
+    <map>
+      <key>Comment</key>
+      <string>Enable Web plugins in the built-in Web browser?</string>
+      <key>Persist</key>
+      <integer>1</integer>
+      <key>Type</key>
+      <string>Boolean</string>
+      <key>Value</key>
+      <integer>1</integer>
+    </map>
     <key>CreateToolCopyCenters</key>
     <map>
       <key>Comment</key>
@@ -3607,7 +3629,7 @@
       <key>Type</key>
       <string>String</string>
       <key>Value</key>
-      <string>https://viewer-sidebar.secondlife.com/sidebar.html?p=[AUTH_TOKEN]&amp;lang=[LANGUAGE]&amp;channel=[CHANNEL]&amp;version=[VERSION]&amp;major=[VERSION_MAJOR]&amp;minor=[VERSION_MINOR]&amp;firstlogin=[FIRST_LOGIN]</string>
+      <string>https://viewer-sidebar.secondlife.com/sidebar.html?p=[AUTH_TOKEN]&amp;lang=[LANGUAGE]&amp;channel=[CHANNEL]&amp;version=[VERSION]&amp;major=[VERSION_MAJOR]&amp;minor=[VERSION_MINOR]&amp;patch=[VERSION_PATCH]&amp;build=[VERSION_BUILD]&amp;firstlogin=[FIRST_LOGIN]</string>
     </map>
     <key>SearchURL</key>
     <map>
@@ -3618,7 +3640,7 @@
       <key>Type</key>
       <string>String</string>
       <key>Value</key>
-      <string>http://search.secondlife.com/viewer/[CATEGORY]?q=[QUERY]&amp;p=[AUTH_TOKEN]&amp;r=[MATURITY]&amp;lang=[LANGUAGE]&amp;g=[GODLIKE]&amp;sid=[SESSION_ID]&amp;rid=[REGION_ID]&amp;pid=[PARCEL_ID]</string>
+      <string>http://search.secondlife.com/viewer/[CATEGORY]?q=[QUERY]&amp;p=[AUTH_TOKEN]&amp;r=[MATURITY]&amp;lang=[LANGUAGE]&amp;g=[GODLIKE]&amp;sid=[SESSION_ID]&amp;rid=[REGION_ID]&amp;pid=[PARCEL_ID]&amp;channel=[CHANNEL]&amp;version=[VERSION]&amp;major=[VERSION_MAJOR]&amp;minor=[VERSION_MINOR]&amp;patch=[VERSION_PATCH]&amp;build=[VERSION_BUILD]</string>
     </map>
     <key>HighResSnapshot</key>
     <map>
@@ -4334,7 +4356,7 @@
       <key>Type</key>
       <string>String</string>
       <key>Value</key>
-      <string>home</string>
+      <string>last</string>
     </map>
     <key>LoginPage</key>
     <map>
@@ -4587,7 +4609,7 @@
     <key>Type</key>
     <string>Boolean</string>
     <key>Value</key>
-    <integer>1</integer>
+    <integer>0</integer>
   </map>
   <key>MediaShowOutsideParcel</key>
   <map>
@@ -5492,7 +5514,7 @@
       <key>Type</key>
       <string>F32</string>
       <key>Value</key>
-      <real>1.0</real>
+      <real>0.9</real>
     </map>
     
    <key>PlainTextChatHistory</key>
@@ -7443,6 +7465,17 @@
       <key>Value</key>
       <integer>0</integer>
     </map>
+  <key>RenderUseTriStrips</key>
+  <map>
+    <key>Comment</key>
+    <string>Use triangle strips for rendering prims.</string>
+    <key>Persist</key>
+    <integer>1</integer>
+    <key>Type</key>
+    <string>Boolean</string>
+    <key>Value</key>
+    <integer>0</integer>
+  </map>
     <key>RenderUseFarClip</key>
     <map>
       <key>Comment</key>
@@ -10644,7 +10677,7 @@
       <key>Type</key>
       <string>S32</string>
       <key>Value</key>
-      <integer>700</integer>
+      <integer>738</integer>
     </map>
     <key>WindowMaximized</key>
     <map>
@@ -10666,7 +10699,7 @@
       <key>Type</key>
       <string>S32</string>
       <key>Value</key>
-      <integer>1000</integer>
+      <integer>1024</integer>
     </map>
     <key>WindowX</key>
     <map>

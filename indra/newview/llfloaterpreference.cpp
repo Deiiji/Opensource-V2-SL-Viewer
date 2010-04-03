@@ -12,13 +12,13 @@
  * ("GPL"), unless you have obtained a separate licensing agreement
  * ("Other License"), formally executed by you and Linden Lab.  Terms of
  * the GPL can be found in doc/GPL-license.txt in this distribution, or
- * online at http://secondlifegrid.net/programs/open_source/licensing/gplv2
+ * online at http://secondlife.com/developers/opensource/gplv2
  * 
  * There are special exceptions to the terms and conditions of the GPL as
  * it is applied to this Source Code. View the full text of the exception
  * in the file doc/FLOSS-exception.txt in this software distribution, or
  * online at
- * http://secondlifegrid.net/programs/open_source/licensing/flossexception
+ * http://secondlife.com/developers/opensource/flossexception
  * 
  * By copying, modifying or distributing this software, you acknowledge
  * that you have read and understood your obligations described above,
@@ -28,6 +28,7 @@
  * WARRANTIES, EXPRESS, IMPLIED OR OTHERWISE, REGARDING ITS ACCURACY,
  * COMPLETENESS OR PERFORMANCE.
  * $/LicenseInfo$
+ * 
  */
 
 /*
@@ -110,6 +111,9 @@
 const F32 MAX_USER_FAR_CLIP = 512.f;
 const F32 MIN_USER_FAR_CLIP = 64.f;
 
+//control value for middle mouse as talk2push button
+const static std::string MIDDLE_MOUSE_CV = "MiddleMouse";
+
 class LLVoiceSetKeyDialog : public LLModalDialog
 {
 public:
@@ -180,7 +184,6 @@ void LLVoiceSetKeyDialog::onCancel(void* user_data)
 // a static member and update all our static callbacks
 
 void handleNameTagOptionChanged(const LLSD& newvalue);	
-viewer_media_t get_web_media();
 bool callback_clear_browser_cache(const LLSD& notification, const LLSD& response);
 
 //bool callback_skip_dialogs(const LLSD& notification, const LLSD& response, LLFloaterPreference* floater);
@@ -188,23 +191,14 @@ bool callback_clear_browser_cache(const LLSD& notification, const LLSD& response
 
 void fractionFromDecimal(F32 decimal_val, S32& numerator, S32& denominator);
 
-viewer_media_t get_web_media()
-{
-	viewer_media_t media_source = LLViewerMedia::newMediaImpl(LLUUID::null);
-	media_source->initializeMedia("text/html");
-	return media_source;
-}
-
-
 bool callback_clear_browser_cache(const LLSD& notification, const LLSD& response)
 {
 	S32 option = LLNotificationsUtil::getSelectedOption(notification, response);
 	if ( option == 0 ) // YES
 	{
 		// clean web
-		viewer_media_t media_source = get_web_media();
-		if (media_source && media_source->hasMedia())
-			media_source->getMediaPlugin()->clear_cache();
+		LLViewerMedia::clearAllCaches();
+		LLViewerMedia::clearAllCookies();
 		
 		// clean nav bar history
 		LLNavigationBar::getInstance()->clearHistoryCache();
@@ -323,7 +317,8 @@ LLFloaterPreference::LLFloaterPreference(const LLSD& key)
 	mCommitCallbackRegistrar.add("Pref.QualityPerformance",     boost::bind(&LLFloaterPreference::onChangeQuality, this, _2));	
 	mCommitCallbackRegistrar.add("Pref.applyUIColor",			boost::bind(&LLFloaterPreference::applyUIColor, this ,_1, _2));
 	mCommitCallbackRegistrar.add("Pref.getUIColor",				boost::bind(&LLFloaterPreference::getUIColor, this ,_1, _2));
-	
+	mCommitCallbackRegistrar.add("Pref.MaturitySettings",		boost::bind(&LLFloaterPreference::onChangeMaturity, this));
+
 	sSkin = gSavedSettings.getString("SkinCurrent");
 	
 	gSavedSettings.getControl("AvatarNameTagMode")->getCommitSignal()->connect(boost::bind(&handleNameTagOptionChanged,  _2));
@@ -334,6 +329,10 @@ BOOL LLFloaterPreference::postBuild()
 	gSavedSettings.getControl("PlainTextChatHistory")->getSignal()->connect(boost::bind(&LLIMFloater::processChatHistoryStyleUpdate, _2));
 
 	gSavedSettings.getControl("PlainTextChatHistory")->getSignal()->connect(boost::bind(&LLNearbyChat::processChatHistoryStyleUpdate, _2));
+
+	gSavedSettings.getControl("ChatFontSize")->getSignal()->connect(boost::bind(&LLIMFloater::processChatHistoryStyleUpdate, _2));
+
+	gSavedSettings.getControl("ChatFontSize")->getSignal()->connect(boost::bind(&LLNearbyChat::processChatHistoryStyleUpdate, _2));
 
 	LLTabContainer* tabcontainer = getChild<LLTabContainer>("pref core");
 	if (!tabcontainer->selectTab(gSavedSettings.getS32("LastPrefTab")))
@@ -421,17 +420,14 @@ void LLFloaterPreference::apply()
 	std::string cache_location = gDirUtilp->getExpandedFilename(LL_PATH_CACHE, "");
 	childSetText("cache_location", cache_location);		
 	
-	viewer_media_t media_source = get_web_media();
-	if (media_source && media_source->hasMedia())
+	LLViewerMedia::setCookiesEnabled(childGetValue("cookies_enabled"));
+	
+	if(hasChild("web_proxy_enabled") &&hasChild("web_proxy_editor") && hasChild("web_proxy_port"))
 	{
-		media_source->getMediaPlugin()->enable_cookies(childGetValue("cookies_enabled"));
-		if(hasChild("web_proxy_enabled") &&hasChild("web_proxy_editor") && hasChild("web_proxy_port"))
-		{
-			bool proxy_enable = childGetValue("web_proxy_enabled");
-			std::string proxy_address = childGetValue("web_proxy_editor");
-			int proxy_port = childGetValue("web_proxy_port");
-			media_source->getMediaPlugin()->proxy_setup(proxy_enable, proxy_address, proxy_port);
-		}
+		bool proxy_enable = childGetValue("web_proxy_enabled");
+		std::string proxy_address = childGetValue("web_proxy_editor");
+		int proxy_port = childGetValue("web_proxy_port");
+		LLViewerMedia::setProxyConfig(proxy_enable, proxy_address, proxy_port);
 	}
 	
 //	LLWString busy_response = utf8str_to_wstring(getChild<LLUICtrl>("busy_response")->getValue().asString());
@@ -533,6 +529,9 @@ void LLFloaterPreference::onOpen(const LLSD& key)
 		childSetText("maturity_desired_textbox",  maturity_combo->getSelectedItemLabel());
 		childSetVisible("maturity_desired_combobox", false);
 	}
+
+	// Display selected maturity icons.
+	onChangeMaturity();
 	
 	// Enabled/disabled popups, might have been changed by user actions
 	// while preferences floater was closed.
@@ -977,7 +976,8 @@ void LLFloaterPreference::cleanupBadSetting()
 	if (gSavedPerAccountSettings.getString("BusyModeResponse2") == "|TOKEN COPY BusyModeResponse|")
 	{
 		llwarns << "cleaning old BusyModeResponse" << llendl;
-		gSavedPerAccountSettings.setString("BusyModeResponse2", gSavedPerAccountSettings.getText("BusyModeResponse"));
+		//LLTrans::getString("BusyModeResponseDefault") is used here for localization (EXT-5885)
+		gSavedPerAccountSettings.setString("BusyModeResponse2", LLTrans::getString("BusyModeResponseDefault"));
 	}
 }
 
@@ -999,9 +999,17 @@ void LLFloaterPreference::setKey(KEY key)
 
 void LLFloaterPreference::onClickSetMiddleMouse()
 {
-	childSetValue("modifier_combo", "MiddleMouse");
+	LLUICtrl* p2t_line_editor = getChild<LLUICtrl>("modifier_combo");
+
 	// update the control right away since we no longer wait for apply
-	getChild<LLUICtrl>("modifier_combo")->onCommit();
+	p2t_line_editor->setControlValue(MIDDLE_MOUSE_CV);
+
+	//push2talk button "middle mouse" control value is in English, need to localize it for presentation
+	LLPanel* advanced_preferences = dynamic_cast<LLPanel*>(p2t_line_editor->getParent());
+	if (advanced_preferences)
+	{
+		p2t_line_editor->setValue(advanced_preferences->getString("middle_mouse"));
+	}
 }
 /*
 void LLFloaterPreference::onClickSkipDialogs()
@@ -1208,7 +1216,19 @@ void LLFloaterPreference::applyResolution()
 	refresh();
 }
 
+void LLFloaterPreference::onChangeMaturity()
+{
+	U8 sim_access = gSavedSettings.getU32("PreferredMaturity");
 
+	getChild<LLIconCtrl>("rating_icon_general")->setVisible(sim_access == SIM_ACCESS_PG
+															|| sim_access == SIM_ACCESS_MATURE
+															|| sim_access == SIM_ACCESS_ADULT);
+
+	getChild<LLIconCtrl>("rating_icon_moderate")->setVisible(sim_access == SIM_ACCESS_MATURE
+															|| sim_access == SIM_ACCESS_ADULT);
+
+	getChild<LLIconCtrl>("rating_icon_adult")->setVisible(sim_access == SIM_ACCESS_ADULT);
+}
 
 
 void LLFloaterPreference::applyUIColor(LLUICtrl* ctrl, const LLSD& param)
@@ -1268,7 +1288,7 @@ BOOL LLPanelPreference::postBuild()
 	if (hasChild("media_enabled"))
 	{
 		bool media_enabled = gSavedSettings.getBOOL("AudioStreamingMedia");
-		getChild<LLCheckBoxCtrl>("voice_call_friends_only_check")->setCommitCallback(boost::bind(&showFriendsOnlyWarning, _1, _2));
+		
 		getChild<LLCheckBoxCtrl>("media_enabled")->set(media_enabled);
 		getChild<LLCheckBoxCtrl>("autoplay_enabled")->setEnabled(media_enabled);
 	}
@@ -1276,7 +1296,21 @@ BOOL LLPanelPreference::postBuild()
 	{
 		getChild<LLCheckBoxCtrl>("music_enabled")->set(gSavedSettings.getBOOL("AudioStreamingMusic"));
 	}
-	
+	if (hasChild("voice_call_friends_only_check"))
+	{
+		getChild<LLCheckBoxCtrl>("voice_call_friends_only_check")->setCommitCallback(boost::bind(&showFriendsOnlyWarning, _1, _2));
+	}
+
+	// Panel Advanced
+	if (hasChild("modifier_combo"))
+	{
+		//localizing if push2talk button is set to middle mouse
+		if (MIDDLE_MOUSE_CV == childGetValue("modifier_combo").asString())
+		{
+			childSetValue("modifier_combo", getString("middle_mouse"));
+		}
+	}
+
 	apply();
 	return true;
 }

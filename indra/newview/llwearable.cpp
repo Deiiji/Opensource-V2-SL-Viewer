@@ -12,13 +12,13 @@
  * ("GPL"), unless you have obtained a separate licensing agreement
  * ("Other License"), formally executed by you and Linden Lab.  Terms of
  * the GPL can be found in doc/GPL-license.txt in this distribution, or
- * online at http://secondlifegrid.net/programs/open_source/licensing/gplv2
+ * online at http://secondlife.com/developers/opensource/gplv2
  * 
  * There are special exceptions to the terms and conditions of the GPL as
  * it is applied to this Source Code. View the full text of the exception
  * in the file doc/FLOSS-exception.txt in this software distribution, or
  * online at
- * http://secondlifegrid.net/programs/open_source/licensing/flossexception
+ * http://secondlife.com/developers/opensource/flossexception
  * 
  * By copying, modifying or distributing this software, you acknowledge
  * that you have read and understood your obligations described above,
@@ -28,6 +28,7 @@
  * WARRANTIES, EXPRESS, IMPLIED OR OTHERWISE, REGARDING ITS ACCURACY,
  * COMPLETENESS OR PERFORMANCE.
  * $/LicenseInfo$
+ * 
  */
 
 #include "llviewerprecompiledheaders.h"
@@ -55,6 +56,35 @@ using namespace LLVOAvatarDefines;
 
 // static
 S32 LLWearable::sCurrentDefinitionVersion = 1;
+
+// support class - remove for 2.1 (hackity hack hack)
+class LLOverrideBakedTextureUpdate
+{
+public:
+	LLOverrideBakedTextureUpdate(bool temp_state)
+	{
+		mAvatar = gAgent.getAvatarObject();
+		U32 num_bakes = (U32) LLVOAvatarDefines::BAKED_NUM_INDICES;
+		for( U32 index = 0; index < num_bakes; ++index )
+		{
+			composite_enabled[index] = mAvatar->isCompositeUpdateEnabled(index);
+		}
+		mAvatar->setCompositeUpdatesEnabled(temp_state);
+	}
+
+	~LLOverrideBakedTextureUpdate()
+	{
+		U32 num_bakes = (U32)LLVOAvatarDefines::BAKED_NUM_INDICES;		
+		for( U32 index = 0; index < num_bakes; ++index )
+		{
+			mAvatar->setCompositeUpdatesEnabled(index, composite_enabled[index]);
+		}		
+	}
+
+private:
+	bool composite_enabled[LLVOAvatarDefines::BAKED_NUM_INDICES];
+	LLVOAvatarSelf *mAvatar;
+};
 
 // Private local functions
 static std::string terse_F32_to_string(F32 f);
@@ -215,6 +245,10 @@ BOOL LLWearable::importFile( LLFILE* file )
 	// rewriting this to use streams and not require an open FILE.
 	char text_buffer[2048];		/* Flawfinder: ignore */
 	S32 fields_read = 0;
+
+	// suppress texlayerset updates while wearables are being imported. Layersets will be updated
+	// when the wearables are "worn", not loaded. Note state will be restored when this object is destroyed.
+	LLOverrideBakedTextureUpdate stop_bakes(false);
 
 	// read header and version 
 	fields_read = fscanf( file, "LLWearable version %d\n", &mDefinitionVersion );

@@ -12,13 +12,13 @@
  * ("GPL"), unless you have obtained a separate licensing agreement
  * ("Other License"), formally executed by you and Linden Lab.  Terms of
  * the GPL can be found in doc/GPL-license.txt in this distribution, or
- * online at http://secondlifegrid.net/programs/open_source/licensing/gplv2
+ * online at http://secondlife.com/developers/opensource/gplv2
  * 
  * There are special exceptions to the terms and conditions of the GPL as
  * it is applied to this Source Code. View the full text of the exception
  * in the file doc/FLOSS-exception.txt in this software distribution, or
  * online at
- * http://secondlifegrid.net/programs/open_source/licensing/flossexception
+ * http://secondlife.com/developers/opensource/flossexception
  * 
  * By copying, modifying or distributing this software, you acknowledge
  * that you have read and understood your obligations described above,
@@ -28,6 +28,7 @@
  * WARRANTIES, EXPRESS, IMPLIED OR OTHERWISE, REGARDING ITS ACCURACY,
  * COMPLETENESS OR PERFORMANCE.
  * $/LicenseInfo$
+ * 
  */
 
 #include "llviewerprecompiledheaders.h"
@@ -118,6 +119,7 @@ BOOL LLInventoryPanel::postBuild()
 						   0);
 		LLFolderView::Params p;
 		p.name = getName();
+		p.title = getLabel();
 		p.rect = folder_rect;
 		p.parent_panel = this;
 		p.tool_tip = p.name;
@@ -292,9 +294,6 @@ void LLInventoryPanel::modelChanged(U32 mask)
 					bridge->clearDisplayName();
 
 					view_item->refresh();
-
-					// Set the new tooltip with the new display name.
-					view_item->setToolTip(bridge->getDisplayName());
 				}
 			}
 		}
@@ -679,6 +678,21 @@ BOOL LLInventoryPanel::handleDragAndDrop(S32 x, S32 y, MASK mask, BOOL drop,
 	}
 
 	return handled;
+}
+
+// virtual
+void LLInventoryPanel::onMouseEnter(S32 x, S32 y, MASK mask)
+{
+	LLPanel::onMouseEnter(x, y, mask);
+	// don't auto-scroll a list when cursor is over Inventory. See EXT-3981.
+	mFolders->setEnableScroll(false);
+}
+
+// virtual
+void LLInventoryPanel::onMouseLeave(S32 x, S32 y, MASK mask)
+{
+	LLPanel::onMouseLeave(x, y, mask);
+	mFolders->setEnableScroll(true);
 }
 
 void LLInventoryPanel::onFocusLost()

@@ -12,13 +12,13 @@
  * ("GPL"), unless you have obtained a separate licensing agreement
  * ("Other License"), formally executed by you and Linden Lab.  Terms of
  * the GPL can be found in doc/GPL-license.txt in this distribution, or
- * online at http://secondlifegrid.net/programs/open_source/licensing/gplv2
+ * online at http://secondlife.com/developers/opensource/gplv2
  * 
  * There are special exceptions to the terms and conditions of the GPL as
  * it is applied to this Source Code. View the full text of the exception
  * in the file doc/FLOSS-exception.txt in this software distribution, or
  * online at
- * http://secondlifegrid.net/programs/open_source/licensing/flossexception
+ * http://secondlife.com/developers/opensource/flossexception
  * 
  * By copying, modifying or distributing this software, you acknowledge
  * that you have read and understood your obligations described above,
@@ -28,6 +28,7 @@
  * WARRANTIES, EXPRESS, IMPLIED OR OTHERWISE, REGARDING ITS ACCURACY,
  * COMPLETENESS OR PERFORMANCE.
  * $/LicenseInfo$
+ * 
  */
 
 #ifndef LL_MEDIA_PLUGIN_TEST_H
@@ -90,7 +91,7 @@ class LLMediaPluginTest : public LLPluginClassMediaOwner
 
 		void bindTexture(GLuint texture, GLint row_length = 0, GLint alignment = 1);
 		bool checkGLError(const char *name = "OpenGL");
-		void drawGeometry( int panel );
+		void drawGeometry( int panel, bool selected );
 		void startPanelHighlight( float red, float green, float blue, float line_width );
 		void endPanelHighlight();
 		enum { DrawTypePickTexture, DrawTypeMediaTexture };
@@ -113,6 +114,9 @@ class LLMediaPluginTest : public LLPluginClassMediaOwner
 
 		void dumpPanelInfo();
 		void updateStatusBar();
+
+		GLfloat distanceToCamera( GLfloat point_x, GLfloat point_y, GLfloat point_z );
+		
 
 	// Inherited from LLPluginClassMediaOwner
 	/*virtual*/ void handleMediaEvent(LLPluginClassMedia* self, LLPluginClassMediaOwner::EMediaEvent);
@@ -143,6 +147,8 @@ class LLMediaPluginTest : public LLPluginClassMediaOwner
 		float mViewPos[ 3 ];
 		float mViewRotation[ 16 ];
 
+		float mDistanceCameraToSelectedGeometry;
+
 		int mIdControlAddPanel;
 		int mIdControlRemPanel;
 
@@ -160,6 +166,8 @@ class LLMediaPluginTest : public LLPluginClassMediaOwner
 		int mRandomBookmarks;
 		int mIdDisableTimeout;
 		int mDisableTimeout;
+		int mIdLargePanelSpacing;
+		int mLargePanelSpacing;
 		int mIdControlCrashPlugin;
 		int mIdControlHangPlugin;
 		int mIdControlExitApp;

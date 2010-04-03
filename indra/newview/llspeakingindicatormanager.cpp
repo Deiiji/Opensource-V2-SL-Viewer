@@ -14,13 +14,13 @@
  * ("GPL"), unless you have obtained a separate licensing agreement
  * ("Other License"), formally executed by you and Linden Lab.  Terms of
  * the GPL can be found in doc/GPL-license.txt in this distribution, or
- * online at http://secondlifegrid.net/programs/open_source/licensing/gplv2
+ * online at http://secondlife.com/developers/opensource/gplv2
  * 
  * There are special exceptions to the terms and conditions of the GPL as
  * it is applied to this Source Code. View the full text of the exception
  * in the file doc/FLOSS-exception.txt in this software distribution, or
  * online at
- * http://secondlifegrid.net/programs/open_source/licensing/flossexception
+ * http://secondlife.com/developers/opensource/flossexception
  * 
  * By copying, modifying or distributing this software, you acknowledge
  * that you have read and understood your obligations described above,
@@ -30,6 +30,7 @@
  * WARRANTIES, EXPRESS, IMPLIED OR OTHERWISE, REGARDING ITS ACCURACY,
  * COMPLETENESS OR PERFORMANCE.
  * $/LicenseInfo$
+ * 
  */
 
 #include "llviewerprecompiledheaders.h"
@@ -65,8 +66,12 @@ public:
 	 *
 	 * @param speaker_id LLUUID of an avatar whose speaking indicator is registered.
 	 * @param speaking_indicator instance of the speaking indicator to be registered.
+	 * @param session_id session UUID for which indicator should be shown only.
+	 *		If this parameter is set registered indicator will be shown only in voice channel
+	 *		which has the same session id (EXT-5562).
 	 */
-	void registerSpeakingIndicator(const LLUUID& speaker_id, LLSpeakingIndicator* const speaking_indicator);
+	void registerSpeakingIndicator(const LLUUID& speaker_id, LLSpeakingIndicator* const speaking_indicator,
+		const LLUUID& session_id = LLUUID::null);
 
 	/**
 	 * Removes passed speaking indicator from observing.
@@ -138,14 +143,17 @@ private:
 //////////////////////////////////////////////////////////////////////////
 // PUBLIC SECTION
 //////////////////////////////////////////////////////////////////////////
-void SpeakingIndicatorManager::registerSpeakingIndicator(const LLUUID& speaker_id, LLSpeakingIndicator* const speaking_indicator)
+void SpeakingIndicatorManager::registerSpeakingIndicator(const LLUUID& speaker_id, LLSpeakingIndicator* const speaking_indicator,
+														 const LLUUID& session_id)
 {
 	// do not exclude agent's indicators. They should be processed in the same way as others. See EXT-3889.
 
-	LL_DEBUGS("SpeakingIndicator") << "Registering indicator: " << speaker_id << "|"<< speaking_indicator << LL_ENDL;
+	LL_DEBUGS("SpeakingIndicator") << "Registering indicator: " << speaker_id << "|"<< speaking_indicator << ", session: " << session_id << LL_ENDL;
 
 
 	ensureInstanceDoesNotExist(speaking_indicator);
+
+	speaking_indicator->setTargetSessionID(session_id);
 
 	speaking_indicator_value_t value_type(speaker_id, speaking_indicator);
 	mSpeakingIndicators.insert(value_type);
@@ -217,6 +225,13 @@ void SpeakingIndicatorManager::onChange()
 
 void SpeakingIndicatorManager::switchSpeakerIndicators(const speaker_ids_t& speakers_uuids, BOOL switch_on)
 {
+	LLVoiceChannel* voice_channel = LLVoiceChannel::getCurrentVoiceChannel();
+	LLUUID session_id;
+	if (voice_channel)
+	{
+		session_id = voice_channel->getSessionID();
+	}
+
 	speaker_ids_t::const_iterator it_uuid = speakers_uuids.begin(); 
 	for (; it_uuid != speakers_uuids.end(); ++it_uuid)
 	{
@@ -224,18 +239,36 @@ void SpeakingIndicatorManager::switchSpeakerIndicators(const speaker_ids_t& spea
 		indicator_range_t it_range = mSpeakingIndicators.equal_range(*it_uuid);
 		indicator_const_iterator it_indicator = it_range.first;
 		bool was_found = false;
+		bool was_switched_on = false;
 		for (; it_indicator != it_range.second; ++it_indicator)
 		{
 			was_found = true;
 			LLSpeakingIndicator* indicator = (*it_indicator).second;
-			indicator->switchIndicator(switch_on);
+
+			BOOL switch_current_on = switch_on;
+
+			// we should show indicator for specified voice session only if this is current channel. EXT-5562.
+			if (switch_current_on && indicator->getTargetSessionID().notNull())
+			{
+				switch_current_on = indicator->getTargetSessionID() == session_id;
+				LL_DEBUGS("SpeakingIndicator") << "Session: " << session_id << ", target: " << indicator->getTargetSessionID() << ", the same? = " << switch_current_on << LL_ENDL;
+			}
+			was_switched_on = was_switched_on || switch_current_on;
+
+			indicator->switchIndicator(switch_current_on);
+
 		}
 
 		if (was_found)
 		{
 			LL_DEBUGS("SpeakingIndicator") << mSpeakingIndicators.count(*it_uuid) << " indicators where found" << LL_ENDL;
 
-			if (switch_on)
+			if (switch_on && !was_switched_on)
+			{
+				LL_DEBUGS("SpeakingIndicator") << "but non of them where switched on" << LL_ENDL;
+			}
+
+			if (was_switched_on)
 			{
 				// store switched on indicator to be able switch it off
 				mSwitchedIndicatorsOn.insert(*it_uuid);
@@ -274,9 +307,10 @@ void SpeakingIndicatorManager::ensureInstanceDoesNotExist(LLSpeakingIndicator* c
 /*         LLSpeakingIndicatorManager namespace implementation          */
 /************************************************************************/
 
-void LLSpeakingIndicatorManager::registerSpeakingIndicator(const LLUUID& speaker_id, LLSpeakingIndicator* const speaking_indicator)
+void LLSpeakingIndicatorManager::registerSpeakingIndicator(const LLUUID& speaker_id, LLSpeakingIndicator* const speaking_indicator,
+														   const LLUUID& session_id)
 {
-	SpeakingIndicatorManager::instance().registerSpeakingIndicator(speaker_id, speaking_indicator);
+	SpeakingIndicatorManager::instance().registerSpeakingIndicator(speaker_id, speaking_indicator, session_id);
 }
 
 void LLSpeakingIndicatorManager::unregisterSpeakingIndicator(const LLUUID& speaker_id, const LLSpeakingIndicator* const speaking_indicator)

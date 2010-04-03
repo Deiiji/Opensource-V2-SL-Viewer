@@ -12,13 +12,13 @@
  * ("GPL"), unless you have obtained a separate licensing agreement
  * ("Other License"), formally executed by you and Linden Lab.  Terms of
  * the GPL can be found in doc/GPL-license.txt in this distribution, or
- * online at http://secondlifegrid.net/programs/open_source/licensing/gplv2
+ * online at http://secondlife.com/developers/opensource/gplv2
  * 
  * There are special exceptions to the terms and conditions of the GPL as
  * it is applied to this Source Code. View the full text of the exception
  * in the file doc/FLOSS-exception.txt in this software distribution, or
  * online at
- * http://secondlifegrid.net/programs/open_source/licensing/flossexception
+ * http://secondlife.com/developers/opensource/flossexception
  * 
  * By copying, modifying or distributing this software, you acknowledge
  * that you have read and understood your obligations described above,
@@ -28,6 +28,7 @@
  * WARRANTIES, EXPRESS, IMPLIED OR OTHERWISE, REGARDING ITS ACCURACY,
  * COMPLETENESS OR PERFORMANCE.
  * $/LicenseInfo$
+ * 
  */
 
 #ifndef LL_LLVIEWEROBJECTLIST_H
@@ -38,8 +39,6 @@
 
 // common includes
 #include "llstat.h"
-#include "lldarrayptr.h"
-#include "llmap.h"			// *TODO: switch to std::map
 #include "llstring.h"
 
 // project includes
@@ -50,7 +49,7 @@ class LLNetMap;
 class LLDebugBeacon;
 
 const U32 CLOSE_BIN_SIZE = 10;
-const U32 NUM_BINS = 16;
+const U32 NUM_BINS = 128;
 
 // GL name = position in object list + GL_NAME_INDEX_OFFSET so that
 // we can have special numbers like zero.
@@ -111,13 +110,12 @@ public:
 	void updateAvatarVisibility();
 
 	// Selection related stuff
-	void renderObjectsForSelect(LLCamera &camera, const LLRect& screen_rect, BOOL pick_parcel_wall = FALSE, BOOL render_transparent = TRUE);
 	void generatePickList(LLCamera &camera);
 	void renderPickList(const LLRect& screen_rect, BOOL pick_parcel_wall, BOOL render_transparent);
 
 	LLViewerObject *getSelectedObject(const U32 object_id);
 
-	inline S32 getNumObjects() { return mObjects.count(); }
+	inline S32 getNumObjects() { return (S32) mObjects.size(); }
 
 	void addToMap(LLViewerObject *objectp);
 	void removeFromMap(LLViewerObject *objectp);
@@ -131,7 +129,7 @@ public:
 
 	S32 findReferences(LLDrawable *drawablep) const; // Find references to drawable in all objects, and return value.
 
-	S32 getOrphanParentCount() const { return mOrphanParents.count(); }
+	S32 getOrphanParentCount() const { return (S32) mOrphanParents.size(); }
 	S32 getOrphanCount() const { return mNumOrphans; }
 	void orphanize(LLViewerObject *childp, U32 parent_id, U32 ip, U32 port);
 	void findOrphans(LLViewerObject* objectp, U32 ip, U32 port);
@@ -179,26 +177,28 @@ public:
 	S32 mNumUnknownKills;
 	S32 mNumDeadObjects;
 protected:
-	LLDynamicArray<U64>	mOrphanParents;	// LocalID/ip,port of orphaned objects
-	LLDynamicArray<OrphanInfo> mOrphanChildren;	// UUID's of orphaned objects
+	std::vector<U64>	mOrphanParents;	// LocalID/ip,port of orphaned objects
+	std::vector<OrphanInfo> mOrphanChildren;	// UUID's of orphaned objects
 	S32 mNumOrphans;
 
-	LLDynamicArrayPtr<LLPointer<LLViewerObject>, 256> mObjects;
+	typedef std::vector<LLPointer<LLViewerObject> > vobj_list_t;
+
+	vobj_list_t mObjects;
 	std::set<LLPointer<LLViewerObject> > mActiveObjects;
 
-	LLDynamicArrayPtr<LLPointer<LLViewerObject> > mMapObjects;
+	vobj_list_t mMapObjects;
 
 	typedef std::map<LLUUID, LLPointer<LLViewerObject> > vo_map;
 	vo_map mDeadObjects;	// Need to keep multiple entries per UUID
 
 	std::map<LLUUID, LLPointer<LLViewerObject> > mUUIDObjectMap;
 
-	LLDynamicArray<LLDebugBeacon> mDebugBeacons;
+	std::vector<LLDebugBeacon> mDebugBeacons;
 
 	S32 mCurLazyUpdateIndex;
 
 	static U32 sSimulatorMachineIndex;
-	static LLMap<U64, U32> sIPAndPortToIndex;
+	static std::map<U64, U32> sIPAndPortToIndex;
 
 	static std::map<U64, LLUUID> sIndexAndLocalIDToUUID;
 
@@ -264,12 +264,16 @@ inline LLViewerObject *LLViewerObjectList::getObject(const S32 index)
 
 inline void LLViewerObjectList::addToMap(LLViewerObject *objectp)
 {
-	mMapObjects.put(objectp);
+	mMapObjects.push_back(objectp);
 }
 
 inline void LLViewerObjectList::removeFromMap(LLViewerObject *objectp)
 {
-	mMapObjects.removeObj(objectp);
+	std::vector<LLPointer<LLViewerObject> >::iterator iter = std::find(mMapObjects.begin(), mMapObjects.end(), objectp);
+	if (iter != mMapObjects.end())
+	{
+		mMapObjects.erase(iter);
+	}
 }
 
 

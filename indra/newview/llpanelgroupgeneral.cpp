@@ -12,13 +12,13 @@
  * ("GPL"), unless you have obtained a separate licensing agreement
  * ("Other License"), formally executed by you and Linden Lab.  Terms of
  * the GPL can be found in doc/GPL-license.txt in this distribution, or
- * online at http://secondlifegrid.net/programs/open_source/licensing/gplv2
+ * online at http://secondlife.com/developers/opensource/gplv2
  * 
  * There are special exceptions to the terms and conditions of the GPL as
  * it is applied to this Source Code. View the full text of the exception
  * in the file doc/FLOSS-exception.txt in this software distribution, or
  * online at
- * http://secondlifegrid.net/programs/open_source/licensing/flossexception
+ * http://secondlife.com/developers/opensource/flossexception
  * 
  * By copying, modifying or distributing this software, you acknowledge
  * that you have read and understood your obligations described above,
@@ -28,6 +28,7 @@
  * WARRANTIES, EXPRESS, IMPLIED OR OTHERWISE, REGARDING ITS ACCURACY,
  * COMPLETENESS OR PERFORMANCE.
  * $/LicenseInfo$
+ * 
  */
 
 #include "llviewerprecompiledheaders.h"
@@ -111,6 +112,8 @@ BOOL LLPanelGroupGeneral::postBuild()
 	{
 		mListVisibleMembers->setDoubleClickCallback(openProfile, this);
 		mListVisibleMembers->setContextMenu(LLScrollListCtrl::MENU_AVATAR);
+		
+		mListVisibleMembers->setSortCallback(boost::bind(&LLPanelGroupGeneral::sortMembersList,this,_1,_2,_3));
 	}
 
 	// Options
@@ -818,15 +821,15 @@ void LLPanelGroupGeneral::reset()
 	
 	mCtrlListGroup->set(true);
 	
-	mCtrlReceiveNotices->setEnabled(true);
+	mCtrlReceiveNotices->setEnabled(false);
 	mCtrlReceiveNotices->setVisible(true);
 
-	mCtrlListGroup->setEnabled(true);
+	mCtrlListGroup->setEnabled(false);
 
 	mGroupNameEditor->setEnabled(TRUE);
 	mEditCharter->setEnabled(TRUE);
 
-	mCtrlShowInGroupList->setEnabled(TRUE);
+	mCtrlShowInGroupList->setEnabled(false);
 	mComboMature->setEnabled(TRUE);
 	
 	mCtrlOpenEnrollment->setEnabled(TRUE);
@@ -932,6 +935,8 @@ void LLPanelGroupGeneral::setGroupID(const LLUUID& id)
 		mCtrlListGroup->setEnabled(data.mID.notNull());
 	}
 
+	mCtrlShowInGroupList->setEnabled(data.mID.notNull());
+
 	mActiveTitleLabel = getChild<LLTextBox>("active_title_label");
 	
 	mComboActiveTitle = getChild<LLComboBox>("active_title");
@@ -944,4 +949,18 @@ void LLPanelGroupGeneral::setGroupID(const LLUUID& id)
 
 	activate();
 }
+S32 LLPanelGroupGeneral::sortMembersList(S32 col_idx,const LLScrollListItem* i1,const LLScrollListItem* i2)
+{
+	const LLScrollListCell *cell1 = i1->getColumn(col_idx);
+	const LLScrollListCell *cell2 = i2->getColumn(col_idx);
 
+	if(col_idx == 2)
+	{
+		if(LLStringUtil::compareDict(cell1->getValue().asString(),"Online") == 0 )
+			return 1;
+		if(LLStringUtil::compareDict(cell2->getValue().asString(),"Online") == 0 )
+			return -1;
+	}
+
+	return LLStringUtil::compareDict(cell1->getValue().asString(), cell2->getValue().asString());
+}

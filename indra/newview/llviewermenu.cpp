@@ -12,13 +12,13 @@
  * ("GPL"), unless you have obtained a separate licensing agreement
  * ("Other License"), formally executed by you and Linden Lab.  Terms of
  * the GPL can be found in doc/GPL-license.txt in this distribution, or
- * online at http://secondlifegrid.net/programs/open_source/licensing/gplv2
+ * online at http://secondlife.com/developers/opensource/gplv2
  * 
  * There are special exceptions to the terms and conditions of the GPL as
  * it is applied to this Source Code. View the full text of the exception
  * in the file doc/FLOSS-exception.txt in this software distribution, or
  * online at
- * http://secondlifegrid.net/programs/open_source/licensing/flossexception
+ * http://secondlife.com/developers/opensource/flossexception
  * 
  * By copying, modifying or distributing this software, you acknowledge
  * that you have read and understood your obligations described above,
@@ -28,6 +28,7 @@
  * WARRANTIES, EXPRESS, IMPLIED OR OTHERWISE, REGARDING ITS ACCURACY,
  * COMPLETENESS OR PERFORMANCE.
  * $/LicenseInfo$
+ * 
  */
 
 #include "llviewerprecompiledheaders.h"
@@ -86,6 +87,7 @@
 #include "lltoolmgr.h"
 #include "lltoolpie.h"
 #include "lltoolselectland.h"
+#include "lltrans.h"
 #include "llviewergenericmessage.h"
 #include "llviewerhelp.h"
 #include "llviewermenufile.h"	// init_menu_file()
@@ -103,6 +105,7 @@
 #include "llfloatercamera.h"
 #include "lluilistener.h"
 #include "llappearancemgr.h"
+#include "lltrans.h"
 
 using namespace LLVOAvatarDefines;
 
@@ -434,7 +437,8 @@ void init_menus()
 	gMenuBarView->setRect(LLRect(0, top, 0, top - MENU_BAR_HEIGHT));
 	gMenuBarView->setBackgroundColor( color );
 
-	gMenuHolder->addChild(gMenuBarView);
+	LLView* menu_bar_holder = gViewerWindow->getRootView()->getChildView("menu_bar_holder");
+	menu_bar_holder->addChild(gMenuBarView);
   
     gViewerWindow->setMenuBackgroundColor(false, 
         LLViewerLogin::getInstance()->isInProductionGrid());
@@ -469,9 +473,10 @@ void init_menus()
 	gLoginMenuBarView = LLUICtrlFactory::getInstance()->createFromFile<LLMenuBarGL>("menu_login.xml", gMenuHolder, LLViewerMenuHolderGL::child_registry_t::instance());
 	gLoginMenuBarView->arrangeAndClear();
 	LLRect menuBarRect = gLoginMenuBarView->getRect();
-	gLoginMenuBarView->setRect(LLRect(menuBarRect.mLeft, menuBarRect.mTop, gViewerWindow->getRootView()->getRect().getWidth() - menuBarRect.mLeft,  menuBarRect.mBottom));
+	menuBarRect.setLeftTopAndSize(0, menu_bar_holder->getRect().getHeight(), menuBarRect.getWidth(), menuBarRect.getHeight());
+	gLoginMenuBarView->setRect(menuBarRect);
 	gLoginMenuBarView->setBackgroundColor( color );
-	gMenuHolder->addChild(gLoginMenuBarView);
+	menu_bar_holder->addChild(gLoginMenuBarView);
 	
 	// tooltips are on top of EVERYTHING, including menus
 	gViewerWindow->getRootView()->sendChildToFront(gToolTipView);
@@ -3272,7 +3277,9 @@ void handle_buy_object(LLSaleInfo sale_info)
 	
 	if (price > 0 && price > gStatusBar->getBalance())
 	{
-		LLFloaterBuyCurrency::buyCurrency("This object costs", price);
+		LLStringUtil::format_map_t args;
+		args["AMOUNT"] = llformat("%d", price);
+		LLFloaterBuyCurrency::buyCurrency(LLTrans::getString("this_object_costs", args), price);
 		return;
 	}
 
@@ -4402,8 +4409,10 @@ void handle_buy_or_take()
 		}
 		else
 		{
+			LLStringUtil::format_map_t args;
+			args["AMOUNT"] = llformat("%d", total_price);
 			LLFloaterBuyCurrency::buyCurrency(
-				"Buying this costs", total_price);
+					LLTrans::getString("BuyingCosts", args), total_price);
 		}
 	}
 	else
@@ -4422,35 +4431,22 @@ bool visible_take_object()
 	return !is_selection_buy_not_take() && enable_take();
 }
 
+bool tools_visible_buy_object()
+{
+	return is_selection_buy_not_take();
+}
+
+bool tools_visible_take_object()
+{
+	return !is_selection_buy_not_take();
+}
+
 class LLToolsEnableBuyOrTake : public view_listener_t
 {
 	bool handleEvent(const LLSD& userdata)
 	{
 		bool is_buy = is_selection_buy_not_take();
 		bool new_value = is_buy ? enable_buy_object() : enable_take();
-
-		// Update label
-		std::string label;
-		std::string buy_text;
-		std::string take_text;
-		std::string param = userdata.asString();
-		std::string::size_type offset = param.find(",");
-		if (offset != param.npos)
-		{
-			buy_text = param.substr(0, offset);
-			take_text = param.substr(offset+1);
-		}
-		if (is_buy)
-		{
-			label = buy_text;
-		}
-		else
-		{
-			label = take_text;
-		}
-		gMenuHolder->childSetText("Pie Object Take", label);
-		gMenuHolder->childSetText("Menu Object Take", label);
-
 		return new_value;
 	}
 };
@@ -5514,6 +5510,37 @@ bool enable_pay_object()
 	return false;
 }
 
+bool visible_object_stand_up()
+{
+	// 'Object Stand Up' menu item is visible when agent is sitting on selection
+	return sitting_on_selection();
+}
+
+bool visible_object_sit()
+{
+	// 'Object Sit' menu item is visible when agent is not sitting on selection
+	bool is_sit_visible = !sitting_on_selection();
+	if (is_sit_visible)
+	{
+		LLMenuItemGL* sit_menu_item = gMenuHolder->getChild<LLMenuItemGL>("Object Sit");
+		// Init default 'Object Sit' menu item label
+		static const LLStringExplicit sit_text(sit_menu_item->getLabel());
+		// Update label
+		std::string label;
+		LLSelectNode* node = LLSelectMgr::getInstance()->getSelection()->getFirstRootNode();
+		if (node && node->mValid && !node->mSitName.empty())
+		{
+			label.assign(node->mSitName);
+		}
+		else
+		{
+			label = sit_text;
+		}
+		sit_menu_item->setLabel(label);
+	}
+	return is_sit_visible;
+}
+
 class LLObjectEnableSitOrStand : public view_listener_t
 {
 	bool handleEvent(const LLSD& userdata)
@@ -5528,34 +5555,6 @@ class LLObjectEnableSitOrStand : public view_listener_t
 				new_value = true;
 			}
 		}
-		// Update label
-		std::string label;
-		std::string sit_text;
-		std::string stand_text;
-		std::string param = userdata.asString();
-		std::string::size_type offset = param.find(",");
-		if (offset != param.npos)
-		{
-			sit_text = param.substr(0, offset);
-			stand_text = param.substr(offset+1);
-		}
-		if (sitting_on_selection())
-		{
-			label = stand_text;
-		}
-		else
-		{
-			LLSelectNode* node = LLSelectMgr::getInstance()->getSelection()->getFirstRootNode();
-			if (node && node->mValid && !node->mSitName.empty())
-			{
-				label.assign(node->mSitName);
-			}
-			else
-			{
-				label = sit_text;
-			}
-		}
-		gMenuHolder->childSetText("Object Sit", label);
 
 		return new_value;
 	}
@@ -6897,7 +6896,8 @@ class LLToolsEditLinkedParts : public view_listener_t
 {
 	bool handleEvent(const LLSD& userdata)
 	{
-		BOOL select_individuals = gSavedSettings.getBOOL("EditLinkedParts");
+		BOOL select_individuals = !gSavedSettings.getBOOL("EditLinkedParts");
+		gSavedSettings.setBOOL( "EditLinkedParts", select_individuals );
 		if (select_individuals)
 		{
 			LLSelectMgr::getInstance()->demoteSelectionToIndividuals();
@@ -7055,7 +7055,7 @@ LLVOAvatar* find_avatar_from_object( const LLUUID& object_id )
 
 void handle_disconnect_viewer(void *)
 {
-	LLAppViewer::instance()->forceDisconnect("Testing viewer disconnect");
+	LLAppViewer::instance()->forceDisconnect(LLTrans::getString("TestingDisconnect"));
 }
 
 void force_error_breakpoint(void *)
@@ -7801,11 +7801,10 @@ void initialize_menus()
 	view_listener_t::addMenu(new LLToolsEnableUnlink(), "Tools.EnableUnlink");
 	view_listener_t::addMenu(new LLToolsEnableBuyOrTake(), "Tools.EnableBuyOrTake");
 	enable.add("Tools.EnableTakeCopy", boost::bind(&enable_object_take_copy));
+	enable.add("Tools.VisibleBuyObject", boost::bind(&tools_visible_buy_object));
+	enable.add("Tools.VisibleTakeObject", boost::bind(&tools_visible_take_object));
 	view_listener_t::addMenu(new LLToolsEnableSaveToInventory(), "Tools.EnableSaveToInventory");
 	view_listener_t::addMenu(new LLToolsEnableSaveToObjectInventory(), "Tools.EnableSaveToObjectInventory");
-
-	/*view_listener_t::addMenu(new LLToolsVisibleBuyObject(), "Tools.VisibleBuyObject");
-	view_listener_t::addMenu(new LLToolsVisibleTakeObject(), "Tools.VisibleTakeObject");*/
 
 	// Help menu
 	// most items use the ShowFloater method
@@ -8028,6 +8027,9 @@ void initialize_menus()
 	view_listener_t::addMenu(new LLObjectEnableSitOrStand(), "Object.EnableSitOrStand");
 	enable.add("Object.EnableDelete", boost::bind(&enable_object_delete));
 	enable.add("Object.EnableWear", boost::bind(&object_selected_and_point_valid));
+
+	enable.add("Object.StandUpVisible", boost::bind(&visible_object_stand_up));
+	enable.add("Object.SitVisible", boost::bind(&visible_object_sit));
 
 	view_listener_t::addMenu(new LLObjectEnableReturn(), "Object.EnableReturn");
 	view_listener_t::addMenu(new LLObjectEnableReportAbuse(), "Object.EnableReportAbuse");

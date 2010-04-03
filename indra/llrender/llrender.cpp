@@ -12,13 +12,13 @@
  * ("GPL"), unless you have obtained a separate licensing agreement
  * ("Other License"), formally executed by you and Linden Lab.  Terms of
  * the GPL can be found in doc/GPL-license.txt in this distribution, or
- * online at http://secondlifegrid.net/programs/open_source/licensing/gplv2
+ * online at http://secondlife.com/developers/opensource/gplv2
  * 
  * There are special exceptions to the terms and conditions of the GPL as
  * it is applied to this Source Code. View the full text of the exception
  * in the file doc/FLOSS-exception.txt in this software distribution, or
  * online at
- * http://secondlifegrid.net/programs/open_source/licensing/flossexception
+ * http://secondlife.com/developers/opensource/flossexception
  * 
  * By copying, modifying or distributing this software, you acknowledge
  * that you have read and understood your obligations described above,
@@ -28,6 +28,7 @@
  * WARRANTIES, EXPRESS, IMPLIED OR OTHERWISE, REGARDING ITS ACCURACY,
  * COMPLETENESS OR PERFORMANCE.
  * $/LicenseInfo$
+ * 
  */
 
 #include "linden_common.h"
@@ -48,6 +49,9 @@ F64	gGLLastModelView[16];
 F64 gGLLastProjection[16];
 F64 gGLProjection[16];
 S32	gGLViewport[4];
+
+U32 LLRender::sUICalls = 0;
+U32 LLRender::sUIVerts = 0;
 
 static const U32 LL_NUM_TEXTURE_LAYERS = 16; 
 
@@ -90,7 +94,9 @@ static GLenum sGLBlendFactor[] =
 	GL_DST_ALPHA,
 	GL_SRC_ALPHA,
 	GL_ONE_MINUS_DST_ALPHA,
-	GL_ONE_MINUS_SRC_ALPHA
+	GL_ONE_MINUS_SRC_ALPHA,
+
+	GL_ZERO // 'BF_UNDEF'
 };
 
 LLTexUnit::LLTexUnit(S32 index)
@@ -116,6 +122,8 @@ void LLTexUnit::refreshState(void)
 	// We set dirty to true so that the tex unit knows to ignore caching
 	// and we reset the cached tex unit state
 
+	gGL.flush();
+	
 	glActiveTextureARB(GL_TEXTURE0_ARB + mIndex);
 	if (mCurrTexType != TT_NONE)
 	{
@@ -145,6 +153,7 @@ void LLTexUnit::activate(void)
 
 	if ((S32)gGL.mCurrTextureUnitIndex != mIndex || gGL.mDirty)
 	{
+		gGL.flush();
 		glActiveTextureARB(GL_TEXTURE0_ARB + mIndex);
 		gGL.mCurrTextureUnitIndex = mIndex;
 	}
@@ -176,6 +185,7 @@ void LLTexUnit::disable(void)
 	{
 		activate();
 		unbind(mCurrTexType);
+		gGL.flush();
 		glDisable(sGLTextureType[mCurrTexType]);
 		mCurrTexType = TT_NONE;
 	}
@@ -255,10 +265,9 @@ bool LLTexUnit::bind(LLImageGL* texture, bool for_rendering, bool forceBind)
 		return false ;
 	}
 
-	gGL.flush();
-
 	if ((mCurrTexture != texture->getTexName()) || forceBind)
 	{
+		gGL.flush();
 		activate();
 		enable(texture->getTarget());
 		mCurrTexture = texture->getTexName();
@@ -382,6 +391,8 @@ void LLTexUnit::setTextureAddressMode(eTextureAddressMode mode)
 {
 	if (mIndex < 0 || mCurrTexture == 0) return;
 
+	gGL.flush();
+
 	activate();
 
 	glTexParameteri (sGLTextureType[mCurrTexType], GL_TEXTURE_WRAP_S, sGLAddressMode[mode]);
@@ -395,6 +406,8 @@ void LLTexUnit::setTextureAddressMode(eTextureAddressMode mode)
 void LLTexUnit::setTextureFilteringOption(LLTexUnit::eTextureFilterOptions option)
 {
 	if (mIndex < 0 || mCurrTexture == 0) return;
+
+	gGL.flush();
 
 	if (option == TFO_POINT)
 	{
@@ -444,6 +457,8 @@ void LLTexUnit::setTextureBlendType(eTextureBlendType type)
 	{
 		return;
 	}
+
+	gGL.flush();
 
 	activate();
 	mCurrBlendType = type;
@@ -561,6 +576,7 @@ void LLTexUnit::setTextureCombiner(eTextureBlendOp op, eTextureBlendSrc src1, eT
 	if (mCurrBlendType != TB_COMBINE || gGL.mDirty)
 	{
 		mCurrBlendType = TB_COMBINE;
+		gGL.flush();
 		glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_COMBINE_ARB);
 	}
 
@@ -570,6 +586,8 @@ void LLTexUnit::setTextureCombiner(eTextureBlendOp op, eTextureBlendSrc src1, eT
 	{
 		return;
 	}
+
+	gGL.flush();
 
 	// Get the gl source enums according to the eTextureBlendSrc sources passed in
 	GLint source1 = getTextureSource(src1);
@@ -703,6 +721,7 @@ void LLTexUnit::setColorScale(S32 scale)
 	if (mCurrColorScale != scale || gGL.mDirty)
 	{
 		mCurrColorScale = scale;
+		gGL.flush();
 		glTexEnvi( GL_TEXTURE_ENV, GL_RGB_SCALE, scale );
 	}
 }
@@ -712,6 +731,7 @@ void LLTexUnit::setAlphaScale(S32 scale)
 	if (mCurrAlphaScale != scale || gGL.mDirty)
 	{
 		mCurrAlphaScale = scale;
+		gGL.flush();
 		glTexEnvi( GL_TEXTURE_ENV, GL_ALPHA_SCALE, scale );
 	}
 }
@@ -759,6 +779,8 @@ LLRender::LLRender()
 
 	mCurrAlphaFunc = CF_DEFAULT;
 	mCurrAlphaFuncVal = 0.01f;
+	mCurrBlendSFactor = BF_UNDEF;
+	mCurrBlendDFactor = BF_UNDEF;
 }
 
 LLRender::~LLRender()
@@ -821,6 +843,88 @@ void LLRender::popMatrix()
 	glPopMatrix();
 }
 
+void LLRender::translateUI(F32 x, F32 y, F32 z)
+{
+	if (mUIOffset.empty())
+	{
+		llerrs << "Need to push a UI translation frame before offsetting" << llendl;
+	}
+
+	mUIOffset.front().mV[0] += x;
+	mUIOffset.front().mV[1] += y;
+	mUIOffset.front().mV[2] += z;
+}
+
+void LLRender::scaleUI(F32 x, F32 y, F32 z)
+{
+	if (mUIScale.empty())
+	{
+		llerrs << "Need to push a UI transformation frame before scaling." << llendl;
+	}
+
+	mUIScale.front().scaleVec(LLVector3(x,y,z));
+}
+
+void LLRender::pushUIMatrix()
+{
+	if (mUIOffset.empty())
+	{
+		mUIOffset.push_front(LLVector3(0,0,0));
+	}
+	else
+	{
+		mUIOffset.push_front(mUIOffset.front());
+	}
+	
+	if (mUIScale.empty())
+	{
+		mUIScale.push_front(LLVector3(1,1,1));
+	}
+	else
+	{
+		mUIScale.push_front(mUIScale.front());
+	}
+}
+
+void LLRender::popUIMatrix()
+{
+	if (mUIOffset.empty())
+	{
+		llerrs << "UI offset stack blown." << llendl;
+	}
+	mUIOffset.pop_front();
+	mUIScale.pop_front();
+}
+
+LLVector3 LLRender::getUITranslation()
+{
+	if (mUIOffset.empty())
+	{
+		llerrs << "UI offset stack empty." << llendl;
+	}
+	return mUIOffset.front();
+}
+
+LLVector3 LLRender::getUIScale()
+{
+	if (mUIScale.empty())
+	{
+		llerrs << "UI scale stack empty." << llendl;
+	}
+	return mUIScale.front();
+}
+
+
+void LLRender::loadUIIdentity()
+{
+	if (mUIOffset.empty())
+	{
+		llerrs << "Need to push UI translation frame before clearing offset." << llendl;
+	}
+	mUIOffset.front().setVec(0,0,0);
+	mUIScale.front().setVec(1,1,1);
+}
+
 void LLRender::setColorMask(bool writeColor, bool writeAlpha)
 {
 	setColorMask(writeColor, writeColor, writeColor, writeAlpha);
@@ -843,29 +947,28 @@ void LLRender::setColorMask(bool writeColorR, bool writeColorG, bool writeColorB
 
 void LLRender::setSceneBlendType(eBlendType type)
 {
-	flush();
 	switch (type) 
 	{
 		case BT_ALPHA:
-			glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+			blendFunc(BF_SOURCE_ALPHA, BF_ONE_MINUS_SOURCE_ALPHA);
 			break;
 		case BT_ADD:
-			glBlendFunc(GL_ONE, GL_ONE);
+			blendFunc(BF_ONE, BF_ONE);
 			break;
 		case BT_ADD_WITH_ALPHA:
-			glBlendFunc(GL_SRC_ALPHA, GL_ONE);
+			blendFunc(BF_SOURCE_ALPHA, BF_ONE);
 			break;
 		case BT_MULT:
-			glBlendFunc(GL_DST_COLOR, GL_ZERO);
+			blendFunc(BF_DEST_COLOR, BF_ZERO);
 			break;
 		case BT_MULT_ALPHA:
-			glBlendFunc(GL_DST_ALPHA, GL_ZERO);
+			blendFunc(BF_DEST_ALPHA, BF_ZERO);
 			break;
 		case BT_MULT_X2:
-			glBlendFunc(GL_DST_COLOR, GL_SRC_COLOR);
+			blendFunc(BF_DEST_COLOR, BF_SOURCE_COLOR);
 			break;
 		case BT_REPLACE:
-			glBlendFunc(GL_ONE, GL_ZERO);
+			blendFunc(BF_ONE, BF_ZERO);
 			break;
 		default:
 			llerrs << "Unknown Scene Blend Type: " << type << llendl;
@@ -891,8 +994,15 @@ void LLRender::setAlphaRejectSettings(eCompareFunc func, F32 value)
 
 void LLRender::blendFunc(eBlendFactor sfactor, eBlendFactor dfactor)
 {
-	flush();
-	glBlendFunc(sGLBlendFactor[sfactor], sGLBlendFactor[dfactor]);
+	llassert(sfactor < BF_UNDEF);
+	llassert(dfactor < BF_UNDEF);
+	if (mCurrBlendSFactor != sfactor || mCurrBlendDFactor != dfactor)
+	{
+		mCurrBlendSFactor = sfactor;
+		mCurrBlendDFactor = dfactor;
+		flush();
+		glBlendFunc(sGLBlendFactor[sfactor], sGLBlendFactor[dfactor]);
+	}
 }
 
 LLTexUnit* LLRender::getTexUnit(U32 index)
@@ -1012,6 +1122,39 @@ void LLRender::flush()
 		}
 #endif
 				
+		if (!mUIOffset.empty())
+		{
+			sUICalls++;
+			sUIVerts += mCount;
+		}
+		
+		if (gDebugGL)
+		{
+			if (mMode == LLRender::QUADS)
+			{
+				if (mCount%4 != 0)
+				{
+					llerrs << "Incomplete quad rendered." << llendl;
+				}
+			}
+			
+			if (mMode == LLRender::TRIANGLES)
+			{
+				if (mCount%3 != 0)
+				{
+					llerrs << "Incomplete triangle rendered." << llendl;
+				}
+			}
+			
+			if (mMode == LLRender::LINES)
+			{
+				if (mCount%2 != 0)
+				{
+					llerrs << "Incomplete line rendered." << llendl;
+				}
+			}
+		}
+
 		mBuffer->setBuffer(immediate_mask);
 		mBuffer->drawArrays(mMode, 0, mCount);
 		
@@ -1031,7 +1174,16 @@ void LLRender::vertex3f(const GLfloat& x, const GLfloat& y, const GLfloat& z)
 		return;
 	}
 
-	mVerticesp[mCount] = LLVector3(x,y,z);
+	if (mUIOffset.empty())
+	{
+		mVerticesp[mCount] = LLVector3(x,y,z);
+	}
+	else
+	{
+		LLVector3 vert = (LLVector3(x,y,z)+mUIOffset.front()).scaledVec(mUIScale.front());
+		mVerticesp[mCount] = vert;
+	}
+
 	mCount++;
 	if (mCount < 4096)
 	{

@@ -12,13 +12,13 @@
  * ("GPL"), unless you have obtained a separate licensing agreement
  * ("Other License"), formally executed by you and Linden Lab.  Terms of
  * the GPL can be found in doc/GPL-license.txt in this distribution, or
- * online at http://secondlifegrid.net/programs/open_source/licensing/gplv2
+ * online at http://secondlife.com/developers/opensource/gplv2
  * 
  * There are special exceptions to the terms and conditions of the GPL as
  * it is applied to this Source Code. View the full text of the exception
  * in the file doc/FLOSS-exception.txt in this software distribution, or
  * online at
- * http://secondlifegrid.net/programs/open_source/licensing/flossexception
+ * http://secondlife.com/developers/opensource/flossexception
  * 
  * By copying, modifying or distributing this software, you acknowledge
  * that you have read and understood your obligations described above,
@@ -28,6 +28,7 @@
  * WARRANTIES, EXPRESS, IMPLIED OR OTHERWISE, REGARDING ITS ACCURACY,
  * COMPLETENESS OR PERFORMANCE.
  * $/LicenseInfo$
+ * 
  */
 
 #include "llviewerprecompiledheaders.h"
@@ -64,7 +65,7 @@ BOOL LLFloaterLagMeter::postBuild()
 	setIsChrome(TRUE);
 	
 	// were we shrunk last time?
-	if (gSavedSettings.getBOOL("LagMeterShrunk"))
+	if (isShrunk())
 	{
 		onClickShrink();
 	}
@@ -122,6 +123,7 @@ BOOL LLFloaterLagMeter::postBuild()
 	mStringArgs["[SERVER_FRAME_RATE_WARNING]"] = getString("server_frame_rate_warning_fps");
 
 //	childSetAction("minimize", onClickShrink, this);
+	updateControls(isShrunk()); // if expanded append colon to the labels (EXT-4079)
 
 	return TRUE;
 }
@@ -130,7 +132,7 @@ LLFloaterLagMeter::~LLFloaterLagMeter()
 	// save shrunk status for next time
 //	gSavedSettings.setBOOL("LagMeterShrunk", mShrunk);
 	// expand so we save the large window rectangle
-	if (gSavedSettings.getBOOL("LagMeterShrunk"))
+	if (isShrunk())
 	{
 		onClickShrink();
 	}
@@ -312,17 +314,15 @@ void LLFloaterLagMeter::determineServer()
 	}
 }
 
-
-void LLFloaterLagMeter::onClickShrink()  // toggle "LagMeterShrunk"
+void LLFloaterLagMeter::updateControls(bool shrink)
 {
 //	LLFloaterLagMeter * self = (LLFloaterLagMeter*)data;
 
 	LLButton * button = getChild<LLButton>("minimize");
 	S32 delta_width = mMaxWidth -mMinWidth;
 	LLRect r = getRect();
-	bool shrunk = gSavedSettings.getBOOL("LagMeterShrunk");
 
-	if(shrunk)
+	if(!shrink)
 	{
 		setTitle(getString("max_title_msg", mStringArgs) );
 		// make left edge appear to expand
@@ -368,5 +368,16 @@ void LLFloaterLagMeter::onClickShrink()  // toggle "LagMeterShrunk"
 //	self->childSetVisible("server_help", self->mShrunk);
 
 //	self->mShrunk = !self->mShrunk;
-	gSavedSettings.setBOOL("LagMeterShrunk", !gSavedSettings.getBOOL("LagMeterShrunk"));
+}
+
+BOOL LLFloaterLagMeter::isShrunk()
+{
+	return gSavedSettings.getBOOL("LagMeterShrunk");
+}
+
+void LLFloaterLagMeter::onClickShrink()  // toggle "LagMeterShrunk"
+{
+	bool shrunk = isShrunk();
+	updateControls(!shrunk);
+	gSavedSettings.setBOOL("LagMeterShrunk", !shrunk);
 }

@@ -12,13 +12,13 @@
  * ("GPL"), unless you have obtained a separate licensing agreement
  * ("Other License"), formally executed by you and Linden Lab.  Terms of
  * the GPL can be found in doc/GPL-license.txt in this distribution, or
- * online at http://secondlifegrid.net/programs/open_source/licensing/gplv2
+ * online at http://secondlife.com/developers/opensource/gplv2
  * 
  * There are special exceptions to the terms and conditions of the GPL as
  * it is applied to this Source Code. View the full text of the exception
  * in the file doc/FLOSS-exception.txt in this software distribution, or
  * online at
- * http://secondlifegrid.net/programs/open_source/licensing/flossexception
+ * http://secondlife.com/developers/opensource/flossexception
  * 
  * By copying, modifying or distributing this software, you acknowledge
  * that you have read and understood your obligations described above,
@@ -28,6 +28,7 @@
  * WARRANTIES, EXPRESS, IMPLIED OR OTHERWISE, REGARDING ITS ACCURACY,
  * COMPLETENESS OR PERFORMANCE.
  * $/LicenseInfo$
+ * 
  */
 
 #include "llviewerprecompiledheaders.h"
@@ -50,6 +51,9 @@
 #include "llvoavatar.h"
 
 /*static*/ F32 LLVolumeImplFlexible::sUpdateFactor = 1.0f;
+
+static LLFastTimer::DeclareTimer FTM_FLEXIBLE_REBUILD("Rebuild");
+static LLFastTimer::DeclareTimer FTM_DO_FLEXIBLE_UPDATE("Update");
 
 // LLFlexibleObjectData::pack/unpack now in llprimitive.cpp
 
@@ -193,7 +197,6 @@ void LLVolumeImplFlexible::remapSections(LLFlexibleObjectSection *source, S32 so
 		}
 	}
 }
-
 
 //-----------------------------------------------------------------------------
 void LLVolumeImplFlexible::setAttributesOfAllSections(LLVector3* inScale)
@@ -363,6 +366,7 @@ inline S32 log2(S32 x)
 
 void LLVolumeImplFlexible::doFlexibleUpdate()
 {
+	LLFastTimer ftm(FTM_DO_FLEXIBLE_UPDATE);
 	LLVolume* volume = mVO->getVolume();
 	LLPath *path = &volume->getPath();
 	if (mSimulateRes == 0)
@@ -693,7 +697,10 @@ BOOL LLVolumeImplFlexible::doUpdateGeometry(LLDrawable *drawable)
 	}
 
 	volume->updateRelativeXform();
-	doFlexibleUpdate();
+	{
+		LLFastTimer t(FTM_DO_FLEXIBLE_UPDATE);
+		doFlexibleUpdate();
+	}
 	
 	// Object may have been rotated, which means it needs a rebuild.  See SL-47220
 	BOOL	rotated = FALSE;
@@ -710,7 +717,10 @@ BOOL LLVolumeImplFlexible::doUpdateGeometry(LLDrawable *drawable)
 		volume->regenFaces();
 		volume->mDrawable->setState(LLDrawable::REBUILD_VOLUME);
 		volume->dirtySpatialGroup();
-		doFlexibleRebuild();
+		{
+			LLFastTimer t(FTM_FLEXIBLE_REBUILD);
+			doFlexibleRebuild();
+		}
 		volume->genBBoxes(isVolumeGlobal());
 	}
 	else if (!mUpdated || rotated)

@@ -12,13 +12,13 @@
  * ("GPL"), unless you have obtained a separate licensing agreement
  * ("Other License"), formally executed by you and Linden Lab.  Terms of
  * the GPL can be found in doc/GPL-license.txt in this distribution, or
- * online at http://secondlifegrid.net/programs/open_source/licensing/gplv2
+ * online at http://secondlife.com/developers/opensource/gplv2
  * 
  * There are special exceptions to the terms and conditions of the GPL as
  * it is applied to this Source Code. View the full text of the exception
  * in the file doc/FLOSS-exception.txt in this software distribution, or
  * online at
- * http://secondlifegrid.net/programs/open_source/licensing/flossexception
+ * http://secondlife.com/developers/opensource/flossexception
  * 
  * By copying, modifying or distributing this software, you acknowledge
  * that you have read and understood your obligations described above,
@@ -28,6 +28,7 @@
  * WARRANTIES, EXPRESS, IMPLIED OR OTHERWISE, REGARDING ITS ACCURACY,
  * COMPLETENESS OR PERFORMANCE.
  * $/LicenseInfo$
+ * 
  */
 
 #include "llviewerprecompiledheaders.h"
@@ -46,6 +47,8 @@
 #include "lltooltip.h"
 
 static LLDefaultChildRegistry::Register<LLNameListCtrl> r("name_list");
+
+static const S32 info_icon_size = 16;
 
 void LLNameListCtrl::NameTypeNames::declareValues()
 {
@@ -138,6 +141,30 @@ void LLNameListCtrl::showInspector(const LLUUID& avatar_id, bool is_group)
 		LLFloaterReg::showInstance("inspect_avatar", LLSD().with("avatar_id", avatar_id));
 }
 
+void	LLNameListCtrl::mouseOverHighlightNthItem( S32 target_index )
+{
+	S32 cur_index = getHighlightedItemInx();
+	if (cur_index != target_index)
+	{
+		if(0 <= cur_index && cur_index < (S32)getItemList().size())
+		{
+			LLScrollListItem* item = getItemList()[cur_index];
+			LLScrollListText* cell = dynamic_cast<LLScrollListText*>(item->getColumn(mNameColumnIndex));
+			if(cell)
+				cell->setTextWidth(cell->getTextWidth() + info_icon_size);
+		}
+		if(target_index != -1)
+		{
+			LLScrollListItem* item = getItemList()[target_index];
+			LLScrollListText* cell = dynamic_cast<LLScrollListText*>(item->getColumn(mNameColumnIndex));
+			if(cell)
+				cell->setTextWidth(cell->getTextWidth() - info_icon_size);
+		}
+	}
+
+	LLScrollListCtrl::mouseOverHighlightNthItem(target_index);
+}
+
 //virtual
 BOOL LLNameListCtrl::handleToolTip(S32 x, S32 y, MASK mask)
 {
@@ -164,7 +191,7 @@ BOOL LLNameListCtrl::handleToolTip(S32 x, S32 y, MASK mask)
 
 				// Spawn at right side of cell
 				LLPointer<LLUIImage> icon = LLUI::getUIImage("Info_Small");
-				LLCoordGL pos( sticky_rect.mRight - 16, sticky_rect.mTop - (sticky_rect.getHeight() - icon->getHeight())/2 );
+				LLCoordGL pos( sticky_rect.mRight - info_icon_size, sticky_rect.mTop - (sticky_rect.getHeight() - icon->getHeight())/2 );
 
 				// Should we show a group or an avatar inspector?
 				bool is_group = hit_item->getValue()["is_group"].asBoolean();

@@ -20,19 +20,19 @@
 				Pracownik Linden Lab
 			</string>
 			<string name="PaymentInfoUsed">
-				Dane Konta Używane
+				Dane konta używane
 			</string>
 			<string name="PaymentInfoOnFile">
-				Dane Konta Dostępne
+				Dane konta dostępne
 			</string>
 			<string name="NoPaymentInfoOnFile">
-				Brak Danych Konta
+				Brak danych konta
 			</string>
 			<string name="AgeVerified">
-				Wiek Zweryfikowany
+				Wiek zweryfikowany
 			</string>
 			<string name="NotAgeVerified">
-				Brak Weryfikacji Wieku
+				Brak weryfikacji wieku
 			</string>
 			<text name="Name:">
 				Imię:
@@ -146,7 +146,7 @@
 		</panel>
 		<panel label="Reklama" name="Classified">
 			<text name="Place an ad in Second Life&apos;s classified listings.">
-				Zamieść reklamę w [SECOND_LIFE].
+				Zamieść Reklamę w [SECOND_LIFE].
 			</text>
 			<button label="Dodaj..." label_selected="Dodaj..." name="New..."/>
 			<button label="Usuń..." label_selected="Usuń..." name="Delete..."/>

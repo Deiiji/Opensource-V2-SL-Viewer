@@ -1,5 +1,5 @@
-<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
-<floater label="(nieznany)" name="im_floater" title="(NIEZNANY)">
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<floater label="(nieznany)" name="im_floater" title="(NIEZNANE)">
 	<string name="ringing">
 		Dołączanie do czatu głosowego...
 	</string>
@@ -15,11 +15,11 @@
 	<string name="live_help_dialog">
 		*** Witamy w Serwisie Pomocy *** 
 		Proszę o zapoznanie się ze stroną pomocy Second Life poprzez wciśnięcie klawisza F1 lub skorzystanie z Bazy Wiedzy (Knowledge Base) na http://secondlife.com/knowledgebase/ 
-		Jeżeli nie znajdziesz tam poszukiwanej odpowiedzi, proszę wpisać swoje pytanie by rozpocząć konwersację z jednym z pomocników. Poczekaj kilka minut na odpowiedź z serwisu.
+		Jeżeli nie znajdziesz tam poszukiwanej odpowiedzi, proszę wpisać swoje pytanie aby rozpocząć konwersację z jednym z pomocników. Poczekaj kilka minut na odpowiedź z serwisu.
 		-=-=- Pamiętaj także, że czas odpowiedzi może się zmieniać, zwłaszcza w godzinach największej aktywności użytkowników. -=-=-
 	</string>
 	<string name="title_string">
-		Wiadomosc (IM) z [NAME]
+		Wiadomość (IM) z [NAME]
 	</string>
 	<string name="typing_start_string">
 		[NAME] pisze...
@@ -28,7 +28,7 @@
 		Rozpoczęcie rozmowy z [NAME]. Proszę czekać...
 	</string>
 	<string name="moderated_chat_label">
-		(Modernowane)
+		(Moderowane)
 	</string>
 	<string name="default_text_label">
 		Wpisz treść wiadomości
@@ -38,12 +38,11 @@
 	</string>
 	<layout_stack name="panels">
 		<layout_panel name="im_contents_panel">
-			<button label="O Grupie" name="group_info_btn" />
-			<button label="Dzwoń" name="start_call_btn" />
-			<button label="Skończ" name="end_call_btn" />
-			<button label="&lt; &lt;" label_selected="&gt; &gt;" name="toggle_active_speakers_btn"
-			     tool_tip="Kliknij tutaj by uzyskać listę wszystkich uczestników biorących udział w tej konkferencji." />
-			<button label="Wyślij" name="send_btn" />
+			<button label="O Grupie" name="group_info_btn"/>
+			<button label="Dzwoń" name="start_call_btn"/>
+			<button label="Skończ" name="end_call_btn"/>
+			<button label="&lt; &lt;" label_selected="&gt; &gt;" name="toggle_active_speakers_btn" tool_tip="Kliknij tutaj by zobaczyć listę aktywnych rozmówców tej konferencji"/>
+			<button label="Wyślij" name="send_btn"/>
 		</layout_panel>
 	</layout_stack>
 </floater>

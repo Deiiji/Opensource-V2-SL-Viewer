@@ -12,13 +12,13 @@
  * ("GPL"), unless you have obtained a separate licensing agreement
  * ("Other License"), formally executed by you and Linden Lab.  Terms of
  * the GPL can be found in doc/GPL-license.txt in this distribution, or
- * online at http://secondlifegrid.net/programs/open_source/licensing/gplv2
+ * online at http://secondlife.com/developers/opensource/gplv2
  * 
  * There are special exceptions to the terms and conditions of the GPL as
  * it is applied to this Source Code. View the full text of the exception
  * in the file doc/FLOSS-exception.txt in this software distribution, or
  * online at
- * http://secondlifegrid.net/programs/open_source/licensing/flossexception
+ * http://secondlife.com/developers/opensource/flossexception
  * 
  * By copying, modifying or distributing this software, you acknowledge
  * that you have read and understood your obligations described above,
@@ -28,6 +28,7 @@
  * WARRANTIES, EXPRESS, IMPLIED OR OTHERWISE, REGARDING ITS ACCURACY,
  * COMPLETENESS OR PERFORMANCE.
  * $/LicenseInfo$
+ * 
  */
 
 #include "llviewerprecompiledheaders.h"
@@ -47,8 +48,6 @@
 #include "lltooldraganddrop.h"
 #include "llscrollcontainer.h"
 #include "llavatariconctrl.h"
-#include "llweb.h"
-#include "llfloaterworldmap.h"
 #include "llfloaterreg.h"
 #include "llnotificationsutil.h"
 #include "llvoiceclient.h"
@@ -352,8 +351,10 @@ LLPanelAvatarNotes::~LLPanelAvatarNotes()
 	if(getAvatarId().notNull())
 	{
 		LLAvatarTracker::instance().removeParticularFriendObserver(getAvatarId(), this);
-		if(LLVoiceClient::getInstance())
+		if(LLVoiceClient::instanceExists())
+		{
 			LLVoiceClient::getInstance()->removeObserver((LLVoiceClientStatusObserver*)this);
+		}
 	}
 }
 
@@ -447,10 +448,7 @@ void LLPanelProfileTab::scrollToTop()
 
 void LLPanelProfileTab::onMapButtonClick()
 {
-	std::string name;
-	gCacheName->getFullName(getAvatarId(), name);
-	gFloaterWorldMap->trackAvatar(getAvatarId(), name);
-	LLFloaterReg::showInstance("world_map");
+	LLAvatarActions::showOnMap(getAvatarId());
 }
 
 void LLPanelProfileTab::updateButtons()
@@ -488,7 +486,6 @@ LLPanelAvatarProfile::LLPanelAvatarProfile()
 
 BOOL LLPanelAvatarProfile::postBuild()
 {
-	childSetActionTextbox("homepage_edit", boost::bind(&LLPanelAvatarProfile::onHomepageTextboxClicked, this));
 	childSetCommitCallback("add_friend",(boost::bind(&LLPanelAvatarProfile::onAddFriendButtonClick,this)),NULL);
 	childSetCommitCallback("im",(boost::bind(&LLPanelAvatarProfile::onIMButtonClick,this)),NULL);
 	childSetCommitCallback("call",(boost::bind(&LLPanelAvatarProfile::onCallButtonClick,this)),NULL);
@@ -499,6 +496,7 @@ BOOL LLPanelAvatarProfile::postBuild()
 			&LLPanelAvatarProfile::onMapButtonClick, this)), NULL);
 
 	LLUICtrl::CommitCallbackRegistry::ScopedRegistrar registrar;
+	registrar.add("Profile.ShowOnMap",  boost::bind(&LLPanelAvatarProfile::onMapButtonClick, this));
 	registrar.add("Profile.Pay",  boost::bind(&LLPanelAvatarProfile::pay, this));
 	registrar.add("Profile.Share", boost::bind(&LLPanelAvatarProfile::share, this));
 	registrar.add("Profile.BlockUnblock", boost::bind(&LLPanelAvatarProfile::toggleBlock, this));
@@ -508,6 +506,7 @@ BOOL LLPanelAvatarProfile::postBuild()
 	registrar.add("Profile.CSR", boost::bind(&LLPanelAvatarProfile::csr, this));
 
 	LLUICtrl::EnableCallbackRegistry::ScopedRegistrar enable;
+	enable.add("Profile.EnableShowOnMap", boost::bind(&LLPanelAvatarProfile::enableShowOnMap, this));
 	enable.add("Profile.EnableGod", boost::bind(&enable_god));
 	enable.add("Profile.EnableBlock", boost::bind(&LLPanelAvatarProfile::enableBlock, this));
 	enable.add("Profile.EnableUnblock", boost::bind(&LLPanelAvatarProfile::enableUnblock, this));
@@ -702,6 +701,15 @@ void LLPanelAvatarProfile::toggleBlock()
 	LLAvatarActions::toggleBlock(getAvatarId());
 }
 
+bool LLPanelAvatarProfile::enableShowOnMap()
+{
+	bool is_buddy_online = LLAvatarTracker::instance().isBuddyOnline(getAvatarId());
+
+	bool enable_map_btn = (is_buddy_online && is_agent_mappable(getAvatarId()))
+		|| gAgent.isGodlike();
+	return enable_map_btn;
+}
+
 bool LLPanelAvatarProfile::enableBlock()
 {
 	return LLAvatarActions::canBlock(getAvatarId()) && !LLAvatarActions::isBlocked(getAvatarId());
@@ -732,20 +740,6 @@ void LLPanelAvatarProfile::csr()
 	std::string name;
 	gCacheName->getFullName(getAvatarId(), name);
 	LLAvatarActions::csr(getAvatarId(), name);
-}
-
-void LLPanelAvatarProfile::onUrlTextboxClicked(const std::string& url)
-{
-	LLWeb::loadURL(url);
-}
-
-void LLPanelAvatarProfile::onHomepageTextboxClicked()
-{
-	std::string url = childGetValue("homepage_edit").asString();
-	if(!url.empty())
-	{
-		onUrlTextboxClicked(url);
-	}
 }
 
 void LLPanelAvatarProfile::onAddFriendButtonClick()
@@ -795,8 +789,10 @@ LLPanelAvatarProfile::~LLPanelAvatarProfile()
 	if(getAvatarId().notNull())
 	{
 		LLAvatarTracker::instance().removeParticularFriendObserver(getAvatarId(), this);
-		if(LLVoiceClient::getInstance())
+		if(LLVoiceClient::instanceExists())
+		{
 			LLVoiceClient::getInstance()->removeObserver((LLVoiceClientStatusObserver*)this);
+		}
 	}
 }
 

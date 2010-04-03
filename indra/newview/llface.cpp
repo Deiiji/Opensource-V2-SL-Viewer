@@ -12,13 +12,13 @@
  * ("GPL"), unless you have obtained a separate licensing agreement
  * ("Other License"), formally executed by you and Linden Lab.  Terms of
  * the GPL can be found in doc/GPL-license.txt in this distribution, or
- * online at http://secondlifegrid.net/programs/open_source/licensing/gplv2
+ * online at http://secondlife.com/developers/opensource/gplv2
  * 
  * There are special exceptions to the terms and conditions of the GPL as
  * it is applied to this Source Code. View the full text of the exception
  * in the file doc/FLOSS-exception.txt in this software distribution, or
  * online at
- * http://secondlifegrid.net/programs/open_source/licensing/flossexception
+ * http://secondlife.com/developers/opensource/flossexception
  * 
  * By copying, modifying or distributing this software, you acknowledge
  * that you have read and understood your obligations described above,
@@ -28,6 +28,7 @@
  * WARRANTIES, EXPRESS, IMPLIED OR OTHERWISE, REGARDING ITS ACCURACY,
  * COMPLETENESS OR PERFORMANCE.
  * $/LicenseInfo$
+ * 
  */
 
 #include "llviewerprecompiledheaders.h"
@@ -870,7 +871,7 @@ BOOL LLFace::getGeometryVolume(const LLVolume& volume,
 	llpushcallstacks ;
 	const LLVolumeFace &vf = volume.getVolumeFace(f);
 	S32 num_vertices = (S32)vf.mVertices.size();
-	S32 num_indices = (S32)vf.mIndices.size();
+	S32 num_indices = LLPipeline::sUseTriStrips ? (S32)vf.mTriStrip.size() : (S32) vf.mIndices.size();
 	
 	if (mVertexBuffer.notNull())
 	{
@@ -1063,9 +1064,19 @@ BOOL LLFace::getGeometryVolume(const LLVolume& volume,
 	if (full_rebuild)
 	{
 		mVertexBuffer->getIndexStrider(indicesp, mIndicesIndex);
-		for (U16 i = 0; i < num_indices; i++)
+		if (LLPipeline::sUseTriStrips)
 		{
-			*indicesp++ = vf.mIndices[i] + index_offset;
+			for (U32 i = 0; i < (U32) num_indices; i++)
+			{
+				*indicesp++ = vf.mTriStrip[i] + index_offset;
+			}
+		}
+		else
+		{
+			for (U32 i = 0; i < (U32) num_indices; i++)
+			{
+				*indicesp++ = vf.mIndices[i] + index_offset;
+			}
 		}
 	}
 	
@@ -1617,8 +1628,13 @@ S32 LLFace::pushVertices(const U16* index_array) const
 {
 	if (mIndicesCount)
 	{
-		mVertexBuffer->drawRange(LLRender::TRIANGLES, mGeomIndex, mGeomIndex+mGeomCount-1, mIndicesCount, mIndicesIndex);
-		gPipeline.addTrianglesDrawn(mIndicesCount/3);
+		U32 render_type = LLRender::TRIANGLES;
+		if (mDrawInfo)
+		{
+			render_type = mDrawInfo->mDrawMode;
+		}
+		mVertexBuffer->drawRange(render_type, mGeomIndex, mGeomIndex+mGeomCount-1, mIndicesCount, mIndicesIndex);
+		gPipeline.addTrianglesDrawn(mIndicesCount, render_type);
 	}
 
 	return mIndicesCount;

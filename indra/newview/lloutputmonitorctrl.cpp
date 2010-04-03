@@ -12,13 +12,13 @@
  * ("GPL"), unless you have obtained a separate licensing agreement
  * ("Other License"), formally executed by you and Linden Lab.  Terms of
  * the GPL can be found in doc/GPL-license.txt in this distribution, or
- * online at http://secondlifegrid.net/programs/open_source/licensing/gplv2
+ * online at http://secondlife.com/developers/opensource/gplv2
  * 
  * There are special exceptions to the terms and conditions of the GPL as
  * it is applied to this Source Code. View the full text of the exception
  * in the file doc/FLOSS-exception.txt in this software distribution, or
  * online at
- * http://secondlifegrid.net/programs/open_source/licensing/flossexception
+ * http://secondlife.com/developers/opensource/flossexception
  * 
  * By copying, modifying or distributing this software, you acknowledge
  * that you have read and understood your obligations described above,
@@ -28,6 +28,7 @@
  * WARRANTIES, EXPRESS, IMPLIED OR OTHERWISE, REGARDING ITS ACCURACY,
  * COMPLETENESS OR PERFORMANCE.
  * $/LicenseInfo$
+ * 
  */
 
 #include "llviewerprecompiledheaders.h"
@@ -247,7 +248,7 @@ void LLOutputMonitorCtrl::draw()
 		gl_rect_2d(0, monh, monw, 0, sColorBound, FALSE);
 }
 
-void LLOutputMonitorCtrl::setSpeakerId(const LLUUID& speaker_id)
+void LLOutputMonitorCtrl::setSpeakerId(const LLUUID& speaker_id, const LLUUID& session_id/* = LLUUID::null*/)
 {
 	if (speaker_id.isNull() && mSpeakerId.notNull())
 	{
@@ -263,7 +264,7 @@ void LLOutputMonitorCtrl::setSpeakerId(const LLUUID& speaker_id)
 	}
 
 	mSpeakerId = speaker_id;
-	LLSpeakingIndicatorManager::registerSpeakingIndicator(mSpeakerId, this);
+	LLSpeakingIndicatorManager::registerSpeakingIndicator(mSpeakerId, this, session_id);
 
 	//mute management
 	if (mAutoUpdate)
@@ -303,7 +304,7 @@ void LLOutputMonitorCtrl::switchIndicator(bool switch_on)
 	}
 
 	// otherwise remember necessary state and mark itself as dirty.
-	// State will be applied i next draw when parents chain became visible.
+	// State will be applied in next draw when parents chain becomes visible.
 	else
 	{
 		LL_DEBUGS("SpeakingIndicator") << "Indicator is not in visible chain, parent won't be notified: " << mSpeakerId << LL_ENDL;
@@ -317,7 +318,7 @@ void LLOutputMonitorCtrl::switchIndicator(bool switch_on)
 //////////////////////////////////////////////////////////////////////////
 void LLOutputMonitorCtrl::notifyParentVisibilityChanged()
 {
-	LL_DEBUGS("SpeakingIndicator") << "Notify parent that visibility was changed: " << mSpeakerId << " ,new_visibility: " << getVisible() << LL_ENDL;
+	LL_DEBUGS("SpeakingIndicator") << "Notify parent that visibility was changed: " << mSpeakerId << ", new_visibility: " << getVisible() << LL_ENDL;
 
 	LLSD params = LLSD().with("visibility_changed", getVisible());
 

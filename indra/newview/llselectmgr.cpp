@@ -12,13 +12,13 @@
  * ("GPL"), unless you have obtained a separate licensing agreement
  * ("Other License"), formally executed by you and Linden Lab.  Terms of
  * the GPL can be found in doc/GPL-license.txt in this distribution, or
- * online at http://secondlifegrid.net/programs/open_source/licensing/gplv2
+ * online at http://secondlife.com/developers/opensource/gplv2
  * 
  * There are special exceptions to the terms and conditions of the GPL as
  * it is applied to this Source Code. View the full text of the exception
  * in the file doc/FLOSS-exception.txt in this software distribution, or
  * online at
- * http://secondlifegrid.net/programs/open_source/licensing/flossexception
+ * http://secondlife.com/developers/opensource/flossexception
  * 
  * By copying, modifying or distributing this software, you acknowledge
  * that you have read and understood your obligations described above,
@@ -28,6 +28,7 @@
  * WARRANTIES, EXPRESS, IMPLIED OR OTHERWISE, REGARDING ITS ACCURACY,
  * COMPLETENESS OR PERFORMANCE.
  * $/LicenseInfo$
+ * 
  */
 
 #include "llviewerprecompiledheaders.h"
@@ -4919,13 +4920,15 @@ void LLSelectMgr::renderSilhouettes(BOOL for_hud)
 
 		// set up transform to encompass bounding box of HUD
 		glMatrixMode(GL_PROJECTION);
-		glPushMatrix();
+		gGL.pushMatrix();
 		glLoadIdentity();
 		F32 depth = llmax(1.f, hud_bbox.getExtentLocal().mV[VX] * 1.1f);
 		glOrtho(-0.5f * LLViewerCamera::getInstance()->getAspect(), 0.5f * LLViewerCamera::getInstance()->getAspect(), -0.5f, 0.5f, 0.f, depth);
 
 		glMatrixMode(GL_MODELVIEW);
-		glPushMatrix();
+		gGL.pushMatrix();
+		gGL.pushUIMatrix();
+		gGL.loadUIIdentity();
 		glLoadIdentity();
 		glLoadMatrixf(OGL_TO_CFR_ROTATION);		// Load Cory's favorite reference frame
 		glTranslatef(-hud_bbox.getCenterLocal().mV[VX] + (depth *0.5f), 0.f, 0.f);
@@ -4934,17 +4937,18 @@ void LLSelectMgr::renderSilhouettes(BOOL for_hud)
 	if (mSelectedObjects->getNumNodes())
 	{
 		LLUUID inspect_item_id= LLUUID::null;
-#if 0		
 		LLFloaterInspect* inspect_instance = LLFloaterReg::getTypedInstance<LLFloaterInspect>("inspect");
-		if(inspect_instance)
+		if(inspect_instance && inspect_instance->getVisible())
 		{
 			inspect_item_id = inspect_instance->getSelectedUUID();
 		}
-#endif
-		LLSidepanelTaskInfo *panel_task_info = LLSidepanelTaskInfo::getActivePanel();
-		if (panel_task_info)
+		else
 		{
-			inspect_item_id = panel_task_info->getSelectedUUID();
+			LLSidepanelTaskInfo *panel_task_info = LLSidepanelTaskInfo::getActivePanel();
+			if (panel_task_info)
+			{
+				inspect_item_id = panel_task_info->getSelectedUUID();
+			}
 		}
 
 		LLUUID focus_item_id = LLViewerMediaFocus::getInstance()->getFocusedObjectID();
@@ -5022,10 +5026,11 @@ void LLSelectMgr::renderSilhouettes(BOOL for_hud)
 	if (for_hud && avatar)
 	{
 		glMatrixMode(GL_PROJECTION);
-		glPopMatrix();
+		gGL.popMatrix();
 
 		glMatrixMode(GL_MODELVIEW);
-		glPopMatrix();
+		gGL.popMatrix();
+		gGL.popUIMatrix();
 		stop_glerror();
 	}
 
@@ -5374,7 +5379,10 @@ void LLSelectNode::renderOneSilhouette(const LLColor4 &color)
 	}
 
 	glMatrixMode(GL_MODELVIEW);
-	glPushMatrix();
+	gGL.pushMatrix();
+	gGL.pushUIMatrix();
+	gGL.loadUIIdentity();
+
 	if (!is_hud_object)
 	{
 		glLoadIdentity();
@@ -5493,7 +5501,8 @@ void LLSelectNode::renderOneSilhouette(const LLColor4 &color)
 		gGL.end();
 		gGL.flush();
 	}
-	glPopMatrix();
+	gGL.popMatrix();
+	gGL.popUIMatrix();
 }
 
 //
@@ -5527,13 +5536,12 @@ void dialog_refresh_all()
 
 	LLFloaterProperties::dirtyAll();
 
-#if 0	
 	LLFloaterInspect* inspect_instance = LLFloaterReg::getTypedInstance<LLFloaterInspect>("inspect");
 	if(inspect_instance)
 	{
 		inspect_instance->dirty();
 	}
-#endif
+
 	LLSidepanelTaskInfo *panel_task_info = LLSidepanelTaskInfo::getActivePanel();
 	if (panel_task_info)
 	{

@@ -11,13 +11,13 @@
  * ("GPL"), unless you have obtained a separate licensing agreement
  * ("Other License"), formally executed by you and Linden Lab.  Terms of
  * the GPL can be found in doc/GPL-license.txt in this distribution, or
- * online at http://secondlifegrid.net/programs/open_source/licensing/gplv2
+ * online at http://secondlife.com/developers/opensource/gplv2
  * 
  * There are special exceptions to the terms and conditions of the GPL as
  * it is applied to this Source Code. View the full text of the exception
  * in the file doc/FLOSS-exception.txt in this software distribution, or
  * online at
- * http://secondlifegrid.net/programs/open_source/licensing/flossexception
+ * http://secondlife.com/developers/opensource/flossexception
  * 
  * By copying, modifying or distributing this software, you acknowledge
  * that you have read and understood your obligations described above,
@@ -27,6 +27,7 @@
  * WARRANTIES, EXPRESS, IMPLIED OR OTHERWISE, REGARDING ITS ACCURACY,
  * COMPLETENESS OR PERFORMANCE.
  * $/LicenseInfo$
+ * 
  */
 
 #include "linden_common.h"
@@ -63,6 +64,27 @@ LLWorkerThread::~LLWorkerThread()
 	delete mDeleteMutex;
 	
 	// ~LLQueuedThread() will be called here
+}
+
+//called only in destructor.
+void LLWorkerThread::clearDeleteList()
+{
+	// Delete any workers in the delete queue (should be safe - had better be!)
+	if (!mDeleteList.empty())
+	{
+		llwarns << "Worker Thread: " << mName << " destroyed with " << mDeleteList.size()
+				<< " entries in delete list." << llendl;
+
+		mDeleteMutex->lock();
+		for (delete_list_t::iterator iter = mDeleteList.begin(); iter != mDeleteList.end(); ++iter)
+		{
+			(*iter)->mRequestHandle = LLWorkerThread::nullHandle();
+			(*iter)->clearFlags(LLWorkerClass::WCF_HAVE_WORK);
+			delete *iter ;
+		}
+		mDeleteList.clear() ;
+		mDeleteMutex->unlock() ;
+	}
 }
 
 // virtual
@@ -320,7 +342,20 @@ bool LLWorkerClass::checkWork(bool aborting)
 	if (mRequestHandle != LLWorkerThread::nullHandle())
 	{
 		LLWorkerThread::WorkRequest* workreq = (LLWorkerThread::WorkRequest*)mWorkerThread->getRequest(mRequestHandle);
-		llassert_always(workreq);
+		if(!workreq)
+		{
+			if(mWorkerThread->isQuitting() || mWorkerThread->isStopped()) //the mWorkerThread is not running
+			{
+				mRequestHandle = LLWorkerThread::nullHandle();
+				clearFlags(WCF_HAVE_WORK);
+			}
+			else
+			{
+				llassert_always(workreq);
+			}
+			return true ;
+		}
+
 		LLQueuedThread::status_t status = workreq->getStatus();
 		if (status == LLWorkerThread::STATUS_ABORTED)
 		{
