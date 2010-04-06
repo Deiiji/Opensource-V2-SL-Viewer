@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# This is the build script used by Linden Lab's autmated build system.
+# This is the build script used by Linden Lab's automated build system.
 #
 
 set -x
@@ -20,6 +20,7 @@ top=`cd "$here/../../.." && pwd`
 [ x"$S3SYMBOL_URL" = x ]  && export S3SYMBOL_URL=https://s3.amazonaws.com/automated-builds-secondlife-com/binaries
 [ x"$PUBLIC_URL" = x ] && export PUBLIC_URL=http://secondlife.com/developers/opensource/downloads/$year
 [ x"$PUBLIC_EMAIL" = x ] && export PUBLIC_EMAIL=sldev-commits@lists.secondlife.com
+
 # Make sure command worked and bail out if not, reporting failure to parabuild
 fail()
 {
@@ -320,7 +321,7 @@ for variant in $variants
 do
   build_dir=`build_dir_$arch $variant`
   rm -rf "$build_dir"
-  get_asset "$libs_asset" # Thus plunks stuff into the build dir, so have to restore it now.
+  get_asset "$libs_asset" # This plunks stuff into the build dir, so have to restore it now.
   # This is the way it will work in future
   #for target_dir in $target_dirs
   #do
@@ -367,7 +368,7 @@ do
   fi
 done
 
-# check statuis and upload results to S3
+# Check status and upload results to S3
 subject=
 if $succeeded
 then
