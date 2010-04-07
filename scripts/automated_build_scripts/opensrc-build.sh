@@ -100,7 +100,7 @@ s3_available()
 
 build_dir_Darwin()
 {
-  echo build-darwin-universal
+  echo build-darwin-i386
 }
 
 build_dir_Linux()
@@ -341,7 +341,7 @@ do
   echo "==== $variant ====" >> build.log
   if ./develop.py \
     --unattended \
-    --incredibuild \
+   --incredibuild \
     -t $variant \
     -G "$cmake_generator" \
    configure \
@@ -350,24 +350,14 @@ do
     -DPACKAGE:BOOL=ON >>build.log 2>&1
   then
     if ./develop.py\
-         --unattended\
-         --incredibuild \
-         -t $variant\
-         -G "$cmake_generator" \
-       build prepare >>build.log 2>&1
+        --unattended\
+        --incredibuild \
+        -t $variant\
+        -G "$cmake_generator" \
+        build package >>build.log 2>&1
     then
-      if ./develop.py\
-           --unattended\
-           --incredibuild \
-           -t $variant\
-           -G "$cmake_generator" \
-         build package >>build.log 2>&1
-	  then
-        # run tests if needed
-        true
-	  else
-	    succeeded=false
-	  fi
+      # run tests if needed
+      true
     else
       succeeded=false
     fi
