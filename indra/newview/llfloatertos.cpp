@@ -58,7 +58,9 @@ LLFloaterTOS::LLFloaterTOS(const LLSD& data)
 :	LLModalDialog( data["message"].asString() ),
 	mMessage(data["message"].asString()),
 	mWebBrowserWindowId( 0 ),
-	mLoadCompleteCount( 0 ),
+	mLoadingScreenLoaded(false),
+	mSiteAlive(false),
+	mRealNavigateBegun(false),
 	mReplyPumpName(data["reply_pump"].asString())
 {
 }
@@ -139,6 +141,11 @@ BOOL LLFloaterTOS::postBuild()
 	if ( web_browser )
 	{
 		web_browser->addObserver(this);
+
+		// Don't use the start_url parameter for this browser instance -- it may finish loading before we get to add our observer.
+		// Store the URL separately and navigate here instead.
+		web_browser->navigateTo( getString( "loading_url" ) );
+		
 		gResponsePtr = LLIamHere::build( this );
 		LLHTTPClient::get( getString( "real_url" ), gResponsePtr );
 	}
@@ -148,15 +155,16 @@ BOOL LLFloaterTOS::postBuild()
 
 void LLFloaterTOS::setSiteIsAlive( bool alive )
 {
+	mSiteAlive = alive;
+	
 	// only do this for TOS pages
 	if (hasChild("tos_html"))
 	{
-		LLMediaCtrl* web_browser = getChild<LLMediaCtrl>("tos_html");
 		// if the contents of the site was retrieved
 		if ( alive )
 		{
 			// navigate to the "real" page 
-			web_browser->navigateTo( getString( "real_url" ) );
+			loadIfNeeded();
 		}
 		else
 		{
@@ -164,6 +172,19 @@ void LLFloaterTOS::setSiteIsAlive( bool alive )
 			// but if the page is unavailable, we need to do this now
 			LLCheckBoxCtrl* tos_agreement = getChild<LLCheckBoxCtrl>("agree_chk");
 			tos_agreement->setEnabled( true );
+		}
+	}
+}
+
+void LLFloaterTOS::loadIfNeeded()
+{
+	if(!mRealNavigateBegun && mSiteAlive)
+	{
+		LLMediaCtrl* web_browser = getChild<LLMediaCtrl>("tos_html");
+		if(web_browser)
+		{
+			mRealNavigateBegun = true;
+			web_browser->navigateTo( getString( "real_url" ) );
 		}
 	}
 }
@@ -217,8 +238,13 @@ void LLFloaterTOS::onCancel( void* userdata )
 		LLEventPumps::instance().obtain(self->mReplyPumpName).post(LLSD(false));
 	}
 
-	self->mLoadCompleteCount = 0;  // reset counter for next time we come to TOS
-	self->closeFloater(); // destroys this object
+	// reset state for next time we come to TOS
+	self->mLoadingScreenLoaded = false;
+	self->mSiteAlive = false;
+	self->mRealNavigateBegun = false;
+	
+	// destroys this object
+	self->closeFloater(); 
 }
 
 //virtual 
@@ -226,8 +252,12 @@ void LLFloaterTOS::handleMediaEvent(LLPluginClassMedia* /*self*/, EMediaEvent ev
 {
 	if(event == MEDIA_EVENT_NAVIGATE_COMPLETE)
 	{
-		// skip past the loading screen navigate complete
-		if ( ++mLoadCompleteCount == 2 )
+		if(!mLoadingScreenLoaded)
+		{
+			mLoadingScreenLoaded = true;
+			loadIfNeeded();
+		}
+		else if(mRealNavigateBegun)
 		{
 			llinfos << "NAVIGATE COMPLETE" << llendl;
 			// enable Agree to TOS radio button now that page has loaded
