@@ -189,7 +189,7 @@ CYGWIN)
   target_dirs="libraries/i686-win32/lib/debug
                libraries/i686-win32/lib/release"
   other_archs="$S3GET_URL/$branch/$revision/Darwin $S3GET_URL/$branch/$revision/Linux"
-  symbolfiles="newview/Release/secondlife-bin.pdb newview/Release/secondlife-bin.map newview/Release/secondlife-bin.exe"
+  symbolfiles="newview/Release/secondlife-bin.pdb sharedlibs/Release/llcommon.pdb"
   export PATH="/cygdrive/c/Python25:/cygdrive/c/Program Files/Cmake 2.6/bin":$PATH
   export PERL="/cygdrive/c/Perl/bin/perl.exe"
   export S3CURL="C:\\buildscripts\\shared\\latest\\hg\\bin\\s3curl.py"
@@ -377,16 +377,16 @@ then
   then
     echo "$PUBLIC_URL/$branch/$revision/$package_file" > "$arch"
     echo "$PUBLIC_URL/$branch/$revision/good-build.$arch" >> "$arch"
-    "$helpers/s3put.sh" "$package" "$S3PUT_URL/$branch/$revision/$package_file"    binary/octet-stream\
+    "$helpers/s3put.sh" "$package" "$S3PUT_URL/$branch/$revision/$package_file"    binary/octet-stream public-read\
        || fail Uploading "$package"
-    "$helpers/s3put.sh" build.log  "$S3PUT_URL/$branch/$revision/good-build.$arch" text/plain\
+    "$helpers/s3put.sh" build.log  "$S3PUT_URL/$branch/$revision/good-build.$arch" text/plain          public-read\
        || fail Uploading build.log
     "$helpers/s3put.sh" "$arch"    "$S3PUT_URL/$branch/$revision/$arch"            text/plain\
        || fail Uploading token file
     for symbolfile in $symbolfiles
     do
       targetfile="`echo $symbolfile | sed 's:.*/::'`"
-      "$helpers/s3put.sh" "$build_dir/$symbolfile" "$S3SYMBOL_URL/$revision/$targetfile" binary/octet-stream\
+      "$helpers/s3put.sh" "$build_dir/$symbolfile" "$S3SYMBOL_URL/$revision/$targetfile" binary/octet-stream public-read\
         || fail Uploading "$symbolfile"
     done
     if python "$all_done"\
@@ -402,7 +402,7 @@ then
 else
   if s3_available
   then
-    "$helpers/s3put.sh" build.log "$S3PUT_URL/$branch/$revision/failed-build.$arch" text/plain\
+    "$helpers/s3put.sh" build.log "$S3PUT_URL/$branch/$revision/failed-build.$arch" text/plain public-read\
        || fail Uploading build.log
     subject="Failed Build for $branch ($revision) on $arch"
     cat >message <<EOF
