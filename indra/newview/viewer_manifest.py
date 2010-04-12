@@ -841,23 +841,12 @@ class LinuxManifest(ViewerManifest):
 
         # Create an appropriate gridargs.dat for this package, denoting required grid.
         self.put_in_file(self.flags_list(), 'etc/gridargs.dat')
-        if self.buildtype().lower()=='release':
-            self.path("secondlife-stripped","bin/"+self.binary_name())
-            self.path("../linux_crash_logger/linux-crash-logger-stripped","linux-crash-logger.bin")
-        else:
-            self.path("secondlife-bin","bin/"+self.binary_name())
-            self.path("../linux_crash_logger/linux-crash-logger","linux-crash-logger.bin")
 
     def wrapper_name(self):
         mapping={"secondlife":"secondlife",
                  "snowglobe":"snowglobe"}
         return mapping[self.viewer_branding_id()]
 
-    def binary_name(self):
-        mapping={"secondlife":"do-not-directly-run-secondlife-bin",
-                 "snowglobe":"snowglobe-do-not-run-directly"}
-        return mapping[self.viewer_branding_id()]
-    
     def icon_name(self):
         mapping={"secondlife":"secondlife_icon.png",
                  "snowglobe":"snowglobe_icon.png"}
@@ -924,7 +913,7 @@ class Linux_i686Manifest(LinuxManifest):
                 print "Skipping %s - not found" % libfile
                 pass
 
-
+        self.path("secondlife-bin","bin/"+self.binary_name())
 
         self.path("../linux_crash_logger/linux-crash-logger","bin/linux-crash-logger.bin")
         self.path("../linux_updater/linux-updater", "bin/linux-updater.bin")
@@ -986,6 +975,11 @@ class Linux_i686Manifest(LinuxManifest):
         if self.args['buildtype'].lower() == 'release':
             print "* Going strip-crazy on the packaged binaries, since this is a RELEASE build"
             self.run_command("find %(d)r/bin %(d)r/lib -type f | xargs --no-run-if-empty strip -S" % {'d': self.get_dst_prefix()} ) # makes some small assumptions about our packaged dir structure
+
+    def binary_name(self):
+        mapping={"secondlife":"do-not-directly-run-secondlife-bin",
+                 "snowglobe":"snowglobe-do-not-run-directly"}
+        return mapping[self.viewer_branding_id()]
 
 class Linux_x86_64Manifest(LinuxManifest):
     def construct(self):
