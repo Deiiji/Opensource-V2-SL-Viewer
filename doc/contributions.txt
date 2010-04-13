@@ -606,6 +606,8 @@ Teardrops Fall
 	VWR-5366
 Techwolf Lupindo
 	SNOW-92
+	SNOW-517
+	SNOW-543
 	VWR-12385
 tenebrous pau
 	VWR-247
@@ -613,6 +615,7 @@ Tharax Ferraris
 	VWR-605
 Thickbrick Sleaford
 	SNOW-513
+	SNOW-543
 	VWR-7109
 	VWR-9287
 	VWR-13483
