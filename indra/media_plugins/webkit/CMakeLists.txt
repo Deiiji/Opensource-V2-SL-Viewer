@@ -44,11 +44,6 @@ if(NOT CMAKE_SIZEOF_VOID_P MATCHES 4)
 	endif(WINDOWS)
 endif (NOT CMAKE_SIZEOF_VOID_P MATCHES 4)
 
-add_library(media_plugin_webkit
-    SHARED
-    ${media_plugin_webkit_SOURCE_FILES}
-)
-
 set(media_plugin_webkit_LINK_LIBRARIES
   ${LLPLUGIN_LIBRARIES}
   ${MEDIA_PLUGIN_BASE_LIBRARIES}
@@ -64,6 +59,11 @@ if (LINUX)
        ${UI_LIBRARIES}     # for glib/GTK
        )
 endif (LINUX)
+
+add_library(media_plugin_webkit
+    SHARED
+    ${media_plugin_webkit_SOURCE_FILES}
+)
 
 target_link_libraries(media_plugin_webkit ${media_plugin_webkit_LINK_LIBRARIES})
 
