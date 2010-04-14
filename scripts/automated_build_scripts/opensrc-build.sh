@@ -95,7 +95,7 @@ get_asset()
 
 s3_available()
 {
-  test -x "$helpers/s3get.sh" -a -x "$helpers/s3put.sh" -a -r "$helpers/s3curl.pl"
+  test -x "$helpers/hg/bin/s3get.sh" -a -x "$helpers/hg/bin/s3put.sh" -a -r "$helpers/hg/bin/s3curl.py"
 }
 
 build_dir_Darwin()
@@ -175,6 +175,7 @@ Darwin)
   all_done="$helpers"/all_done.py
   test -r "$helpers/update_version_files.py" && update_version_files="$helpers/update_version_files.py"
   libs_asset="$SLASSET_LIBS_DARWIN"
+  s3put="$helpers"/hg/bin/s3put.sh
   ;;
 
 CYGWIN)
@@ -199,6 +200,7 @@ CYGWIN)
   all_done="C:\\buildscripts\\shared\\latest\\all_done.py"
   test -r "$helpers/update_version_files.py" && update_version_files="C:\\buildscripts\\shared\\latest\\update_version_files.py"
   libs_asset="$SLASSET_LIBS_WIN32"
+  s3put="$helpers"/hg/bin/s3put.sh
   ;;
 
 Linux)
@@ -260,6 +262,7 @@ Linux)
   fi
 
   libs_asset="$SLASSET_LIBS_LINUXI386"
+  s3put="$helpers"/hg/bin/s3put.sh
   ;;
 
 *) fail undefined $arch ;;
@@ -377,16 +380,18 @@ then
   then
     echo "$PUBLIC_URL/$branch/$revision/$package_file" > "$arch"
     echo "$PUBLIC_URL/$branch/$revision/good-build.$arch" >> "$arch"
-    "$helpers/s3put.sh" "$package" "$S3PUT_URL/$branch/$revision/$package_file"    binary/octet-stream public-read\
+    "$s3put" "$package" "$S3PUT_URL/$branch/$revision/$package_file"    binary/octet-stream public-read\
        || fail Uploading "$package"
-    "$helpers/s3put.sh" build.log  "$S3PUT_URL/$branch/$revision/good-build.$arch" text/plain          public-read\
+    "$s3put" build.log  "$S3PUT_URL/$branch/$revision/good-build.$arch" text/plain          public-read\
        || fail Uploading build.log
-    "$helpers/s3put.sh" "$arch"    "$S3PUT_URL/$branch/$revision/$arch"            text/plain\
+    # Create an empty token file and upload it: this is to mark that this platform $arch build worked
+    cp /dev/null "$arch"
+    "$s3put" "$arch"    "$S3PUT_URL/$branch/$revision/$arch"            text/plain          public-read\
        || fail Uploading token file
     for symbolfile in $symbolfiles
     do
       targetfile="`echo $symbolfile | sed 's:.*/::'`"
-      "$helpers/s3put.sh" "$build_dir/$symbolfile" "$S3SYMBOL_URL/$revision/$targetfile" binary/octet-stream public-read\
+      "$s3put" "$build_dir/$symbolfile" "$S3SYMBOL_URL/$revision/$targetfile" binary/octet-stream public-read\
         || fail Uploading "$symbolfile"
     done
     if python "$all_done"\
@@ -402,7 +407,7 @@ then
 else
   if s3_available
   then
-    "$helpers/s3put.sh" build.log "$S3PUT_URL/$branch/$revision/failed-build.$arch" text/plain public-read\
+    "$s3put" build.log "$S3PUT_URL/$branch/$revision/failed-build.$arch" text/plain public-read\
        || fail Uploading build.log
     subject="Failed Build for $branch ($revision) on $arch"
     cat >message <<EOF
