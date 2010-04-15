@@ -292,6 +292,7 @@ static OSStatus CarbonEventHandler(EventHandlerCallRef inHandlerCallRef,
 		if(os_result >= 0 && matching_psn)
 		{
 			sCrashReporterIsRunning = false;
+			QuitApplicationEventLoop();
 		}
     }
     return noErr;
@@ -327,7 +328,7 @@ void LLAppViewerMacOSX::handleCrashReporting(bool reportFreeze)
 			// *NOTE:Mani A better way - make a copy of the data that the crash reporter will send
 			// and let SL go about its business. This way makes the mac work like windows and linux
 			// and is the smallest patch for the issue. 
-			sCrashReporterIsRunning = true;
+			sCrashReporterIsRunning = false;
 			ProcessSerialNumber o_psn;
 
 			static EventHandlerRef sCarbonEventsRef = NULL;
@@ -357,15 +358,13 @@ void LLAppViewerMacOSX::handleCrashReporting(bool reportFreeze)
 			
 			if(os_result >= 0)
 			{	
-				EventRecord evt;
-				while(sCrashReporterIsRunning)
-				{
-					while(WaitNextEvent(osMask, &evt, 0, NULL))
-					{
-						// null op!?!
-					}
-				}
-			}	
+				sCrashReporterIsRunning = true;
+			}
+
+			while(sCrashReporterIsRunning)
+			{
+				RunApplicationEventLoop();
+			}
 
 			// Re-install the apps quit handler.
 			AEInstallEventHandler(kCoreEventClass, 
