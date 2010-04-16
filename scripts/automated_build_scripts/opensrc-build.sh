@@ -115,18 +115,18 @@ build_dir_CYGWIN()
 
 installer_Darwin()
 {
-  ls -1td "`build_dir_Darwin Release`/newview/"*.dmg 2>/dev/null | sed 1q
+  ls -1td "$(build_dir_Darwin Release)/newview/"*.dmg 2>/dev/null | sed 1q
 }
 
 installer_Linux()
 {
-  ls -1td "`build_dir_Linux Release`/newview/"*.tar.bz2 2>/dev/null | sed 1q
+  ls -1td "$(build_dir_Linux Release)/newview/"*.tar.bz2 2>/dev/null | sed 1q
 }
 
 installer_CYGWIN()
 {
-  d=`build_dir_CYGWIN Release`
-  p=`sed 's:.*=::' "$d/newview/Release/touched.bat"`
+  d=$(build_dir_CYGWIN Release)
+  p=$(sed 's:.*=::' "$d/newview/Release/touched.bat")
   echo "$d/newview/Release/$p"
 }
 
@@ -378,14 +378,14 @@ then
   package_file=`echo $package | sed 's:.*/::'`
   if s3_available
   then
-    echo "$PUBLIC_URL/$branch/$revision/$package_file" > "$arch"
+    # Create an empty token file and populate it with the usable URLs: this will be emailed when all_done...
+    cp /dev/null "$arch"
+    echo "$PUBLIC_URL/$branch/$revision/$package_file" >> "$arch"
     echo "$PUBLIC_URL/$branch/$revision/good-build.$arch" >> "$arch"
     "$s3put" "$package" "$S3PUT_URL/$branch/$revision/$package_file"    binary/octet-stream public-read\
        || fail Uploading "$package"
     "$s3put" build.log  "$S3PUT_URL/$branch/$revision/good-build.$arch" text/plain          public-read\
        || fail Uploading build.log
-    # Create an empty token file and upload it: this is to mark that this platform $arch build worked
-    cp /dev/null "$arch"
     "$s3put" "$arch"    "$S3PUT_URL/$branch/$revision/$arch"            text/plain          public-read\
        || fail Uploading token file
     for symbolfile in $symbolfiles
@@ -431,7 +431,7 @@ then
     echo "No change information available" >> message
   elif [ x"$PARABUILD_PREVIOUS_CHANGE_LIST_NUMBER" = x ]
   then
-    ( cd .. && svn log --verbose --stop-on-copy --limit 50 ) >>message
+    ( cd .. && svn log --verbose --stop-on-copy --limit 50 ) >> message
   else
     if [ "$PARABUILD_PREVIOUS_CHANGE_LIST_NUMBER" -lt "$PARABUILD_CHANGE_LIST_NUMBER" ]
 	then
@@ -439,10 +439,10 @@ then
 	else
 	  range="$PARABUILD_CHANGE_LIST_NUMBER"
 	fi
-    ( cd .. && svn log --verbose -r"$range" ) >>message
+    ( cd .. && svn log --verbose -r"$range" ) >> message
   fi
   # $PUBLIC_EMAIL can be a list, so no quotes
-  python "$mail" "$subject" $PUBLIC_EMAIL <message
+  python "$mail" "$subject" $PUBLIC_EMAIL < message
 fi
 
 if $succeeded
