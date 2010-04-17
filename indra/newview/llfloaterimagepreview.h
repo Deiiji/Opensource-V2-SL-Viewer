@@ -55,6 +55,8 @@ protected:
  public:
 	LLImagePreviewSculpted(S32 width, S32 height);	
 
+	/*virtual*/ S8 getType() const ;
+
 	void setPreviewTarget(LLImageRaw *imagep, F32 distance);
 	void setTexture(U32 name) { mTextureName = name; }
 
@@ -85,6 +87,8 @@ protected:
 
 public:
 	LLImagePreviewAvatar(S32 width, S32 height);	
+
+	/*virtual*/ S8 getType() const ;
 
 	void setPreviewTarget(const std::string& joint_name, const std::string& mesh_name, LLImageRaw* imagep, F32 distance, BOOL male);
 	void setTexture(U32 name) { mTextureName = name; }
