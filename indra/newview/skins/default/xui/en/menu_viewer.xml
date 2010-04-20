@@ -883,9 +883,20 @@
                      control="RectangleSelectInclusive" />
                     <menu_item_check.on_click
                      function="Tools.SelectBySurrounding" />
-            </menu_item_check>
+                </menu_item_check>
           <menu_item_separator
            layout="topleft" />
+                <menu_item_check
+                 label="Show Selection Outlines"
+                 layout="topleft"
+                 name="Show Selection Outlines">
+                    <menu_item_check.on_check
+                     function="CheckControl"
+                     parameter="RenderHighlightSelections" />
+                    <menu_item_check.on_click
+                     function="ToggleControl"
+                     parameter="RenderHighlightSelections" />
+                </menu_item_check>
                 <menu_item_check
                  label="Show Hidden Selection"
                  layout="topleft"
