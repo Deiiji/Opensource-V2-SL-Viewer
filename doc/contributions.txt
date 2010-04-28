@@ -616,6 +616,7 @@ Techwolf Lupindo
 	SNOW-92
 	SNOW-517
 	SNOW-543
+	SNOW-592
 	SNOW-599
 	VWR-12385
 tenebrous pau
@@ -625,6 +626,7 @@ Tharax Ferraris
 Thickbrick Sleaford
 	SNOW-513
 	SNOW-543
+	SNOW-592
 	SNOW-612
 	VWR-7109
 	VWR-9287
