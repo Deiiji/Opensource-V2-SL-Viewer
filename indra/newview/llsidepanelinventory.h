@@ -62,6 +62,7 @@ protected:
 	void onSelectionChange(const std::deque<LLFolderViewItem*> &items, BOOL user_action);
 	// "wear", "teleport", etc.
 	void performActionOnSelection(const std::string &action);
+	bool canShare();
 
 	void showItemInfoPanel();
 	void showTaskInfoPanel();

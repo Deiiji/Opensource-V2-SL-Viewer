@@ -133,6 +133,7 @@ public:
 	/*virtual*/ LLTextViewModel* getViewModel() const;
 
 	// LLEditMenuHandler interface
+	/*virtual*/ BOOL		canDeselect() const;
 	/*virtual*/ void		deselect();
 
 	// used by LLTextSegment layout code

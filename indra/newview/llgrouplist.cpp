@@ -72,18 +72,10 @@ public:
 
 static const LLGroupComparator GROUP_COMPARATOR;
 
-LLGroupList::Params::Params()
-: no_groups_msg("no_groups_msg")
-, no_filtered_groups_msg("no_filtered_groups_msg")
-{
-	
-}
 
 LLGroupList::LLGroupList(const Params& p)
-:	LLFlatListView(p)
+:	LLFlatListViewEx(p)
 	, mDirty(true) // to force initial update
-	, mNoFilteredGroupsMsg(p.no_filtered_groups_msg)
-	, mNoGroupsMsg(p.no_groups_msg)
 {
 	// Listen for agent group changes.
 	gAgent.addListener(this, "new group");
@@ -140,9 +132,15 @@ BOOL LLGroupList::handleRightMouseDown(S32 x, S32 y, MASK mask)
 
 void LLGroupList::setNameFilter(const std::string& filter)
 {
-	if (mNameFilter != filter)
+	std::string filter_upper = filter;
+	LLStringUtil::toUpper(filter_upper);
+	if (mNameFilter != filter_upper)
 	{
-		mNameFilter = filter;
+		mNameFilter = filter_upper;
+
+		// set no items message depend on filter state
+		updateNoItemsMessage(filter);
+
 		setDirty();
 	}
 }
@@ -159,18 +157,6 @@ void LLGroupList::refresh()
 	S32					count			= gAgent.mGroups.count();
 	LLUUID				id;
 	bool				have_filter		= !mNameFilter.empty();
-
-	// set no items message depend on filter state & total count of groups
-	if (have_filter)
-	{
-		// groups were filtered
-		setNoItemsCommentText(mNoFilteredGroupsMsg);
-	}
-	else if (0 == count)
-	{
-		// user is not a member of any group
-		setNoItemsCommentText(mNoGroupsMsg);
-	}
 
 	clear();
 

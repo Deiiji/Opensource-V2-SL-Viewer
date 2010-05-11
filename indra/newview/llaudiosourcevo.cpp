@@ -36,7 +36,7 @@
 
 #include "llaudiosourcevo.h"
 
-#include "llagent.h"
+#include "llagentcamera.h"
 #include "llmutelist.h"
 #include "llviewerparcelmgr.h"
 
@@ -149,7 +149,7 @@ void LLAudioSourceVO::update()
 	updateGain();
 	if (mObjectp->isHUDAttachment())
 	{
-		mPositionGlobal = gAgent.getCameraPositionGlobal();
+		mPositionGlobal = gAgentCamera.getCameraPositionGlobal();
 	}
 	else
 	{

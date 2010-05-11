@@ -46,6 +46,7 @@
 
 // viewer includes
 #include "llagent.h"
+#include "llagentcamera.h"
 #include "llbox.h"
 #include "llbutton.h"
 #include "llviewercontrol.h"
@@ -65,6 +66,7 @@
 #include "lldrawable.h"
 #include "llglheaders.h"
 #include "lltrans.h"
+#include "llvoavatarself.h"
 
 const F32 RADIUS_PIXELS = 100.f;		// size in screen space
 const F32 SQ_RADIUS = RADIUS_PIXELS * RADIUS_PIXELS;
@@ -139,7 +141,7 @@ void LLManipRotate::render()
 	glPushMatrix();
 	if (mObjectSelection->getSelectType() == SELECT_TYPE_HUD)
 	{
-		F32 zoom = gAgent.mHUDCurZoom;
+		F32 zoom = gAgentCamera.mHUDCurZoom;
 		glScalef(zoom, zoom, zoom);
 	}
 
@@ -691,7 +693,7 @@ void LLManipRotate::drag( S32 x, S32 y )
 	LLSelectMgr::getInstance()->updateSelectionCenter();
 
 	// RN: just clear focus so camera doesn't follow spurious object updates
-	gAgent.clearFocusObject();
+	gAgentCamera.clearFocusObject();
 	dialog_refresh_all();
 }
 
@@ -731,7 +733,7 @@ void LLManipRotate::renderSnapGuides()
 	}
 	else
 	{
-		cam_at_axis = center - gAgent.getCameraPositionAgent();
+		cam_at_axis = center - gAgentCamera.getCameraPositionAgent();
 		cam_at_axis.normVec();
 	}
 
@@ -739,7 +741,7 @@ void LLManipRotate::renderSnapGuides()
 	LLVector3 test_axis = constraint_axis;
 
 	BOOL constrain_to_ref_object = FALSE;
-	if (mObjectSelection->getSelectType() == SELECT_TYPE_ATTACHMENT && gAgent.getAvatarObject())
+	if (mObjectSelection->getSelectType() == SELECT_TYPE_ATTACHMENT && isAgentAvatarValid())
 	{
 		test_axis = test_axis * ~grid_rotation;
 	}
@@ -766,7 +768,7 @@ void LLManipRotate::renderSnapGuides()
 	}
 
 	LLVector3 projected_snap_axis = world_snap_axis;
-	if (mObjectSelection->getSelectType() == SELECT_TYPE_ATTACHMENT && gAgent.getAvatarObject())
+	if (mObjectSelection->getSelectType() == SELECT_TYPE_ATTACHMENT && isAgentAvatarValid())
 	{
 		projected_snap_axis = projected_snap_axis * grid_rotation;
 	}
@@ -1098,12 +1100,12 @@ BOOL LLManipRotate::updateVisiblity()
 	LLVector3 center = gAgent.getPosAgentFromGlobal( mRotationCenter );
 	if (mObjectSelection->getSelectType() == SELECT_TYPE_HUD)
 	{
-		mCenterToCam = LLVector3(-1.f / gAgent.mHUDCurZoom, 0.f, 0.f);
+		mCenterToCam = LLVector3(-1.f / gAgentCamera.mHUDCurZoom, 0.f, 0.f);
 		mCenterToCamNorm = mCenterToCam;
 		mCenterToCamMag = mCenterToCamNorm.normVec();
 
 		mRadiusMeters = RADIUS_PIXELS / (F32) LLViewerCamera::getInstance()->getViewHeightInPixels();
-		mRadiusMeters /= gAgent.mHUDCurZoom;
+		mRadiusMeters /= gAgentCamera.mHUDCurZoom;
 
 		mCenterToProfilePlaneMag = mRadiusMeters * mRadiusMeters / mCenterToCamMag;
 		mCenterToProfilePlane = -mCenterToProfilePlaneMag * mCenterToCamNorm;
@@ -1111,8 +1113,8 @@ BOOL LLManipRotate::updateVisiblity()
 		// x axis range is (-aspect * 0.5f, +aspect * 0.5)
 		// y axis range is (-0.5, 0.5)
 		// so use getWorldViewHeightRaw as scale factor when converting to pixel coordinates
-		mCenterScreen.set((S32)((0.5f - center.mV[VY]) / gAgent.mHUDCurZoom * gViewerWindow->getWorldViewHeightScaled()),
-							(S32)((center.mV[VZ] + 0.5f) / gAgent.mHUDCurZoom * gViewerWindow->getWorldViewHeightScaled()));
+		mCenterScreen.set((S32)((0.5f - center.mV[VY]) / gAgentCamera.mHUDCurZoom * gViewerWindow->getWorldViewHeightScaled()),
+							(S32)((center.mV[VZ] + 0.5f) / gAgentCamera.mHUDCurZoom * gViewerWindow->getWorldViewHeightScaled()));
 		visible = TRUE;
 	}
 	else
@@ -1120,7 +1122,7 @@ BOOL LLManipRotate::updateVisiblity()
 		visible = LLViewerCamera::getInstance()->projectPosAgentToScreen(center, mCenterScreen );
 		if( visible )
 		{
-			mCenterToCam = gAgent.getCameraPositionAgent() - center;
+			mCenterToCam = gAgentCamera.getCameraPositionAgent() - center;
 			mCenterToCamNorm = mCenterToCam;
 			mCenterToCamMag = mCenterToCamNorm.normVec();
 			LLVector3 cameraAtAxis = LLViewerCamera::getInstance()->getAtAxis();
@@ -1166,7 +1168,7 @@ BOOL LLManipRotate::updateVisiblity()
 
 LLQuaternion LLManipRotate::dragUnconstrained( S32 x, S32 y )
 {
-	LLVector3 cam = gAgent.getCameraPositionAgent();
+	LLVector3 cam = gAgentCamera.getCameraPositionAgent();
 	LLVector3 center =  gAgent.getPosAgentFromGlobal( mRotationCenter );
 
 	mMouseCur = intersectMouseWithSphere( x, y, center, mRadiusMeters);
@@ -1282,7 +1284,7 @@ LLQuaternion LLManipRotate::dragConstrained( S32 x, S32 y )
 	LLVector3 axis2;
 
 	LLVector3 test_axis = constraint_axis;
-	if (mObjectSelection->getSelectType() == SELECT_TYPE_ATTACHMENT && gAgent.getAvatarObject())
+	if (mObjectSelection->getSelectType() == SELECT_TYPE_ATTACHMENT && isAgentAvatarValid())
 	{
 		test_axis = test_axis * ~grid_rotation;
 	}
@@ -1306,7 +1308,7 @@ LLQuaternion LLManipRotate::dragConstrained( S32 x, S32 y )
 		axis1 = LLVector3::x_axis;
 	}
 
-	if (mObjectSelection->getSelectType() == SELECT_TYPE_ATTACHMENT && gAgent.getAvatarObject())
+	if (mObjectSelection->getSelectType() == SELECT_TYPE_ATTACHMENT && isAgentAvatarValid())
 	{
 		axis1 = axis1 * grid_rotation;
 	}
@@ -1334,7 +1336,7 @@ LLQuaternion LLManipRotate::dragConstrained( S32 x, S32 y )
 		}
 		else
 		{
-			cam_to_snap_plane = snap_plane_center - gAgent.getCameraPositionAgent();
+			cam_to_snap_plane = snap_plane_center - gAgentCamera.getCameraPositionAgent();
 			cam_to_snap_plane.normVec();
 		}
 
@@ -1384,7 +1386,7 @@ LLQuaternion LLManipRotate::dragConstrained( S32 x, S32 y )
 			}
 			else
 			{
-				cam_to_snap_plane = snap_plane_center - gAgent.getCameraPositionAgent();
+				cam_to_snap_plane = snap_plane_center - gAgentCamera.getCameraPositionAgent();
 				cam_to_snap_plane.normVec();
 			}
 
@@ -1431,7 +1433,7 @@ LLQuaternion LLManipRotate::dragConstrained( S32 x, S32 y )
 			}
 			else
 			{
-				cam_at_axis = snap_plane_center - gAgent.getCameraPositionAgent();
+				cam_at_axis = snap_plane_center - gAgentCamera.getCameraPositionAgent();
 				cam_at_axis.normVec();
 			}
 
@@ -1628,15 +1630,15 @@ void LLManipRotate::mouseToRay( S32 x, S32 y, LLVector3* ray_pt, LLVector3* ray_
 {
 	if (LLSelectMgr::getInstance()->getSelection()->getSelectType() == SELECT_TYPE_HUD)
 	{
-		F32 mouse_x = (((F32)x / gViewerWindow->getWorldViewRectScaled().getWidth()) - 0.5f) / gAgent.mHUDCurZoom;
-		F32 mouse_y = ((((F32)y) / gViewerWindow->getWorldViewRectScaled().getHeight()) - 0.5f) / gAgent.mHUDCurZoom;
+		F32 mouse_x = (((F32)x / gViewerWindow->getWorldViewRectScaled().getWidth()) - 0.5f) / gAgentCamera.mHUDCurZoom;
+		F32 mouse_y = ((((F32)y) / gViewerWindow->getWorldViewRectScaled().getHeight()) - 0.5f) / gAgentCamera.mHUDCurZoom;
 
 		*ray_pt = LLVector3(-1.f, -mouse_x, mouse_y);
 		*ray_dir = LLVector3(1.f, 0.f, 0.f);
 	}
 	else
 	{
-		*ray_pt = gAgent.getCameraPositionAgent();
+		*ray_pt = gAgentCamera.getCameraPositionAgent();
 		LLViewerCamera::getInstance()->projectScreenToPosAgent(x, y, ray_dir);
 		*ray_dir -= *ray_pt;
 		ray_dir->normVec();

@@ -123,7 +123,7 @@ void LLPlacesFolderBridge::buildContextMenu(LLMenuGL& menu, U32 flags)
 }
 
 //virtual
-void LLPlacesFolderBridge::performAction(LLFolderView* folder, LLInventoryModel* model, std::string action)
+void LLPlacesFolderBridge::performAction(LLInventoryModel* model, std::string action)
 {
 	if ("expand" == action)
 	{
@@ -137,7 +137,7 @@ void LLPlacesFolderBridge::performAction(LLFolderView* folder, LLInventoryModel*
 	}
 	else
 	{
-		LLFolderBridge::performAction(folder, model, action);
+		LLFolderBridge::performAction(model, action);
 	}
 }
 
@@ -159,6 +159,7 @@ LLInvFVBridge* LLPlacesInventoryBridgeBuilder::createBridge(
 	LLAssetType::EType actual_asset_type,
 	LLInventoryType::EType inv_type,
 	LLInventoryPanel* inventory,
+	LLFolderView* root,
 	const LLUUID& uuid,
 	U32 flags/* = 0x00*/) const
 {
@@ -168,9 +169,9 @@ LLInvFVBridge* LLPlacesInventoryBridgeBuilder::createBridge(
 	case LLAssetType::AT_LANDMARK:
 		if(!(inv_type == LLInventoryType::IT_LANDMARK))
 		{
-			llwarns << LLAssetType::lookup(asset_type) << " asset has inventory type " << safe_inv_type_lookup(inv_type) << " on uuid " << uuid << llendl;
+			llwarns << LLAssetType::lookup(asset_type) << " asset has inventory type " << LLInventoryType::lookupHumanReadable(inv_type) << " on uuid " << uuid << llendl;
 		}
-		new_listener = new LLPlacesLandmarkBridge(inv_type, inventory, uuid, flags);
+		new_listener = new LLPlacesLandmarkBridge(inv_type, inventory, root, uuid, flags);
 		break;
 	case LLAssetType::AT_CATEGORY:
 		if (actual_asset_type == LLAssetType::AT_LINK_FOLDER)
@@ -181,11 +182,12 @@ LLInvFVBridge* LLPlacesInventoryBridgeBuilder::createBridge(
 				actual_asset_type,
 				inv_type,
 				inventory,
+				root,
 				uuid,
 				flags);
 			break;
 		}
-		new_listener = new LLPlacesFolderBridge(inv_type, inventory, uuid);
+		new_listener = new LLPlacesFolderBridge(inv_type, inventory, root, uuid);
 		break;
 	default:
 		new_listener = LLInventoryFVBridgeBuilder::createBridge(
@@ -193,6 +195,7 @@ LLInvFVBridge* LLPlacesInventoryBridgeBuilder::createBridge(
 			actual_asset_type,
 			inv_type,
 			inventory,
+			root,
 			uuid,
 			flags);
 	}

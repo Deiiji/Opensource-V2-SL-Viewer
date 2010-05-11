@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<panel name="snapshot_advanced">
+	<combo_box name="snapshot_size_combo">
+		<combo_box.item label="Fenêtre actuelle" name="CurrentWindow"/>
+		<combo_box.item label="320 x 240" name="320x240"/>
+		<combo_box.item label="640 x 480" name="640x480"/>
+		<combo_box.item label="800 x 600" name="800x600"/>
+		<combo_box.item label="1 024 x 768" name="1024x768"/>
+		<combo_box.item label="1 280 x 1 024" name="1280x1024"/>
+		<combo_box.item label="1 600 x 1 200" name="1600x1200"/>
+		<combo_box.item label="Personnalisée" name="Custom"/>
+	</combo_box>
+	<check_box label="Contraindre proportions" name="keep_aspect_check"/>
+	<text name="layer_type_label">
+		Capturer :
+	</text>
+	<combo_box name="layer_types">
+		<combo_box.item label="Couleurs" name="Colors"/>
+		<combo_box.item label="Profondeur" name="Depth"/>
+	</combo_box>
+	<check_box label="Interface" name="ui_check"/>
+	<check_box label="HUD" name="hud_check"/>
+	<check_box label="Garder ouvert après enreg." name="keep_open_check"/>
+	<check_box label="Arrêt sur image (plein écran)" name="freeze_frame_check"/>
+	<check_box label="Actualisation auto" name="auto_snapshot_check"/>
+</panel>

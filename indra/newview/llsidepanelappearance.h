@@ -38,7 +38,7 @@
 #include "llinventoryobserver.h"
 
 #include "llinventory.h"
-#include "llpanellookinfo.h"
+#include "llpaneloutfitedit.h"
 
 class LLFilterEditor;
 class LLCurrentlyWornFetchObserver;
@@ -65,20 +65,25 @@ public:
 	void updateVerbs();
 	void onNewOutfitButtonClicked();
 
+	void showOutfitsInventoryPanel();
+	void showOutfitEditPanel();
+
 private:
 	void onFilterEdit(const std::string& search_string);
 
 	void onOpenOutfitButtonClicked();
 	void onEditAppearanceButtonClicked();
+	void onEditOutfitButtonClicked();
 	void onEditButtonClicked();
-	void onBackButtonClicked();
 	void onEditWearBackClicked();
-	void toggleLookInfoPanel(BOOL visible);
+
+	//@deprecated use showXXX() methods instead
+	void toggleOutfitEditPanel(BOOL visible);
 	void toggleWearableEditPanel(BOOL visible, LLWearable* wearable);
 
 	LLFilterEditor*			mFilterEditor;
 	LLPanelOutfitsInventory* mPanelOutfitsInventory;
-	LLPanelLookInfo*		mLookInfo;
+	LLPanelOutfitEdit*		mOutfitEdit;
 	LLPanelEditWearable*	mEditWearable;
 
 	LLButton*					mOpenOutfitBtn;
@@ -88,7 +93,7 @@ private:
 	LLPanel*					mCurrOutfitPanel;
 
 	LLTextBox*					mCurrentLookName;
-	LLTextBox*					mOutfitDirtyTag;
+	LLTextBox*					mOutfitStatus;
 
 	// Used to make sure the user's inventory is in memory.
 	LLCurrentlyWornFetchObserver* mFetchWorn;

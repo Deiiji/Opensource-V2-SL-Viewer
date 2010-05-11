@@ -35,7 +35,7 @@
 
 #include "lltexlayerparams.h"
 
-#include "llagent.h"
+#include "llagentcamera.h"
 #include "llimagetga.h"
 #include "lltexlayer.h"
 #include "llvoavatarself.h"
@@ -182,7 +182,7 @@ void LLTexLayerParamAlpha::setWeight(F32 weight, BOOL upload_bake)
 
 		if ((mAvatar->getSex() & getSex()) && (mAvatar->isSelf() && !mIsDummy)) // only trigger a baked texture update if we're changing a wearable's visual param.
 		{
-			if (gAgent.cameraCustomizeAvatar())
+			if (gAgentCamera.cameraCustomizeAvatar())
 			{
 				upload_bake = FALSE;
 			}

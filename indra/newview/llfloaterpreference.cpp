@@ -108,6 +108,8 @@
 #include "llpluginclassmedia.h"
 #include "llteleporthistorystorage.h"
 
+#include "lllogininstance.h"        // to check if logged in yet
+
 const F32 MAX_USER_FAR_CLIP = 512.f;
 const F32 MIN_USER_FAR_CLIP = 64.f;
 
@@ -183,7 +185,6 @@ void LLVoiceSetKeyDialog::onCancel(void* user_data)
 // if creating/destroying these is too slow, we'll need to create
 // a static member and update all our static callbacks
 
-void handleNameTagOptionChanged(const LLSD& newvalue);	
 bool callback_clear_browser_cache(const LLSD& notification, const LLSD& response);
 
 //bool callback_skip_dialogs(const LLSD& notification, const LLSD& response, LLFloaterPreference* floater);
@@ -217,15 +218,6 @@ bool callback_clear_browser_cache(const LLSD& notification, const LLSD& response
 	}
 	
 	return false;
-}
-
-void handleNameTagOptionChanged(const LLSD& newvalue)
-{
-	S32 name_tag_option = S32(newvalue);
-	if(name_tag_option==2)
-	{
-		gSavedSettings.setBOOL("SmallAvatarNames", TRUE);
-	}
 }
 
 /*bool callback_skip_dialogs(const LLSD& notification, const LLSD& response, LLFloaterPreference* floater)
@@ -320,8 +312,6 @@ LLFloaterPreference::LLFloaterPreference(const LLSD& key)
 	mCommitCallbackRegistrar.add("Pref.MaturitySettings",		boost::bind(&LLFloaterPreference::onChangeMaturity, this));
 
 	sSkin = gSavedSettings.getString("SkinCurrent");
-	
-	gSavedSettings.getControl("AvatarNameTagMode")->getCommitSignal()->connect(boost::bind(&handleNameTagOptionChanged,  _2));
 }
 
 BOOL LLFloaterPreference::postBuild()
@@ -337,8 +327,6 @@ BOOL LLFloaterPreference::postBuild()
 	LLTabContainer* tabcontainer = getChild<LLTabContainer>("pref core");
 	if (!tabcontainer->selectTab(gSavedSettings.getS32("LastPrefTab")))
 		tabcontainer->selectFirstTab();
-	S32 show_avatar_nametag_options = gSavedSettings.getS32("AvatarNameTagMode");
-	handleNameTagOptionChanged(LLSD(show_avatar_nametag_options));
 
 	std::string cache_location = gDirUtilp->getExpandedFilename(LL_PATH_CACHE, "");
 	childSetText("cache_location", cache_location);
@@ -873,6 +861,8 @@ void LLFloaterPreference::refreshEnabledState()
 	ctrl_wind_light->setEnabled(ctrl_shader_enable->getEnabled() && shaders);
 	// now turn off any features that are unavailable
 	disableUnavailableSettings();
+
+	childSetEnabled ("block_list", LLLoginInstance::getInstance()->authSuccess());
 }
 
 void LLFloaterPreference::disableUnavailableSettings()

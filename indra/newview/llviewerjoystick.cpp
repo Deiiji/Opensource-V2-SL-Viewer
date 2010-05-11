@@ -44,6 +44,7 @@
 #include "llselectmgr.h"
 #include "llviewermenu.h"
 #include "llagent.h"
+#include "llagentcamera.h"
 #include "llfocusmgr.h"
 
 
@@ -107,7 +108,7 @@ void LLViewerJoystick::setOverrideCamera(bool val)
 
 	if (mOverrideCamera)
 	{
-		gAgent.changeCameraToDefault();
+		gAgentCamera.changeCameraToDefault();
 	}
 }
 
@@ -163,7 +164,7 @@ LLViewerJoystick::LLViewerJoystick()
 	memset(mBtn, 0, sizeof(mBtn));
 
 	// factor in bandwidth? bandwidth = gViewerStats->mKBitStat
-	mPerfScale = 4000.f / gSysCPU.getMhz();
+	mPerfScale = 4000.f / gSysCPU.getMHz(); // hmm.  why?
 }
 
 // -----------------------------------------------------------------------------
@@ -433,7 +434,7 @@ void LLViewerJoystick::agentPitch(F32 pitch_inc)
 void LLViewerJoystick::agentYaw(F32 yaw_inc)
 {	
 	// Cannot steer some vehicles in mouselook if the script grabs the controls
-	if (gAgent.cameraMouselook() && !gSavedSettings.getBOOL("JoystickMouselookYaw"))
+	if (gAgentCamera.cameraMouselook() && !gSavedSettings.getBOOL("JoystickMouselookYaw"))
 	{
 		gAgent.rotate(-yaw_inc, gAgent.getReferenceUpVector());
 	}
@@ -1006,7 +1007,7 @@ bool LLViewerJoystick::toggleFlycam()
 
 	if (!mOverrideCamera)
 	{
-		gAgent.changeCameraToDefault();
+		gAgentCamera.changeCameraToDefault();
 	}
 
 	if (gAwayTimer.getElapsedTimeF32() > MIN_AFK_TIME)

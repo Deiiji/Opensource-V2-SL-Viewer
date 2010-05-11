@@ -56,8 +56,6 @@ protected:
 private:
 	// util function to escape selected text and copy it to clipboard
 	void 			copyEscapedURLToClipboard();
-	// send a beep signal if keystroke is bad. As it is private at LLLineEditor we need own function
-	void			reportBadKeystroke();
 
 	// Helper class to do rollback if needed
 	class LLURLLineEditorRollback

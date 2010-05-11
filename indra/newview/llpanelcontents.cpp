@@ -41,6 +41,7 @@
 #include "llerror.h"
 #include "llfloaterreg.h"
 #include "llfontgl.h"
+#include "llinventorydefines.h"
 #include "llmaterialtable.h"
 #include "llpermissionsflags.h"
 #include "llrect.h"
@@ -181,7 +182,7 @@ void LLPanelContents::onClickNewScript(void *userdata)
 				LLTrans::getString("PanelContentsNewScript"),
 				desc,
 				LLSaleInfo::DEFAULT,
-				LLViewerInventoryItem::II_FLAGS_NONE,
+				LLInventoryItemFlags::II_FLAGS_NONE,
 				time_corrected());
 		object->saveScript(new_item, TRUE, true);
 

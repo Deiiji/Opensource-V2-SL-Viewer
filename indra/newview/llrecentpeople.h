@@ -80,7 +80,7 @@ public:
 	 * 
 	 * @param result where to put the result.
 	 */
-	void get(std::vector<LLUUID>& result) const;
+	void get(uuid_vec_t& result) const;
 
 	const LLDate& getDate(const LLUUID& id) const;
 

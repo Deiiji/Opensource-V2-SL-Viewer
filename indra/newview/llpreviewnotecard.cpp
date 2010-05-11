@@ -36,12 +36,15 @@
 #include "llpreviewnotecard.h"
 
 #include "llinventory.h"
+#include "llinventoryfunctions.h" // for change_item_parent()
 
 #include "llagent.h"
 #include "llassetuploadresponders.h"
+#include "lldraghandle.h"
 #include "llviewerwindow.h"
 #include "llbutton.h"
 #include "llfloaterreg.h"
+#include "llinventorydefines.h"
 #include "llinventorymodel.h"
 #include "lllineeditor.h"
 #include "llnotificationsutil.h"
@@ -91,11 +94,17 @@ BOOL LLPreviewNotecard::postBuild()
 	childSetAction("Save", onClickSave, this);
 	childSetVisible("lock", FALSE);	
 
+	childSetAction("Delete", onClickDelete, this);
+	childSetEnabled("Delete", false);
+
 	const LLInventoryItem* item = getItem();
 
 	childSetCommitCallback("desc", LLPreview::onText, this);
 	if (item)
+	{
 		childSetText("desc", item->getDescription());
+		childSetEnabled("Delete", true);
+	}
 	childSetPrevalidate("desc", &LLTextValidate::validateASCIIPrintableNoPipe);
 
 	return LLPreview::postBuild();
@@ -187,6 +196,20 @@ void LLPreviewNotecard::refreshFromInventory(const LLUUID& new_item_id)
 	}
 	lldebugs << "LLPreviewNotecard::refreshFromInventory()" << llendl;
 	loadAsset();
+}
+
+void LLPreviewNotecard::updateTitleButtons()
+{
+	LLPreview::updateTitleButtons();
+
+	LLUICtrl* lock_btn = getChild<LLUICtrl>("lock");
+	if(lock_btn->getVisible() && !isMinimized()) // lock button stays visible if floater is minimized.
+	{
+		LLRect lock_rc = lock_btn->getRect();
+		LLRect buttons_rect = getDragHandle()->getButtonsRect();
+		buttons_rect.mLeft = lock_rc.mLeft;
+		getDragHandle()->setButtonsRect(buttons_rect);
+	}
 }
 
 void LLPreviewNotecard::loadAsset()
@@ -359,6 +382,17 @@ void LLPreviewNotecard::onClickSave(void* user_data)
 	}
 }
 
+
+// static
+void LLPreviewNotecard::onClickDelete(void* user_data)
+{
+	LLPreviewNotecard* preview = (LLPreviewNotecard*)user_data;
+	if(preview)
+	{
+		preview->deleteNotecard();
+	}
+}
+
 struct LLSaveNotecardInfo
 {
 	LLPreviewNotecard* mSelf;
@@ -449,6 +483,18 @@ bool LLPreviewNotecard::saveIfNeeded(LLInventoryItem* copyitem)
 		}
 	}
 	return true;
+}
+
+void LLPreviewNotecard::deleteNotecard()
+{
+	LLViewerInventoryItem* item = gInventory.getItem(mItemUUID);
+	if (item != NULL)
+	{
+		const LLUUID trash_id = gInventory.findCategoryUUIDForType(LLFolderType::FT_TRASH);
+		change_item_parent(&gInventory, item, trash_id, FALSE);
+	}
+
+	closeFloater();
 }
 
 // static

@@ -57,6 +57,7 @@
 #include "lltoolobjpicker.h"
 #include "lltoolpipette.h"
 #include "llagent.h"
+#include "llagentcamera.h"
 #include "llviewercontrol.h"
 #include "llviewerjoystick.h"
 #include "llviewermenu.h"
@@ -263,7 +264,7 @@ void LLToolMgr::toggleBuildMode()
 		else
 		{
 			// manually disable edit mode, but do not affect the camera
-			gAgent.resetView(false);
+			gAgentCamera.resetView(false);
 			LLFloaterReg::hideInstance("build");
 			gViewerWindow->showCursor();			
 		}
@@ -272,7 +273,7 @@ void LLToolMgr::toggleBuildMode()
 	}
 	else
 	{
-		ECameraMode camMode = gAgent.getCameraMode();
+		ECameraMode camMode = gAgentCamera.getCameraMode();
 		if (CAMERA_MODE_MOUSELOOK == camMode ||	CAMERA_MODE_CUSTOMIZE_AVATAR == camMode)
 		{
 			// pull the user out of mouselook or appearance mode when entering build mode
@@ -287,13 +288,13 @@ void LLToolMgr::toggleBuildMode()
 				handle_toggle_flycam();
 			}
 
-			if (gAgent.getFocusOnAvatar())
+			if (gAgentCamera.getFocusOnAvatar())
 			{
 				// zoom in if we're looking at the avatar
-				gAgent.setFocusOnAvatar(FALSE, ANIMATE);
-				gAgent.setFocusGlobal(gAgent.getPositionGlobal() + 2.0 * LLVector3d(gAgent.getAtAxis()));
-				gAgent.cameraZoomIn(0.666f);
-				gAgent.cameraOrbitOver( 30.f * DEG_TO_RAD );
+				gAgentCamera.setFocusOnAvatar(FALSE, ANIMATE);
+				gAgentCamera.setFocusGlobal(gAgent.getPositionGlobal() + 2.0 * LLVector3d(gAgent.getAtAxis()));
+				gAgentCamera.cameraZoomIn(0.666f);
+				gAgentCamera.cameraOrbitOver( 30.f * DEG_TO_RAD );
 			}
 		}
 
@@ -304,7 +305,7 @@ void LLToolMgr::toggleBuildMode()
 		// Could be first use
 		//LLFirstUse::useBuild();
 
-		gAgent.resetView(false);
+		gAgentCamera.resetView(false);
 
 		// avoid spurious avatar movements
 		LLViewerJoystick::getInstance()->setNeedsReset();
@@ -318,7 +319,7 @@ bool LLToolMgr::inBuildMode()
 	// cameraMouselook() actually starts returning true.  Also, appearance edit
 	// sets build mode to true, so let's exclude that.
 	bool b=(inEdit() 
-			&& !gAgent.cameraMouselook()
+			&& !gAgentCamera.cameraMouselook()
 			&& mCurrentToolset != gFaceEditToolset);
 	
 	return b;

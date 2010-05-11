@@ -143,6 +143,7 @@ private:
 	// Very GStreamer-specific
 	GMainLoop *mPump; // event pump for this media
 	GstElement *mPlaybin;
+	GstElement *mVisualizer;
 	GstSLVideo *mVideoSink;
 };
 
@@ -161,6 +162,7 @@ MediaPluginGStreamer010::MediaPluginGStreamer010(
 	mSeekDestination(0.0),
 	mPump ( NULL ),
 	mPlaybin ( NULL ),
+	mVisualizer ( NULL ),
 	mVideoSink ( NULL ),
 	mCommand ( COMMAND_NONE )
 {
@@ -688,6 +690,33 @@ MediaPluginGStreamer010::load()
 					   this);
 	llgst_object_unref (bus);
 
+	// get a visualizer element (bonus feature!)
+	char* vis_name = getenv("LL_GST_VIS_NAME");
+	if (!vis_name ||
+	    (vis_name && std::string(vis_name)!="none"))
+	{
+		if (vis_name)
+		{
+			mVisualizer = llgst_element_factory_make (vis_name, "vis");
+		}
+		if (!mVisualizer)
+		{
+			mVisualizer = llgst_element_factory_make ("libvisual_jess", "vis");
+			if (!mVisualizer)
+			{
+				mVisualizer = llgst_element_factory_make ("goom", "vis");
+				if (!mVisualizer)
+				{
+					mVisualizer = llgst_element_factory_make ("libvisual_lv_scope", "vis");
+					if (!mVisualizer)
+					{
+						// That's okay, we don't NEED this.
+					}
+				}
+			}
+		}
+	}
+
 	if (NULL == getenv("LL_GSTREAMER_EXTERNAL")) {
 		// instantiate a custom video sink
 		mVideoSink =
@@ -702,6 +731,11 @@ MediaPluginGStreamer010::load()
 
 		// connect the pieces
 		g_object_set(mPlaybin, "video-sink", mVideoSink, NULL);
+	}
+
+	if (mVisualizer)
+	{
+		g_object_set(mPlaybin, "vis-plugin", mVisualizer, NULL);
 	}
 
 	return true;
@@ -724,6 +758,12 @@ MediaPluginGStreamer010::unload ()
 		llgst_element_set_state (mPlaybin, GST_STATE_NULL);
 		llgst_object_unref (GST_OBJECT (mPlaybin));
 		mPlaybin = NULL;
+	}
+
+	if (mVisualizer)
+	{
+		llgst_object_unref (GST_OBJECT (mVisualizer));
+		mVisualizer = NULL;
 	}
 
 	if (mPump)

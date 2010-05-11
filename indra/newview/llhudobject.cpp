@@ -44,6 +44,7 @@
 #include "llhudeffectbeam.h"
 #include "llhudeffecttrail.h"
 #include "llhudeffectlookat.h"
+#include "llhudeffectpointat.h"
 
 #include "llvoicevisualizer.h"
 

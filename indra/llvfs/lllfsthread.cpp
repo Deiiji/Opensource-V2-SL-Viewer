@@ -189,7 +189,7 @@ bool LLLFSThread::Request::processRequest()
 	if (mOperation ==  FILE_READ)
 	{
 		llassert(mOffset >= 0);
-		LLAPRFile infile ;
+		LLAPRFile infile ; // auto-closes
 		infile.open(mFileName, LL_APR_RB, mThread->getLocalAPRFilePool());
 		if (!infile.getFileHandle())
 		{
@@ -205,7 +205,6 @@ bool LLLFSThread::Request::processRequest()
 		llassert_always(off >= 0);
 		mBytesRead = infile.read(mBuffer, mBytes );
 		complete = true;
-		infile.close() ;
 // 		llinfos << "LLLFSThread::READ:" << mFileName << " Bytes: " << mBytesRead << llendl;
 	}
 	else if (mOperation ==  FILE_WRITE)
@@ -213,7 +212,7 @@ bool LLLFSThread::Request::processRequest()
 		apr_int32_t flags = APR_CREATE|APR_WRITE|APR_BINARY;
 		if (mOffset < 0)
 			flags |= APR_APPEND;
-		LLAPRFile outfile ;
+		LLAPRFile outfile ; // auto-closes
 		outfile.open(mFileName, flags, mThread->getLocalAPRFilePool());
 		if (!outfile.getFileHandle())
 		{
@@ -233,7 +232,6 @@ bool LLLFSThread::Request::processRequest()
 		}
 		mBytesRead = outfile.write(mBuffer, mBytes );
 		complete = true;
-
 // 		llinfos << "LLLFSThread::WRITE:" << mFileName << " Bytes: " << mBytesRead << "/" << mBytes << " Offset:" << mOffset << llendl;
 	}
 	else

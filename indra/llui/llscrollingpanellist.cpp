@@ -48,7 +48,12 @@ void LLScrollingPanelList::clearPanels()
 {
 	deleteAllChildren();
 	mPanelList.clear();
-	reshape( 1, 1, FALSE );
+
+	LLRect rc = getRect();
+	rc.setLeftTopAndSize(rc.mLeft, rc.mTop, 1, 1);
+	setRect(rc);
+
+	notifySizeChanged(rc.getHeight());
 }
 
 S32 LLScrollingPanelList::addPanel( LLScrollingPanel* panel )
@@ -68,7 +73,11 @@ S32 LLScrollingPanelList::addPanel( LLScrollingPanel* panel )
 		max_width = llmax( max_width, childp->getRect().getWidth() );
 		cur_gap = GAP_BETWEEN_PANELS;
 	}
-	reshape( max_width, total_height, FALSE );
+ 	LLRect rc = getRect();
+ 	rc.setLeftTopAndSize(rc.mLeft, rc.mTop, max_width, total_height);
+ 	setRect(rc);
+
+	notifySizeChanged(rc.getHeight());
 
 	// Reposition each of the child views
 	S32 cur_y = total_height;
@@ -132,7 +141,11 @@ void LLScrollingPanelList::removePanel( U32 panel_index )
 		max_width = llmax( max_width, childp->getRect().getWidth() );
 		cur_gap = GAP_BETWEEN_PANELS;
 	}
-	reshape( max_width, total_height, FALSE );
+	LLRect rc = getRect();
+	rc.setLeftTopAndSize(rc.mLeft, rc.mTop, max_width, total_height);
+	setRect(rc);
+
+	notifySizeChanged(rc.getHeight());
 
 	// Reposition each of the child views
 	S32 cur_y = total_height;
@@ -201,3 +214,12 @@ void LLScrollingPanelList::draw()
 	LLUICtrl::draw();
 }
 
+void LLScrollingPanelList::notifySizeChanged(S32 height)
+{
+	LLSD info;
+	info["action"] = "size_changes";
+	info["height"] = height;
+	notifyParent(info);
+}
+
+// EOF

@@ -45,29 +45,31 @@ LLWearableDictionary::~LLWearableDictionary()
 
 LLWearableDictionary::Wearables::Wearables()
 {
-	addEntry(WT_SHAPE,        new WearableEntry("shape",       LLAssetType::AT_BODYPART));
-	addEntry(WT_SKIN,         new WearableEntry("skin",        LLAssetType::AT_BODYPART));
-	addEntry(WT_HAIR,         new WearableEntry("hair",        LLAssetType::AT_BODYPART));
-	addEntry(WT_EYES,         new WearableEntry("eyes",        LLAssetType::AT_BODYPART));
-	addEntry(WT_SHIRT,        new WearableEntry("shirt",       LLAssetType::AT_CLOTHING));
-	addEntry(WT_PANTS,        new WearableEntry("pants",       LLAssetType::AT_CLOTHING));
-	addEntry(WT_SHOES,        new WearableEntry("shoes",       LLAssetType::AT_CLOTHING));
-	addEntry(WT_SOCKS,        new WearableEntry("socks",       LLAssetType::AT_CLOTHING));
-	addEntry(WT_JACKET,       new WearableEntry("jacket",      LLAssetType::AT_CLOTHING));
-	addEntry(WT_GLOVES,       new WearableEntry("gloves",      LLAssetType::AT_CLOTHING));
-	addEntry(WT_UNDERSHIRT,   new WearableEntry("undershirt",  LLAssetType::AT_CLOTHING));
-	addEntry(WT_UNDERPANTS,   new WearableEntry("underpants",  LLAssetType::AT_CLOTHING));
-	addEntry(WT_SKIRT,        new WearableEntry("skirt",       LLAssetType::AT_CLOTHING));
-	addEntry(WT_ALPHA,        new WearableEntry("alpha",       LLAssetType::AT_CLOTHING));
-	addEntry(WT_TATTOO,       new WearableEntry("tattoo",      LLAssetType::AT_CLOTHING));
-	addEntry(WT_INVALID,      new WearableEntry("invalid",     LLAssetType::AT_NONE));
+	addEntry(WT_SHAPE,        new WearableEntry("shape",       "New Shape",		LLAssetType::AT_BODYPART));
+	addEntry(WT_SKIN,         new WearableEntry("skin",        "New Skin",			LLAssetType::AT_BODYPART));
+	addEntry(WT_HAIR,         new WearableEntry("hair",        "New Hair",			LLAssetType::AT_BODYPART));
+	addEntry(WT_EYES,         new WearableEntry("eyes",        "New Eyes",			LLAssetType::AT_BODYPART));
+	addEntry(WT_SHIRT,        new WearableEntry("shirt",       "New Shirt",		LLAssetType::AT_CLOTHING));
+	addEntry(WT_PANTS,        new WearableEntry("pants",       "New Pants",		LLAssetType::AT_CLOTHING));
+	addEntry(WT_SHOES,        new WearableEntry("shoes",       "New Shoes",		LLAssetType::AT_CLOTHING));
+	addEntry(WT_SOCKS,        new WearableEntry("socks",       "New Socks",		LLAssetType::AT_CLOTHING));
+	addEntry(WT_JACKET,       new WearableEntry("jacket",      "New Jacket",		LLAssetType::AT_CLOTHING));
+	addEntry(WT_GLOVES,       new WearableEntry("gloves",      "New Gloves",		LLAssetType::AT_CLOTHING));
+	addEntry(WT_UNDERSHIRT,   new WearableEntry("undershirt",  "New Undershirt",	LLAssetType::AT_CLOTHING));
+	addEntry(WT_UNDERPANTS,   new WearableEntry("underpants",  "New Underpants",	LLAssetType::AT_CLOTHING));
+	addEntry(WT_SKIRT,        new WearableEntry("skirt",       "New Skirt",		LLAssetType::AT_CLOTHING));
+	addEntry(WT_ALPHA,        new WearableEntry("alpha",       "New Alpha",		LLAssetType::AT_CLOTHING));
+	addEntry(WT_TATTOO,       new WearableEntry("tattoo",      "New Tattoo",		LLAssetType::AT_CLOTHING));
+	addEntry(WT_INVALID,      new WearableEntry("invalid",     "Invalid Wearable", LLAssetType::AT_NONE));
 	addEntry(WT_COUNT,        NULL);
 }
 
 LLWearableDictionary::WearableEntry::WearableEntry(const std::string &name,
+												   const std::string& default_new_name,
 												   LLAssetType::EType assetType) :
 	LLDictionaryEntry(name),
 	mAssetType(assetType),
+	mDefaultNewName(default_new_name),
 	mLabel(LLTrans::getString(name))
 {
 }
@@ -85,6 +87,12 @@ const std::string& LLWearableDictionary::getTypeName(EWearableType type)
 	return getInstance()->getWearableEntry(type)->mName;
 }
 
+//static 
+const std::string& LLWearableDictionary::getTypeDefaultNewName(EWearableType type)
+{ 
+	return getInstance()->getWearableEntry(type)->mDefaultNewName;
+}
+
 // static 
 const std::string& LLWearableDictionary::getTypeLabel(EWearableType type)
 { 
@@ -96,3 +104,4 @@ LLAssetType::EType LLWearableDictionary::getAssetType(EWearableType type)
 {
 	return getInstance()->getWearableEntry(type)->mAssetType;
 }
+

@@ -42,6 +42,7 @@ class LLFolderView;
 class LLFolderViewItem;
 class LLFolderViewEventListener;
 class LLInventoryPanel;
+class LLOutfitsList;
 class LLSaveFolderState;
 class LLButton;
 class LLMenuGL;
@@ -63,10 +64,9 @@ public:
 	void onEdit();
 	void onSave();
 	
-	void onSaveCommit(const std::string& item_name);
+	bool onSaveCommit(const LLSD& notification, const LLSD& response);
 
 	void onSelectionChange(const std::deque<LLFolderViewItem*> &items, BOOL user_action);
-	void onSelectorButtonClicked();
 
 	// If a compatible listener type is selected, then return a pointer to that.
 	// Otherwise, return NULL.
@@ -74,6 +74,8 @@ public:
 	void setParent(LLSidepanelAppearance *parent);
 
 	LLFolderView* getRootFolder();
+
+	static LLPanelOutfitsInventory* findInstance();
 
 protected:
 	void updateVerbs();
@@ -88,20 +90,21 @@ private:
 public:
 	//////////////////////////////////////////////////////////////////////////////////
 	// tab panels
-	LLInventoryPanel* 		getActivePanel() { return mActivePanel; }
-	const LLInventoryPanel* getActivePanel() const { return mActivePanel; }
+	// TODO: change getActivePanel() to return the active tab instead of returning
+	// a pointer to "Wearing" inventory panel.
+	LLInventoryPanel* 		getActivePanel() { return mCurrentOutfitPanel; }
+
 	BOOL 					isTabPanel(LLInventoryPanel *panel) const;
-	
+	BOOL 					isCOFPanelActive() const;
+
 protected:
 	void 					initTabPanels();
 	void 					onTabSelectionChange(LLInventoryPanel* tab_panel, const std::deque<LLFolderViewItem*> &items, BOOL user_action);
 	void 					onTabChange();
-	BOOL 					isCOFPanelActive() const;
 
 private:
-	LLInventoryPanel* 		mActivePanel;
-	typedef std::vector<LLInventoryPanel *> tabpanels_vec_t;
-	tabpanels_vec_t 		mTabPanels;
+	LLOutfitsList*			mMyOutfitsPanel;
+	LLInventoryPanel*		mCurrentOutfitPanel;
 
 	// tab panels                                                               //
 	////////////////////////////////////////////////////////////////////////////////
@@ -129,8 +132,6 @@ private:
 	// List Commands                                                              //
 	////////////////////////////////////////////////////////////////////////////////
 	///
-public:
-	static bool sShowDebugEditor;
 };
 
 #endif //LL_LLPANELOUTFITSINVENTORY_H

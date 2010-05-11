@@ -142,6 +142,7 @@ private:
 	void			reportInvalidData();
 
 	const LLFontGL*	mFont;
+	const LLFontGL*	mLabelFont;
 	BOOL			mShowText;
 	BOOL			mCanEditText;
 	
@@ -159,3 +160,4 @@ private:
 };
 
 #endif  // LL_LLSLIDERCTRL_H
+

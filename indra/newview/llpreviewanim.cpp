@@ -72,7 +72,7 @@ BOOL LLPreviewAnim::postBuild()
 	const LLInventoryItem* item = getItem();
 	if(item)
 	{
-		gAgent.getAvatarObject()->createMotion(item->getAssetUUID()); // preload the animation
+		gAgentAvatarp->createMotion(item->getAssetUUID()); // preload the animation
 		childSetText("desc", item->getDescription());
 	}
 
@@ -126,10 +126,7 @@ void LLPreviewAnim::playAnim( void *userdata )
 		{
 			self->mPauseRequest = NULL;
 			gAgent.sendAnimationRequest(itemID, ANIM_REQUEST_START);
-			
-			LLVOAvatar* avatar = gAgent.getAvatarObject();
-			LLMotion*   motion = avatar->findMotion(itemID);
-			
+			LLMotion* motion = gAgentAvatarp->findMotion(itemID);
 			if (motion)
 			{
 				motion->setDeactivateCallback(&endAnimCallback, (void *)(new LLHandle<LLFloater>(self->getHandle())));
@@ -137,7 +134,7 @@ void LLPreviewAnim::playAnim( void *userdata )
 		}
 		else
 		{
-			gAgent.getAvatarObject()->stopMotion(itemID);
+			gAgentAvatarp->stopMotion(itemID);
 			gAgent.sendAnimationRequest(itemID, ANIM_REQUEST_STOP);
 		}
 	}
@@ -162,10 +159,8 @@ void LLPreviewAnim::auditionAnim( void *userdata )
 		if (self->childGetValue("Anim audition btn").asBoolean() ) 
 		{
 			self->mPauseRequest = NULL;
-			gAgent.getAvatarObject()->startMotion(item->getAssetUUID());
-			
-			LLVOAvatar* avatar = gAgent.getAvatarObject();
-			LLMotion*   motion = avatar->findMotion(itemID);
+			gAgentAvatarp->startMotion(item->getAssetUUID());
+			LLMotion* motion = gAgentAvatarp->findMotion(itemID);
 			
 			if (motion)
 			{
@@ -174,7 +169,7 @@ void LLPreviewAnim::auditionAnim( void *userdata )
 		}
 		else
 		{
-			gAgent.getAvatarObject()->stopMotion(itemID);
+			gAgentAvatarp->stopMotion(itemID);
 			gAgent.sendAnimationRequest(itemID, ANIM_REQUEST_STOP);
 		}
 	}
@@ -187,11 +182,9 @@ void LLPreviewAnim::onClose(bool app_quitting)
 
 	if(item)
 	{
-		gAgent.getAvatarObject()->stopMotion(item->getAssetUUID());
+		gAgentAvatarp->stopMotion(item->getAssetUUID());
 		gAgent.sendAnimationRequest(item->getAssetUUID(), ANIM_REQUEST_STOP);
-					
-		LLVOAvatar* avatar = gAgent.getAvatarObject();
-		LLMotion*   motion = avatar->findMotion(item->getAssetUUID());
+		LLMotion* motion = gAgentAvatarp->findMotion(item->getAssetUUID());
 		
 		if (motion)
 		{

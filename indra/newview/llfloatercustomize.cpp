@@ -408,8 +408,8 @@ void LLPanelWearable::setSubpart( ESubpart subpart )
 	{
 		// Update the thumbnails we display
 		LLFloaterCustomize::param_map sorted_params;
-		LLVOAvatar* avatar = gAgent.getAvatarObject();
-		ESex avatar_sex = avatar->getSex();
+
+		ESex avatar_sex = gAgentAvatarp->getSex();
 		LLViewerInventoryItem* item = NULL;
 		LLWearable* wearable = getWearable();
 		// MULTI_WEARABLE:
@@ -422,7 +422,7 @@ void LLPanelWearable::setSubpart( ESubpart subpart )
 		if(item)
 		{
 			perm_mask = item->getPermissions().getMaskOwner();
-			is_complete = item->isComplete();
+			is_complete = item->isFinished();
 		}
 		setUIPermissions(perm_mask, is_complete);
 		BOOL editable = ((perm_mask & PERM_MODIFY) && is_complete) ? TRUE : FALSE;
@@ -440,9 +440,9 @@ void LLPanelWearable::setSubpart( ESubpart subpart )
 		
 		if (wearable && editable)
 		{
-			for(LLViewerVisualParam* param = (LLViewerVisualParam *)avatar->getFirstVisualParam(); 
+			for(LLViewerVisualParam* param = (LLViewerVisualParam *)gAgentAvatarp->getFirstVisualParam(); 
 				param; 
-				param = (LLViewerVisualParam *)avatar->getNextVisualParam())
+				param = (LLViewerVisualParam *)gAgentAvatarp->getNextVisualParam())
 			{
 				if (param->getID() == -1
 					|| param->getGroup() != VISUAL_PARAM_GROUP_TWEAKABLE 
@@ -467,7 +467,7 @@ void LLPanelWearable::setSubpart( ESubpart subpart )
 
 
 		// Update the camera
-		gMorphView->setCameraTargetJoint( gAgent.getAvatarObject()->getJoint( part->mTargetJoint ) );
+		gMorphView->setCameraTargetJoint( gAgentAvatarp->getJoint( part->mTargetJoint ) );
 		gMorphView->setCameraTargetOffset( part->mTargetOffset );
 		gMorphView->setCameraOffset( part->mCameraOffset );
 		gMorphView->setCameraDistToDefault();
@@ -489,7 +489,7 @@ void LLPanelWearable::onBtnTakeOff( void* userdata )
 		return;
 	}
 
-	LLAppearanceManager::instance().removeCOFItemLinks(wearable->getItemID(), true);
+	LLAppearanceMgr::instance().removeCOFItemLinks(wearable->getItemID(), true);
 }
 
 // static
@@ -523,11 +523,8 @@ void LLPanelWearable::onBtnSaveAs( void* userdata )
 
 void LLPanelWearable::onSaveAsCommit(const std::string& item_name)
 {
-	LLVOAvatar* avatar = gAgent.getAvatarObject();
-	if( avatar )
-	{
-		gAgentWearables.saveWearableAs( mType, mIndex, item_name, FALSE );
-	}
+	if (!isAgentAvatarValid()) return;
+	gAgentWearables.saveWearableAs( mType, mIndex, item_name, FALSE );
 }
 
 // static
@@ -549,25 +546,23 @@ void LLPanelWearable::onBtnCreateNew( void* userdata )
 bool LLPanelWearable::onSelectAutoWearOption(const LLSD& notification, const LLSD& response)
 {
 	S32 option = LLNotificationsUtil::getSelectedOption(notification, response);
-	LLVOAvatar* avatar = gAgent.getAvatarObject();
-	if(avatar)
-	{
-		// Create a new wearable in the default folder for the wearable's asset type.
-		LLWearable* wearable = LLWearableList::instance().createNewWearable( (EWearableType)notification["payload"]["wearable_type"].asInteger() );
-		LLAssetType::EType asset_type = wearable->getAssetType();
+	if (!isAgentAvatarValid()) return false;
 
-		LLUUID folder_id;
-		// regular UI, items get created in normal folder
-		folder_id = gInventory.findCategoryUUIDForType(LLFolderType::assetTypeToFolderType(asset_type));
+	// Create a new wearable in the default folder for the wearable's asset type.
+	LLWearable* wearable = LLWearableList::instance().createNewWearable( (EWearableType)notification["payload"]["wearable_type"].asInteger() );
+	LLAssetType::EType asset_type = wearable->getAssetType();
 
-		// Only auto wear the new item if the AutoWearNewClothing checkbox is selected.
-		LLPointer<LLInventoryCallback> cb = option == 0 ? 
-			new WearOnAvatarCallback : NULL;
-		create_inventory_item(gAgent.getID(), gAgent.getSessionID(),
-			folder_id, wearable->getTransactionID(), wearable->getName(), wearable->getDescription(),
-			asset_type, LLInventoryType::IT_WEARABLE, wearable->getType(),
-			wearable->getPermissions().getMaskNextOwner(), cb);
-	}
+	LLUUID folder_id;
+	// regular UI, items get created in normal folder
+	folder_id = gInventory.findCategoryUUIDForType(LLFolderType::assetTypeToFolderType(asset_type));
+
+	// Only auto wear the new item if the AutoWearNewClothing checkbox is selected.
+	LLPointer<LLInventoryCallback> cb = option == 0 ? 
+		new WearOnAvatarCallback : NULL;
+	create_inventory_item(gAgent.getID(), gAgent.getSessionID(),
+						  folder_id, wearable->getTransactionID(), wearable->getName(), wearable->getDescription(),
+						  asset_type, LLInventoryType::IT_WEARABLE, wearable->getType(),
+						  wearable->getPermissions().getMaskNextOwner(), cb);
 	return false;
 }
 
@@ -607,7 +602,6 @@ void LLPanelWearable::onInvisibilityCommit( LLUICtrl* ctrl, void* userdata )
 	LLPanelWearable* self = (LLPanelWearable*) userdata;
 	LLCheckBoxCtrl* checkbox_ctrl = (LLCheckBoxCtrl*) ctrl;
 	llinfos << "onInvisibilityCommit, self " << self << " checkbox_ctrl " << checkbox_ctrl << llendl;
-	LLVOAvatarSelf *avatar = gAgent.getAvatarObject();
 
 	ETextureIndex te = (ETextureIndex)(self->mInvisibilityList[ctrl->getName()]);
 
@@ -618,8 +612,8 @@ void LLPanelWearable::onInvisibilityCommit( LLUICtrl* ctrl, void* userdata )
 		LLLocalTextureObject *lto = self->getWearable()->getLocalTextureObject(te);
 		self->mPreviousTextureList[(S32)te] = lto->getID();
 		U32 index = gAgentWearables.getWearableIndex(self->getWearable());
-		avatar->setLocalTexture(te,image,FALSE,index);
-		avatar->wearableUpdated(self->getWearable()->getType(), FALSE);
+		gAgentAvatarp->setLocalTexture(te,image,FALSE,index);
+		gAgentAvatarp->wearableUpdated(self->getWearable()->getType(), FALSE);
 	}
 	else
 	{
@@ -633,8 +627,8 @@ void LLPanelWearable::onInvisibilityCommit( LLUICtrl* ctrl, void* userdata )
 		{
 			LLViewerFetchedTexture* image = LLViewerTextureManager::getFetchedTexture( prev_id );
 			U32 index = gAgentWearables.getWearableIndex(self->getWearable());
-			avatar->setLocalTexture(te,image,FALSE,index);
-			avatar->wearableUpdated(self->getWearable()->getType(), FALSE);
+			gAgentAvatarp->setLocalTexture(te,image,FALSE,index);
+			gAgentAvatarp->wearableUpdated(self->getWearable()->getType(), FALSE);
 		}
 		
 	}
@@ -653,7 +647,6 @@ void LLPanelWearable::onColorCommit( LLUICtrl* ctrl, void* userdata )
 	LLColorSwatchCtrl* color_ctrl = (LLColorSwatchCtrl*) ctrl;
 
 	ETextureIndex te = (ETextureIndex)(self->mColorList[ctrl->getName()]);
-	LLVOAvatarSelf *avatar = gAgent.getAvatarObject();
 
 	LLColor4 old_color = self->getWearable()->getClothesColor(te);
 	const LLColor4& new_color = color_ctrl->get();
@@ -663,7 +656,7 @@ void LLPanelWearable::onColorCommit( LLUICtrl* ctrl, void* userdata )
 		self->getWearable()->setClothesColor( te, new_color, TRUE );
 
 		LLVisualParamHint::requestHintUpdates();
-		avatar->wearableUpdated(self->getWearable()->getType(), FALSE);
+		gAgentAvatarp->wearableUpdated(self->getWearable()->getType(), FALSE);
 	}
 }
 
@@ -725,10 +718,9 @@ void LLPanelWearable::onTextureCommit( LLUICtrl* ctrl, void* userdata )
 	}
 	if (self->getWearable())
 	{
-		LLVOAvatarSelf *avatar = gAgent.getAvatarObject();
 		U32 index = gAgentWearables.getWearableIndex(self->getWearable());
-		avatar->setLocalTexture(te,image,FALSE,index);
-		avatar->wearableUpdated(self->getWearable()->getType(), FALSE);
+		gAgentAvatarp->setLocalTexture(te,image,FALSE,index);
+		gAgentAvatarp->wearableUpdated(self->getWearable()->getType(), FALSE);
 	}
 	if (image->getID() != IMG_INVISIBLE)
 	{
@@ -768,12 +760,7 @@ void LLPanelWearable::draw()
 	{
 		return;
 	}
-
-	LLVOAvatar* avatar = gAgent.getAvatarObject();
-	if( !avatar )
-	{
-		return;
-	}
+	if (!isAgentAvatarValid()) return;
 
 	cleanupIndex();
 	BOOL has_wearable = (getWearable() != NULL );
@@ -789,7 +776,7 @@ void LLPanelWearable::draw()
 		const LLPermissions& perm = item->getPermissions();
 		is_modifiable = perm.allowModifyBy(gAgent.getID(), gAgent.getGroupID());
 		is_copyable = perm.allowCopyBy(gAgent.getID(), gAgent.getGroupID());
-		is_complete = item->isComplete();
+		is_complete = item->isFinished();
 	}
 
 	childSetEnabled("Save", is_modifiable && is_complete && has_wearable && is_dirty);
@@ -807,7 +794,7 @@ void LLPanelWearable::draw()
 	{
 		if( has_wearable && is_complete && is_modifiable )
 		{
-			childSetEnabled(iter->second->mButtonName, iter->second->mSex & avatar->getSex() );
+			childSetEnabled(iter->second->mButtonName, iter->second->mSex & gAgentAvatarp->getSex() );
 		}
 		else
 		{
@@ -1039,11 +1026,7 @@ void LLPanelWearable::onCommitSexChange( LLUICtrl*, void* userdata )
 {
 	LLPanelWearable* self = (LLPanelWearable*) userdata;
 
-	LLVOAvatar* avatar = gAgent.getAvatarObject();
-	if (!avatar)
-	{
-		return;
-	}
+	if (!isAgentAvatarValid()) return;
 
 	if( !gAgentWearables.isWearableModifiable(self->mType, self->mIndex))
 	{
@@ -1052,7 +1035,7 @@ void LLPanelWearable::onCommitSexChange( LLUICtrl*, void* userdata )
 
 	ESex new_sex = gSavedSettings.getU32("AvatarSex") ? SEX_MALE : SEX_FEMALE;
 
-	LLViewerVisualParam* param = (LLViewerVisualParam*)avatar->getVisualParam( "male" );
+	LLViewerVisualParam* param = (LLViewerVisualParam*)gAgentAvatarp->getVisualParam( "male" );
 	if( !param )
 	{
 		return;
@@ -1064,9 +1047,9 @@ void LLPanelWearable::onCommitSexChange( LLUICtrl*, void* userdata )
 	}
 	param->setWeight( (new_sex == SEX_MALE), FALSE );
 
-	avatar->updateSexDependentLayerSets( FALSE );
+	gAgentAvatarp->updateSexDependentLayerSets( FALSE );
 
-	avatar->updateVisualParams();
+	gAgentAvatarp->updateVisualParams();
 
 	gFloaterCustomize->clearScrollingPanelList();
 
@@ -1141,7 +1124,7 @@ LLFloaterCustomize::LLFloaterCustomize()
 	mScrollingPanelList( NULL ),
 	mInventoryObserver(NULL)
 {
-	gSavedSettings.setU32("AvatarSex", (gAgent.getAvatarObject()->getSex() == SEX_MALE) );
+	gSavedSettings.setU32("AvatarSex", (gAgentAvatarp->getSex() == SEX_MALE) );
 
 	mResetParams = new LLVisualParamReset();
 	
@@ -1843,7 +1826,6 @@ void LLFloaterCustomize::generateVisualParamHints(LLViewerJointMesh* joint_mesh,
 		{
 			LLPanel::Params p;
 			p.name("LLScrollingPanelParam");
-			p.rect(LLRect(0, LLScrollingPanelParam::PARAM_PANEL_HEIGHT, LLScrollingPanelParam::PARAM_PANEL_WIDTH, 0 ));
 			LLScrollingPanelParam* panel_param = new LLScrollingPanelParam( p, joint_mesh, (*it).second.second, (*it).second.first, panel->getWearable());
 			mScrollingPanelList->addPanel( panel_param );
 		}
@@ -1865,7 +1847,7 @@ LLPanelWearable* LLFloaterCustomize::getCurrentWearablePanel()
 void LLFloaterCustomize::setWearable(EWearableType type, LLWearable* wearable, U32 perm_mask, BOOL is_complete)
 {
 	llassert( type < WT_COUNT );
-	gSavedSettings.setU32("AvatarSex", (gAgent.getAvatarObject()->getSex() == SEX_MALE) );
+	gSavedSettings.setU32("AvatarSex", (gAgentAvatarp->getSex() == SEX_MALE) );
 	
 	LLPanelWearable* panel = mWearablePanelList[ type ];
 	if( panel )
@@ -1886,7 +1868,7 @@ void LLFloaterCustomize::setWearable(EWearableType type, U32 index)
 	if(item)
 	{
 		perm_mask = item->getPermissions().getMaskOwner();
-		is_complete = item->isComplete();
+		is_complete = item->isFinished();
 		if(!is_complete)
 		{
 			item->fetchFromServer();
@@ -1964,10 +1946,12 @@ bool LLFloaterCustomize::onSaveDialog(const LLSD& notification, const LLSD& resp
 }
 
 // fetch observer
-class LLCurrentlyWorn : public LLInventoryFetchObserver
+class LLCurrentlyWorn : public LLInventoryFetchItemsObserver
 {
 public:
-	LLCurrentlyWorn() {}
+	LLCurrentlyWorn(const uuid_vec_t& ids) :
+		LLInventoryFetchItemsObserver(ids)
+	{}
 	~LLCurrentlyWorn() {}
 	virtual void done() { /* no operation necessary */}
 };
@@ -1975,7 +1959,7 @@ public:
 void LLFloaterCustomize::fetchInventory()
 {
 	// Fetch currently worn items
-	LLInventoryFetchObserver::item_ref_t ids;
+	uuid_vec_t ids;
 	LLUUID item_id;
 	for(S32 type = (S32)WT_SHAPE; type < (S32)WT_COUNT; ++type)
 	{
@@ -1989,8 +1973,8 @@ void LLFloaterCustomize::fetchInventory()
 
 	// Fire & forget. The mInventoryObserver will catch inventory
 	// updates and correct the UI as necessary.
-	LLCurrentlyWorn worn;
-	worn.fetchItems(ids);
+	LLCurrentlyWorn worn(ids);
+	worn.startFetch();
 }
 
 void LLFloaterCustomize::updateInventoryUI()
@@ -2011,7 +1995,7 @@ void LLFloaterCustomize::updateInventoryUI()
 		}
 		if(item)
 		{
-			is_complete = item->isComplete();
+			is_complete = item->isFinished();
 			if(!is_complete)
 			{
 				all_complete = FALSE;
@@ -2045,7 +2029,7 @@ void LLFloaterCustomize::updateScrollingPanelUI()
 		if(item)
 		{
 			U32 perm_mask = item->getPermissions().getMaskOwner();
-			BOOL is_complete = item->isComplete();
+			BOOL is_complete = item->isFinished();
 			updateScrollingPanelList((perm_mask & PERM_MODIFY) ? is_complete : FALSE);
 		}
 	}

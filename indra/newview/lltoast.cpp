@@ -42,6 +42,16 @@
 
 using namespace LLNotificationsUI;
 
+/*virtual*/
+BOOL LLToastLifeTimer::tick()
+{
+	if (mEventTimer.hasExpired())
+	{
+		mToast->expire();
+	}
+	return FALSE;
+}
+
 //--------------------------------------------------------------------------
 LLToast::Params::Params() 
 :	can_fade("can_fade", true),
@@ -72,6 +82,8 @@ LLToast::LLToast(const LLToast::Params& p)
 	mIsTip(p.is_tip),
 	mWrapperPanel(NULL)
 {
+	mTimer.reset(new LLToastLifeTimer(this, p.lifetime_secs));
+
 	LLUICtrlFactory::getInstance()->buildFloater(this, "panel_toast.xml", NULL);
 
 	setCanDrag(FALSE);
@@ -106,30 +118,10 @@ BOOL LLToast::postBuild()
 {
 	if(!mCanFade)
 	{
-		mTimer.stop();
-	}
-
-	if (mIsTip)
-	{
-		mTextEditor = mPanel->getChild<LLTextEditor>("text_editor_box");
-
-		if (mTextEditor)
-		{
-			mTextEditor->setMouseUpCallback(boost::bind(&LLToast::hide,this));
-			mPanel->setMouseUpCallback(boost::bind(&LLToast::handleTipToastClick, this, _2, _3, _4));
-		}
+		mTimer->stop();
 	}
 
 	return TRUE;
-}
-
-//--------------------------------------------------------------------------
-void LLToast::handleTipToastClick(S32 x, S32 y, MASK mask)
-{
-	if (!mTextEditor->getRect().pointInRect(x, y))
-	{
-		hide();
-	}
 }
 
 //--------------------------------------------------------------------------
@@ -146,38 +138,10 @@ LLToast::~LLToast()
 }
 
 //--------------------------------------------------------------------------
-void LLToast::setAndStartTimer(F32 period)
-{
-	if(mCanFade)
-	{
-		mToastLifetime = period;
-		mTimer.start();
-	}
-}
-
-//--------------------------------------------------------------------------
-bool LLToast::lifetimeHasExpired()
-{
-	if (mTimer.getStarted())
-	{
-		F32 elapsed_time = mTimer.getElapsedTimeF32();
-		if ((mToastLifetime - elapsed_time) <= mToastFadingTime) 
-		{
-			setBackgroundOpaque(FALSE);
-		}
-		if (elapsed_time > mToastLifetime) 
-		{
-			return true;
-		}
-	}
-	return false;
-}
-
-//--------------------------------------------------------------------------
 void LLToast::hide()
 {
 	setVisible(FALSE);
-	mTimer.stop();
+	mTimer->stop();
 	mIsHidden = true;
 	mOnFadeSignal(this); 
 }
@@ -223,12 +187,13 @@ void LLToast::setCanFade(bool can_fade)
 { 
 	mCanFade = can_fade; 
 	if(!mCanFade)
-		mTimer.stop();
+		mTimer->stop();
 }
 
 //--------------------------------------------------------------------------
-void LLToast::tick()
+void LLToast::expire()
 {
+	// if toast has fade property - hide it
 	if(mCanFade)
 	{
 		hide();
@@ -264,11 +229,6 @@ void LLToast::insertPanel(LLPanel* panel)
 //--------------------------------------------------------------------------
 void LLToast::draw()
 {
-	if(lifetimeHasExpired())
-	{
-		tick();
-	}
-
 	LLFloater::draw();
 
 	if(!isBackgroundVisible())
@@ -282,6 +242,13 @@ void LLToast::draw()
 		{
 			drawChild(mHideBtn);
 		}
+	}
+
+	// if timer started and remaining time <= fading time
+	if (mTimer->getStarted() && (mToastLifetime
+			- mTimer->getEventTimer().getElapsedTimeF32()) <= mToastFadingTime)
+	{
+		setBackgroundOpaque(FALSE);
 	}
 }
 
@@ -301,11 +268,17 @@ void LLToast::setVisible(BOOL show)
 	if(show)
 	{
 		setBackgroundOpaque(TRUE);
-		if(!mTimer.getStarted() && mCanFade)
+		if(!mTimer->getStarted() && mCanFade)
 		{
-			mTimer.start();
+			mTimer->start();
 		}
 		LLModalDialog::setFrontmost(FALSE);
+	}
+	else
+	{
+		//hide "hide" button in case toast was hidden without mouse_leave
+		if(mHideBtn)
+			mHideBtn->setVisible(show);
 	}
 	LLFloater::setVisible(show);
 	if(mPanel)
@@ -437,4 +410,13 @@ bool LLToast::isNotificationValid()
 
 //--------------------------------------------------------------------------
 
+S32	LLToast::notifyParent(const LLSD& info)
+{
+	if (info.has("action") && "hide_toast" == info["action"].asString())
+	{
+		hide();
+		return 1;
+	}
 
+	return LLModalDialog::notifyParent(info);
+}
