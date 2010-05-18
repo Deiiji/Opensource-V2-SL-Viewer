@@ -39,7 +39,6 @@
 
 #include "message.h"
 #include "llagent.h"
-#include "llagentcamera.h"
 #include "llvoavatar.h"
 #include "lldrawable.h"
 #include "llviewerobjectlist.h"
@@ -318,7 +317,7 @@ void LLHUDEffectLookAt::unpackData(LLMessageSystem *mesgsys, S32 blocknum)
 	LLUUID dataId;
 	mesgsys->getUUIDFast(_PREHASH_Effect, _PREHASH_ID, dataId, blocknum);
 
-	if (!gAgentCamera.mLookAt.isNull() && dataId == gAgentCamera.mLookAt->getID())
+	if (!gAgent.mLookAt.isNull() && dataId == gAgent.mLookAt->getID())
 	{
 		return;
 	}
@@ -639,7 +638,7 @@ bool LLHUDEffectLookAt::calcTargetPosition()
 				// mouselook and freelook target offsets are absolute
 				target_rot = LLQuaternion::DEFAULT;
 			}
-			else if (looking_at_self && gAgentCamera.cameraCustomizeAvatar())
+			else if (looking_at_self && gAgent.cameraCustomizeAvatar())
 			{
 				// *NOTE: We have to do this because animation
 				// overrides do not set lookat behavior.

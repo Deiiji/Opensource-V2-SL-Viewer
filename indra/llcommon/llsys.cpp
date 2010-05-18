@@ -520,15 +520,15 @@ LLCPUInfo::LLCPUInfo()
 	mHasSSE = info->_Ext.SSE_StreamingSIMD_Extensions;
 	mHasSSE2 = info->_Ext.SSE2_StreamingSIMD2_Extensions;
 	mHasAltivec = info->_Ext.Altivec_Extensions;
-	mCPUMHz = (F64)(proc.GetCPUFrequency(50)/1000000.0F);
+	mCPUMhz = (S32)(proc.GetCPUFrequency(50)/1000000.0);
 	mFamily.assign( info->strFamily );
 	mCPUString = "Unknown";
 
 #if LL_WINDOWS || LL_DARWIN || LL_SOLARIS
 	out << proc.strCPUName;
-	if (200 < mCPUMHz && mCPUMHz < 10000)           // *NOTE: cpu speed is often way wrong, do a sanity check
+	if (200 < mCPUMhz && mCPUMhz < 10000)           // *NOTE: cpu speed is often way wrong, do a sanity check
 	{
-		out << " (" << mCPUMHz << " MHz)";
+		out << " (" << mCPUMhz << " MHz)";
 	}
 	mCPUString = out.str();
 	
@@ -573,7 +573,7 @@ LLCPUInfo::LLCPUInfo()
 	if (LLStringUtil::convertToF64(cpuinfo["cpu mhz"], mhz)
 	    && 200.0 < mhz && mhz < 10000.0)
 	{
-		mCPUMHz = (F64)(mhz);
+		mCPUMhz = (S32)llrint(mhz);
 	}
 	if (!cpuinfo["model name"].empty())
 		mCPUString = cpuinfo["model name"];
@@ -596,9 +596,9 @@ bool LLCPUInfo::hasSSE2() const
 	return mHasSSE2;
 }
 
-F64 LLCPUInfo::getMHz() const
+S32 LLCPUInfo::getMhz() const
 {
-	return mCPUMHz;
+	return mCPUMhz;
 }
 
 std::string LLCPUInfo::getCPUString() const
@@ -645,7 +645,7 @@ void LLCPUInfo::stream(std::ostream& s) const
 	s << "->mHasSSE:     " << (U32)mHasSSE << std::endl;
 	s << "->mHasSSE2:    " << (U32)mHasSSE2 << std::endl;
 	s << "->mHasAltivec: " << (U32)mHasAltivec << std::endl;
-	s << "->mCPUMHz:     " << mCPUMHz << std::endl;
+	s << "->mCPUMhz:     " << mCPUMhz << std::endl;
 	s << "->mCPUString:  " << mCPUString << std::endl;
 }
 

@@ -370,7 +370,7 @@ U32 LLVOVolume::processUpdateMessage(LLMessageSystem *mesgsys,
 			S32 res2 = unpackTEMessage(*dp);
 			if (TEM_INVALID == res2)
 			{
-				// There's something bogus in the data that we're unpacking.
+				// Well, crap, there's something bogus in the data that we're unpacking.
 				dp->dumpBufferToLog();
 				llwarns << "Flushing cache files" << llendl;
 				std::string mask;

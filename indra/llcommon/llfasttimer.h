@@ -37,10 +37,6 @@
 // pull in the actual class definition
 #include "llfasttimer_class.h"
 
-//
-// Important note: These implementations must be FAST!
-//
-
 #if LL_WINDOWS
 //
 // Windows implementation of CPU clock
@@ -104,17 +100,15 @@ inline U64 LLFastTimer::getCPUClockCount64()
 #endif
 
 
-#if (LL_LINUX || LL_SOLARIS) && !(defined(__i386__) || defined(__amd64__))
+#if LL_LINUX || LL_SOLARIS
 //
-// Linux and Solaris implementation of CPU clock - non-x86.
-// This is accurate but SLOW!  Only use out of desperation.
+// Linux and Solaris implementation of CPU clock - all architectures.
 //
 // Try to use the MONOTONIC clock if available, this is a constant time counter
-// with nanosecond resolution (but not necessarily accuracy) and attempts are
-// made to synchronize this value between cores at kernel start. It should not
-// be affected by CPU frequency. If not available use the REALTIME clock, but
-// this may be affected by NTP adjustments or other user activity affecting
-// the system time.
+// with nanosecond resolution (but not necessarily accuracy) and attempts are made
+// to synchronize this value between cores at kernel start. It should not be affected
+// by CPU frequency. If not available use the REALTIME clock, but this may be affected by
+// NTP adjustments or other user activity affecting the system time.
 inline U64 LLFastTimer::getCPUClockCount64()
 {
 	struct timespec tp;
@@ -131,12 +125,12 @@ inline U32 LLFastTimer::getCPUClockCount32()
 {
 	return (U32)(LLFastTimer::getCPUClockCount64() >> 8);
 }
-#endif // (LL_LINUX || LL_SOLARIS) && !(defined(__i386__) || defined(__amd64__))
+#endif // (LL_LINUX || LL_SOLARIS))
 
 
-#if (LL_LINUX || LL_SOLARIS || LL_DARWIN) && (defined(__i386__) || defined(__amd64__))
+#if (LL_DARWIN) && (defined(__i386__) || defined(__amd64__))
 //
-// Mac+Linux+Solaris FAST x86 implementation of CPU clock
+// Mac x86 implementation of CPU clock
 inline U32 LLFastTimer::getCPUClockCount32()
 {
 	U64 x;

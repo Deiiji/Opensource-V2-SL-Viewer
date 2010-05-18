@@ -134,21 +134,21 @@ public:
 	void clearSelection();
 	LLInventoryFilter* getFilter();
 	void setFilterTypes(U64 filter, LLInventoryFilter::EFilterType = LLInventoryFilter::FILTERTYPE_OBJECT);
-	U32 getFilterObjectTypes() const { return mFolderRoot->getFilterObjectTypes(); }
+	U32 getFilterObjectTypes() const { return mFolders->getFilterObjectTypes(); }
 	void setFilterPermMask(PermissionMask filter_perm_mask);
-	U32 getFilterPermMask() const { return mFolderRoot->getFilterPermissions(); }
+	U32 getFilterPermMask() const { return mFolders->getFilterPermissions(); }
 	void setFilterSubString(const std::string& string);
-	const std::string getFilterSubString() { return mFolderRoot->getFilterSubString(); }
+	const std::string getFilterSubString() { return mFolders->getFilterSubString(); }
 	void setSinceLogoff(BOOL sl);
 	void setHoursAgo(U32 hours);
 	BOOL getSinceLogoff();
 	
 	void setShowFolderState(LLInventoryFilter::EFolderShow show);
 	LLInventoryFilter::EFolderShow getShowFolderState();
-	void setAllowMultiSelect(BOOL allow) { mFolderRoot->setAllowMultiSelect(allow); }
+	void setAllowMultiSelect(BOOL allow) { mFolders->setAllowMultiSelect(allow); }
 	// This method is called when something has changed about the inventory.
 	void modelChanged(U32 mask);
-	LLFolderView* getRootFolder() { return mFolderRoot; }
+	LLFolderView* getRootFolder() { return mFolders; }
 	LLScrollContainer* getScrollableContainer() { return mScroller; }
 	
 	void onSelectionChange(const std::deque<LLFolderViewItem*> &items, BOOL user_action);
@@ -163,7 +163,7 @@ public:
 	static void dumpSelectionInformation(void* user_data);
 
 	void openSelected();
-	void unSelectAll()	{ mFolderRoot->setSelection(NULL, FALSE, FALSE); }
+	void unSelectAll()	{ mFolders->setSelection(NULL, FALSE, FALSE); }
 	
 	static void onIdle(void* user_data);
 
@@ -178,7 +178,7 @@ protected:
 	LLInventoryObserver*		mInventoryObserver;
 	BOOL 						mAllowMultiSelect;
 
-	LLFolderView*				mFolderRoot;
+	LLFolderView*				mFolders;
 	LLScrollContainer*			mScroller;
 
 	/**
@@ -200,7 +200,7 @@ public:
 	static const std::string INHERIT_SORT_ORDER;
 	
 	void setSortOrder(U32 order);
-	U32 getSortOrder() const { return mFolderRoot->getSortOrder(); }
+	U32 getSortOrder() const { return mFolders->getSortOrder(); }
 private:
 	std::string					mSortOrderSetting;
 

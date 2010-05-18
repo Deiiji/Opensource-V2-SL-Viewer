@@ -150,12 +150,8 @@ left="0"
 	 value="Editing Shape"
 	 width="270" />
      <panel
-         border="false"
-         bg_alpha_color="DkGray2"
-         bg_opaque_color="DkGray2"
-         background_visible="true"
-         background_opaque="true"
-         follows="top|left|right"
+         border="true"
+         follows="top|left"
          height="60"
          label="Shirt"
          layout="topleft"
@@ -164,7 +160,7 @@ left="0"
 		 top_pad="10"
          width="313">
 		 <text
-		 follows="top|left|right"
+		 follows="top|left"
 		 height="16"
 		 layout="topleft"
 		 left="10"
@@ -339,76 +335,30 @@ left="0"
 			 visible="false"
 			 width="333" />
 	 </panel>
-     <panel
-        follows="left|right|bottom"
-        height="38"
-        label="gear_buttom_panel"
-        layout="bottom|left|right"
-        left="0"
-        bottom="25"
-        name="gear_buttom_panel"
-        width="333">
-        <button
-            follows="bottom|left"
-            tool_tip="Options"
-            height="18"
-            image_disabled="OptionsMenu_Disabled"
-            image_selected="OptionsMenu_Press"
-            image_unselected="OptionsMenu_Off"
-            layout="topleft"
-            left="10"
-            name="friends_viewsort_btn"
-            top="10"
-            width="18" />
-        <button
-            follows="bottom|left"
-            height="18"
-            image_selected="AddItem_Press"
-            image_unselected="AddItem_Off"
-            image_disabled="AddItem_Disabled"
-            layout="topleft"
-            left_pad="10"
-            name="add_btn"
-            tool_tip="TODO"
-            width="18" />
-        <button
-            follows="bottom|left"
-            height="18"
-            image_selected="TrashItem_Press"
-            image_unselected="TrashItem_Off"
-            image_disabled="TrashItem_Disabled"
-            layout="topleft"
-            left_pad="10"
-            right="-10"
-            name="del_btn"
-            tool_tip="TODO"
-            top_delta="0"
-            width="18" />
-     </panel>
 	 <panel
-		 follows="bottom|left|right"
+		 follows="all"
 		 height="25"
 		 layout="bottom|left|right"
 		 left="0"
 		 name="button_panel"
-		 bottom="5"
+		 top_pad="10"
 		 width="333" >
 		 <button
 			 follows="bottomleft"
 			 layout="topleft"
 			 height="23"
 			 label="Save As"
-			 left="8"
+			 left="10"
 			 name="save_as_button"
 			 top="0"
-			 width="153" />
+			 width="100" />
 		 <button
 			 follows="bottomleft"
 			 layout="topleft"
 			 height="23"
 			 label="Revert"
-			 left_pad="7"
+			 left_pad="10"
 			 name="revert_button"
-			 width="153" />
+			 width="100" />
 	 </panel>
 </panel>

@@ -4,9 +4,7 @@
 		<texture_picker label="tecido" name="Fabric" tool_tip="Clique para escolher uma foto"/>
 		<color_swatch label="Cor/Matiz" name="Color/Tint" tool_tip="Clique para abrir o selecionador de cor"/>
 	</panel>
-	<panel name="accordion_panel">
-		<accordion name="wearable_accordion">
-			<accordion_tab name="shirt_main_tab" title="Camisa"/>
-		</accordion>
-	</panel>
+	<accordion name="wearable_accordion">
+		<accordion_tab name="shirt_main_tab" title="Camisa"/>
+	</accordion>
 </panel>

@@ -860,7 +860,7 @@ void LLPanelGroupMembersSubTab::handleMemberSelect()
 	if (selection.empty()) return;
 
 	// Build a vector of all selected members, and gather allowed actions.
-	uuid_vec_t selected_members;
+	std::vector<LLUUID> selected_members;
 	U64 allowed_by_all = 0xffffffffffffLL;
 	U64 allowed_by_some = 0;
 
@@ -926,8 +926,8 @@ void LLPanelGroupMembersSubTab::handleMemberSelect()
 			if (cb_enable && (count > 0) && role_id == gdatap->mOwnerRole)
 			{
 				// Check if any owners besides this agent are selected.
-				uuid_vec_t::const_iterator member_iter;
-				uuid_vec_t::const_iterator member_end =
+				std::vector<LLUUID>::const_iterator member_iter;
+				std::vector<LLUUID>::const_iterator member_end =
 												selected_members.end();
 				for (member_iter = selected_members.begin();
 					 member_iter != member_end;	
@@ -953,7 +953,7 @@ void LLPanelGroupMembersSubTab::handleMemberSelect()
 
 			//now see if there are any role changes for the selected
 			//members and remember to include them
-			uuid_vec_t::iterator sel_mem_iter = selected_members.begin();
+			std::vector<LLUUID>::iterator sel_mem_iter = selected_members.begin();
 			for (; sel_mem_iter != selected_members.end(); sel_mem_iter++)
 			{
 				LLRoleMemberChangeType type;
@@ -1010,7 +1010,7 @@ void LLPanelGroupMembersSubTab::handleMemberSelect()
 				check->setTentative(
 					(0 != count)
 					&& (selected_members.size() !=
-						(uuid_vec_t::size_type)count));
+						(std::vector<LLUUID>::size_type)count));
 
 				//NOTE: as of right now a user can break the group
 				//by removing himself from a role if he is the
@@ -1085,7 +1085,7 @@ void LLPanelGroupMembersSubTab::onEjectMembers(void *userdata)
 void LLPanelGroupMembersSubTab::handleEjectMembers()
 {
 	//send down an eject message
-	uuid_vec_t selected_members;
+	std::vector<LLUUID> selected_members;
 
 	std::vector<LLScrollListItem*> selection = mMembersList->getAllSelected();
 	if (selection.empty()) return;
@@ -1106,13 +1106,13 @@ void LLPanelGroupMembersSubTab::handleEjectMembers()
 									 selected_members);
 }
 
-void LLPanelGroupMembersSubTab::sendEjectNotifications(const LLUUID& group_id, const uuid_vec_t& selected_members)
+void LLPanelGroupMembersSubTab::sendEjectNotifications(const LLUUID& group_id, const std::vector<LLUUID>& selected_members)
 {
 	LLGroupMgrGroupData* group_data = LLGroupMgr::getInstance()->getGroupData(group_id);
 
 	if (group_data)
 	{
-		for (uuid_vec_t::const_iterator i = selected_members.begin(); i != selected_members.end(); ++i)
+		for (std::vector<LLUUID>::const_iterator i = selected_members.begin(); i != selected_members.end(); ++i)
 		{
 			LLSD args;
 			std::string name;
@@ -1438,7 +1438,7 @@ U64 LLPanelGroupMembersSubTab::getAgentPowersBasedOnRoleChanges(const LLUUID& ag
 
 	if ( role_change_datap )
 	{
-		uuid_vec_t roles_to_be_removed;
+		std::vector<LLUUID> roles_to_be_removed;
 
 		for (role_change_data_map_t::iterator role = role_change_datap->begin();
 			 role != role_change_datap->end(); ++ role)
@@ -2087,8 +2087,8 @@ void LLPanelGroupRolesSubTab::buildMembersList()
 			LLGroupRoleData* rdatap = (*rit).second;
 			if (rdatap)
 			{
-				uuid_vec_t::const_iterator mit = rdatap->getMembersBegin();
-				uuid_vec_t::const_iterator end = rdatap->getMembersEnd();
+				std::vector<LLUUID>::const_iterator mit = rdatap->getMembersBegin();
+				std::vector<LLUUID>::const_iterator end = rdatap->getMembersEnd();
 				for ( ; mit != end; ++mit)
 				{
 					mAssignedMembersList->addNameItem((*mit));

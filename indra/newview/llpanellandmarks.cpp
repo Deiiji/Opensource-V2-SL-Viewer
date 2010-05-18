@@ -51,7 +51,6 @@
 #include "lldndbutton.h"
 #include "llfloaterworldmap.h"
 #include "llfolderviewitem.h"
-#include "llinventorymodelbackgroundfetch.h"
 #include "llinventorypanel.h"
 #include "lllandmarkactions.h"
 #include "llplacesinventorybridge.h"
@@ -282,17 +281,6 @@ void LLLandmarksPanel::onShowOnMap()
 	doActionOnCurSelectedLandmark(boost::bind(&LLLandmarksPanel::doShowOnMap, this, _1));
 }
 
-//virtual
-void LLLandmarksPanel::onShowProfile()
-{
-	LLFolderViewItem* cur_item = getCurSelectedItem();
-
-	if(!cur_item)
-		return;
-
-	cur_item->getListener()->performAction(mCurrentSelectedList->getModel(),"about");
-}
-
 // virtual
 void LLLandmarksPanel::onTeleport()
 {
@@ -319,7 +307,6 @@ void LLLandmarksPanel::updateVerbs()
 	bool landmark_selected = isLandmarkSelected();
 	mTeleportBtn->setEnabled(landmark_selected && isActionEnabled("teleport"));
 	mShowOnMapBtn->setEnabled(landmark_selected && isActionEnabled("show_on_map"));
-	mShowProfile->setEnabled(landmark_selected && isActionEnabled("more_info"));
 
 	// TODO: mantipov: Uncomment when mShareBtn is supported
 	// Share button should be enabled when neither a folder nor a landmark is selected
@@ -449,9 +436,9 @@ LLFolderViewItem* LLLandmarksPanel::selectItemInAccordionTab(LLPlacesInventoryPa
 	if (!inventory_list)
 		return NULL;
 
-	LLFolderView* root = inventory_list->getRootFolder();
+	LLFolderView* folder_view = inventory_list->getRootFolder();
 
-	LLFolderViewItem* item = root->getItemByID(obj_id);
+	LLFolderViewItem* item = folder_view->getItemByID(obj_id);
 	if (!item)
 		return NULL;
 
@@ -461,7 +448,7 @@ LLFolderViewItem* LLLandmarksPanel::selectItemInAccordionTab(LLPlacesInventoryPa
 		tab->changeOpenClose(false);
 	}
 
-	root->setSelection(item, FALSE, take_keyboard_focus);
+	folder_view->setSelection(item, FALSE, take_keyboard_focus);
 
 	LLAccordionCtrl* accordion = getChild<LLAccordionCtrl>("landmarks_accordion");
 	LLRect screen_rc;
@@ -571,7 +558,7 @@ void LLLandmarksPanel::initLibraryInventoryPanel()
 	const LLUUID &landmarks_cat = gInventory.findCategoryUUIDForType(LLFolderType::FT_LANDMARK, false, true);
 	if (landmarks_cat.notNull())
 	{
-		LLInventoryModelBackgroundFetch::instance().start(landmarks_cat);
+		gInventory.startBackgroundFetch(landmarks_cat);
 	}
 
 	// Expanding "Library" tab for new users who have no landmarks in "My Inventory".
@@ -585,7 +572,6 @@ void LLLandmarksPanel::initLandmarksPanel(LLPlacesInventoryPanel* inventory_list
 	if (!inventory_list->getFilter())
 		return;
 
-	inventory_list->getFilter()->setEmptyLookupMessage("PlacesNoMatchingItems");
 	inventory_list->setFilterTypes(0x1 << LLInventoryType::IT_LANDMARK);
 	inventory_list->setSelectCallback(boost::bind(&LLLandmarksPanel::onSelectionChange, this, inventory_list, _1, _2));
 
@@ -636,7 +622,7 @@ void LLLandmarksPanel::onAccordionExpandedCollapsed(const LLSD& param, LLPlacesI
 		  if (!gInventory.isCategoryComplete(cat_id))
 		*/
 		{
-			LLInventoryModelBackgroundFetch::instance().start(cat_id);
+			gInventory.startBackgroundFetch(cat_id);
 		}
 
 		// Apply filter substring because it might have been changed
@@ -678,7 +664,6 @@ void LLLandmarksPanel::initListCommandsHandlers()
 	trash_btn->setDragAndDropHandler(boost::bind(&LLLandmarksPanel::handleDragAndDropToTrash, this
 			,	_4 // BOOL drop
 			,	_5 // EDragAndDropType cargo_type
-			,	_6 // void* cargo_data
 			,	_7 // EAcceptance* accept
 			));
 
@@ -940,7 +925,12 @@ bool LLLandmarksPanel::isActionEnabled(const LLSD& userdata) const
 			return false;
 		}
 	}
+	else if (!root_folder_view && "category" != command_name)
+	{
+		return false;
+	}
 	else if (  "paste"		== command_name
+			|| "rename"		== command_name
 			|| "cut"		== command_name
 			|| "copy"		== command_name
 			|| "delete"		== command_name
@@ -952,16 +942,17 @@ bool LLLandmarksPanel::isActionEnabled(const LLSD& userdata) const
 	}
 	else if (  "teleport"		== command_name
 			|| "more_info"		== command_name
+			|| "rename"			== command_name
 			|| "show_on_map"	== command_name
 			|| "copy_slurl"		== command_name
 			)
 	{
 		// disable some commands for multi-selection. EXT-1757
-		return root_folder_view && root_folder_view->getSelectedCount() == 1;
-	}
-	else if ("rename" == command_name)
-	{
-		return root_folder_view && root_folder_view->getSelectedCount() == 1 && canSelectedBeModified(command_name);
+		if (root_folder_view &&
+		    root_folder_view->getSelectedCount() > 1)
+		{
+			return false;
+		}
 	}
 	else if("category" == command_name)
 	{
@@ -993,10 +984,13 @@ bool LLLandmarksPanel::isActionEnabled(const LLSD& userdata) const
 
 void LLLandmarksPanel::onCustomAction(const LLSD& userdata)
 {
+	LLFolderViewItem* cur_item = getCurSelectedItem();
+	if(!cur_item)
+		return;
 	std::string command_name = userdata.asString();
 	if("more_info" == command_name)
 	{
-		onShowProfile();
+		cur_item->getListener()->performAction(mCurrentSelectedList->getRootFolder(),mCurrentSelectedList->getModel(),"about");
 	}
 	else if ("teleport" == command_name)
 	{
@@ -1087,7 +1081,7 @@ bool LLLandmarksPanel::canSelectedBeModified(const std::string& command_name) co
 		}
 		else if ("delete" == command_name)
 		{
-			can_be_modified = listenerp ? listenerp->isItemRemovable() && !listenerp->isItemInTrash() : false;
+			can_be_modified = listenerp ? listenerp->isItemRemovable() : false;
 		}
 		else if("paste" == command_name)
 		{
@@ -1113,7 +1107,7 @@ void LLLandmarksPanel::onPickPanelExit( LLPanelPickEdit* pick_panel, LLView* own
 	pick_panel = NULL;
 }
 
-bool LLLandmarksPanel::handleDragAndDropToTrash(BOOL drop, EDragAndDropType cargo_type, void* cargo_data , EAcceptance* accept)
+bool LLLandmarksPanel::handleDragAndDropToTrash(BOOL drop, EDragAndDropType cargo_type, EAcceptance* accept)
 {
 	*accept = ACCEPT_NO;
 
@@ -1129,21 +1123,7 @@ bool LLLandmarksPanel::handleDragAndDropToTrash(BOOL drop, EDragAndDropType carg
 
 			if (is_enabled && drop)
 			{
-				// don't call onClipboardAction("delete")
-				// this lead to removing (N * 2 - 1) items if drag N>1 items into trash. EXT-6757
-				// So, let remove items one by one.
-				LLInventoryItem* item = static_cast<LLInventoryItem*>(cargo_data);
-				if (item)
-				{
-					LLFolderViewItem* fv_item = (mCurrentSelectedList && mCurrentSelectedList->getRootFolder()) ?
-						mCurrentSelectedList->getRootFolder()->getItemByID(item->getUUID()) : NULL;
-
-					if (fv_item)
-					{
-						// is Item Removable checked inside of remove()
-						fv_item->remove();
-					}
-				}
+				onClipboardAction("delete");
 			}
 		}
 		break;

@@ -42,7 +42,7 @@
 #include "llglheaders.h"
 
 // Viewer includes
-#include "llagentcamera.h"
+#include "llagent.h"
 #include "llviewercontrol.h"
 #include "llnetmap.h"
 #include "lltracker.h"
@@ -197,7 +197,7 @@ void LLFloaterMap::draw()
 	setDirectionPos( mTextBoxSouthEast, rotation + F_PI + F_PI_BY_TWO + F_PI_BY_TWO / 2);
 
 	// Note: we can't just gAgent.check cameraMouselook() because the transition states are wrong.
-	if(gAgentCamera.cameraMouselook())
+	if( gAgent.cameraMouselook())
 	{
 		setMouseOpaque(FALSE);
 		getDragHandle()->setMouseOpaque(FALSE);
@@ -214,20 +214,6 @@ void LLFloaterMap::draw()
 	}
 	
 	LLFloater::draw();
-}
-
-// virtual
-void LLFloaterMap::onFocusReceived()
-{
-	setBackgroundOpaque(true);
-	LLPanel::onFocusReceived();
-}
-
-// virtual
-void LLFloaterMap::onFocusLost()
-{
-	setBackgroundOpaque(false);
-	LLPanel::onFocusLost();
 }
 
 void LLFloaterMap::reshape(S32 width, S32 height, BOOL called_from_parent)

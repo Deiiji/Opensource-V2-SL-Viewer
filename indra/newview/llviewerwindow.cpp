@@ -45,8 +45,6 @@
 #include <fstream>
 #include <algorithm>
 
-#include "llagent.h"
-#include "llagentcamera.h"
 #include "llfloaterreg.h"
 #include "llpanellogin.h"
 #include "llviewerkeyboard.h"
@@ -366,9 +364,9 @@ public:
 			agent_center_text = llformat("AgentCenter  %f %f %f",
 										 (F32)(tvector.mdV[VX]), (F32)(tvector.mdV[VY]), (F32)(tvector.mdV[VZ]));
 
-			if (isAgentAvatarValid())
+			if (gAgent.getAvatarObject())
 			{
-				tvector = gAgent.getPosGlobalFromAgent(gAgentAvatarp->mRoot.getWorldPosition());
+				tvector = gAgent.getPosGlobalFromAgent(gAgent.getAvatarObject()->mRoot.getWorldPosition());
 				agent_root_center_text = llformat("AgentRootCenter %f %f %f",
 												  (F32)(tvector.mdV[VX]), (F32)(tvector.mdV[VY]), (F32)(tvector.mdV[VZ]));
 			}
@@ -386,7 +384,7 @@ public:
 			agent_left_text = llformat("AgentLeftAxis  %f %f %f",
 									   (F32)(tvector.mdV[VX]), (F32)(tvector.mdV[VY]), (F32)(tvector.mdV[VZ]));
 
-			tvector = gAgentCamera.getCameraPositionGlobal();
+			tvector = gAgent.getCameraPositionGlobal();
 			camera_center_text = llformat("CameraCenter %f %f %f",
 										  (F32)(tvector.mdV[VX]), (F32)(tvector.mdV[VY]), (F32)(tvector.mdV[VZ]));
 
@@ -779,7 +777,7 @@ BOOL LLViewerWindow::handleRightMouseDown(LLWindow *window,  LLCoordGL pos, MASK
 
 	// *HACK: this should be rolled into the composite tool logic, not
 	// hardcoded at the top level.
-	if (CAMERA_MODE_CUSTOMIZE_AVATAR != gAgentCamera.getCameraMode() && LLToolMgr::getInstance()->getCurrentTool() != LLToolPie::getInstance())
+	if (CAMERA_MODE_CUSTOMIZE_AVATAR != gAgent.getCameraMode() && LLToolMgr::getInstance()->getCurrentTool() != LLToolPie::getInstance())
 	{
 		// If the current tool didn't process the click, we should show
 		// the pie menu.  This can be done by passing the event to the pie
@@ -839,7 +837,7 @@ LLWindowCallbacks::DragNDropResult LLViewerWindow::handleDragNDrop( LLWindow *wi
 							LLPanelLogin::refreshLocation( true );
 							LLPanelLogin::updateLocationUI();
 						}
-						return LLWindowCallbacks::DND_COPY;
+						return LLWindowCallbacks::DND_MOVE;
 					};
 				}
 
@@ -858,11 +856,7 @@ LLWindowCallbacks::DragNDropResult LLViewerWindow::handleDragNDrop( LLWindow *wi
 					if (obj && !obj->getRegion()->getCapability("ObjectMedia").empty())
 					{
 						LLTextureEntry *te = obj->getTE(object_face);
-
-						// can modify URL if we can modify the object or we have navigate permissions
-						bool allow_modify_url = obj->permModify() || obj->hasMediaPermission( te->getMediaData(), LLVOVolume::MEDIA_PERM_INTERACT );
-
-						if (te && allow_modify_url )
+						if (te)
 						{
 							if (drop)
 							{
@@ -893,24 +887,29 @@ LLWindowCallbacks::DragNDropResult LLViewerWindow::handleDragNDrop( LLWindow *wi
 									// URL passes the whitelist
 									if (te->getMediaData()->checkCandidateUrl( url ) )
 									{
-										// just navigate to the URL
-										if (obj->getMediaImpl(object_face))
+										// we are allowed to modify the object or we have navigate permissions
+										// NOTE: Design states you you can change the URL if you have media 
+										//       navigate permissions even if you do not have prim modify rights
+										if ( obj->permModify() || obj->hasMediaPermission( te->getMediaData(), LLVOVolume::MEDIA_PERM_INTERACT ) )
 										{
-											obj->getMediaImpl(object_face)->navigateTo(url);
+											// just navigate to the URL
+											if (obj->getMediaImpl(object_face))
+											{
+												obj->getMediaImpl(object_face)->navigateTo(url);
+											}
+											else 
+											{
+												// This is very strange.  Navigation should
+												// happen via the Impl, but we don't have one.
+												// This sends it to the server, which /should/
+												// trigger us getting it.  Hopefully.
+												LLSD media_data;
+												media_data[LLMediaEntry::CURRENT_URL_KEY] = url;
+												obj->syncMediaData(object_face, media_data, true, true);
+												obj->sendMediaDataUpdate();
+											}
+											result = LLWindowCallbacks::DND_LINK;
 										}
-										else 
-										{
-											// This is very strange.  Navigation should
-											// happen via the Impl, but we don't have one.
-											// This sends it to the server, which /should/
-											// trigger us getting it.  Hopefully.
-											LLSD media_data;
-											media_data[LLMediaEntry::CURRENT_URL_KEY] = url;
-											obj->syncMediaData(object_face, media_data, true, true);
-											obj->sendMediaDataUpdate();
-										}
-										result = LLWindowCallbacks::DND_LINK;
-										
 									}
 								}
 								LLSelectMgr::getInstance()->unhighlightObjectOnly(mDragHoveredObject);
@@ -930,7 +929,6 @@ LLWindowCallbacks::DragNDropResult LLViewerWindow::handleDragNDrop( LLWindow *wi
 										LLSelectMgr::getInstance()->highlightObjectOnly(mDragHoveredObject);
 									}
 									result = (! te->hasMedia()) ? LLWindowCallbacks::DND_COPY : LLWindowCallbacks::DND_LINK;
-
 								}
 							}
 						}
@@ -1154,9 +1152,9 @@ BOOL LLViewerWindow::handleActivate(LLWindow *window, BOOL activated)
 		}
 		
 		// SL-53351: Make sure we're not in mouselook when minimised, to prevent control issues
-		if (gAgentCamera.getCameraMode() == CAMERA_MODE_MOUSELOOK)
+		if (gAgent.getCameraMode() == CAMERA_MODE_MOUSELOOK)
 		{
-			gAgentCamera.changeCameraToDefault();
+			gAgent.changeCameraToDefault();
 		}
 		
 		send_agent_pause();
@@ -1174,7 +1172,7 @@ BOOL LLViewerWindow::handleActivate(LLWindow *window, BOOL activated)
 
 BOOL LLViewerWindow::handleActivateApp(LLWindow *window, BOOL activating)
 {
-	//if (!activating) gAgentCamera.changeCameraToDefault();
+	//if (!activating) gAgent.changeCameraToDefault();
 
 	LLViewerJoystick::getInstance()->setNeedsReset(true);
 	return FALSE;
@@ -2091,7 +2089,7 @@ void LLViewerWindow::draw()
 		// Draw tool specific overlay on world
 		LLToolMgr::getInstance()->getCurrentTool()->draw();
 
-		if( gAgentCamera.cameraMouselook() || LLFloaterCamera::inFreeCameraMode() )
+		if( gAgent.cameraMouselook() )
 		{
 			drawMouselookInstructions();
 			stop_glerror();
@@ -2146,14 +2144,12 @@ void LLViewerWindow::draw()
 // Takes a single keydown event, usually when UI is visible
 BOOL LLViewerWindow::handleKey(KEY key, MASK mask)
 {
-	// hide tooltips on keypress
-	LLToolTipMgr::instance().blockToolTips();
-
 	if (gFocusMgr.getKeyboardFocus() 
 		&& !(mask & (MASK_CONTROL | MASK_ALT))
 		&& !gFocusMgr.getKeystrokesOnly())
 	{
 		// We have keyboard focus, and it's not an accelerator
+
 		if (key < 0x80)
 		{
 			// Not a special key, so likely (we hope) to generate a character.  Let it fall through to character handler first.
@@ -2161,49 +2157,68 @@ BOOL LLViewerWindow::handleKey(KEY key, MASK mask)
 		}
 	}
 
-	// let menus handle navigation keys for navigation
-	if ((gMenuBarView && gMenuBarView->handleKey(key, mask, TRUE))
-		||(gLoginMenuBarView && gLoginMenuBarView->handleKey(key, mask, TRUE))
-		||(gMenuHolder && gMenuHolder->handleKey(key, mask, TRUE)))
+	// hide tooltips on keypress
+	LLToolTipMgr::instance().blockToolTips();
+	
+	// Explicit hack for debug menu.
+	if ((MASK_ALT & mask) &&
+		(MASK_CONTROL & mask) &&
+		('D' == key || 'd' == key))
 	{
+		toggle_debug_menus(NULL);
+	}
+
+		// Explicit hack for debug menu.
+	if ((mask == (MASK_SHIFT | MASK_CONTROL)) &&
+		('G' == key || 'g' == key))
+	{
+		if  (LLStartUp::getStartupState() < STATE_LOGIN_CLEANUP)  //on splash page
+		{
+			BOOL visible = ! gSavedSettings.getBOOL("ForceShowGrid");
+			gSavedSettings.setBOOL("ForceShowGrid", visible);
+
+			// Initialize visibility (and don't force visibility - use prefs)
+			LLPanelLogin::refreshLocation( false );
+		}
+	}
+
+	// Debugging view for unified notifications: CTRL-SHIFT-5
+	// *FIXME: Having this special-cased right here (just so this can be invoked from the login screen) sucks.
+	if ((MASK_SHIFT & mask) 
+	    && (!(MASK_ALT & mask))
+	    && (MASK_CONTROL & mask)
+	    && ('5' == key))
+	{
+		//LLFloaterNotificationConsole::showInstance();
+		LLFloaterReg::showInstance("notifications_console");
 		return TRUE;
 	}
 
-	// give menus a chance to handle modified (Ctrl, Alt) shortcut keys before current focus 
-	// as long as focus isn't locked
-	if (mask & (MASK_CONTROL | MASK_ALT) && !gFocusMgr.focusLocked())
+	// handle escape key
+	//if (key == KEY_ESCAPE && mask == MASK_NONE)
+	//{
+
+		// *TODO: get this to play well with mouselook and hidden
+		// cursor modes, etc, and re-enable.
+		//if (gFocusMgr.getMouseCapture())
+		//{
+		//	gFocusMgr.setMouseCapture(NULL);
+		//	return TRUE;
+		//}
+	//}
+
+	// let menus handle navigation keys
+	if (gMenuBarView && gMenuBarView->handleKey(key, mask, TRUE))
 	{
-		if ((gMenuBarView && gMenuBarView->handleAcceleratorKey(key, mask))
-			||(gLoginMenuBarView && gLoginMenuBarView->handleAcceleratorKey(key, mask)))
-		{
-			return TRUE;
-		}
-	}
-
-	// give floaters first chance to handle TAB key
-	// so frontmost floater gets focus
-	// if nothing has focus, go to first or last UI element as appropriate
-	if (key == KEY_TAB && (mask & MASK_CONTROL || gFocusMgr.getKeyboardFocus() == NULL))
-	{
-		if (gMenuHolder) gMenuHolder->hideMenus();
-
-		// if CTRL-tabbing (and not just TAB with no focus), go into window cycle mode
-		gFloaterView->setCycleMode((mask & MASK_CONTROL) != 0);
-
-		// do CTRL-TAB and CTRL-SHIFT-TAB logic
-		if (mask & MASK_SHIFT)
-		{
-			mRootView->focusPrevRoot();
-		}
-		else
-		{
-			mRootView->focusNextRoot();
-		}
 		return TRUE;
 	}
-
-	// hidden edit menu for cut/copy/paste
-	if (gEditMenu && gEditMenu->handleAcceleratorKey(key, mask))
+	// let menus handle navigation keys
+	if (gLoginMenuBarView && gLoginMenuBarView->handleKey(key, mask, TRUE))
+	{
+		return TRUE;
+	}
+	//some of context menus use this container, let context menu handle navigation keys
+	if(gMenuHolder && gMenuHolder->handleKey(key, mask, TRUE))
 	{
 		return TRUE;
 	}
@@ -2256,7 +2271,7 @@ BOOL LLViewerWindow::handleKey(KEY key, MASK mask)
 	}
 
 	// Try for a new-format gesture
-	if (LLGestureMgr::instance().triggerGesture(key, mask))
+	if (LLGestureManager::instance().triggerGesture(key, mask))
 	{
 		return TRUE;
 	}
@@ -2268,10 +2283,50 @@ BOOL LLViewerWindow::handleKey(KEY key, MASK mask)
 		return TRUE;
 	}
 
+	// Topmost view gets a chance before the hierarchy
+	// *FIX: get rid of this?
+	//LLUICtrl* top_ctrl = gFocusMgr.getTopCtrl();
+	//if (top_ctrl)
+	//{
+	//	if( top_ctrl->handleKey( key, mask, TRUE ) )
+	//	{
+	//		return TRUE;
+	//	}
+	//}
 
-	// give menus a chance to handle unmodified accelerator keys
-	if ((gMenuBarView && gMenuBarView->handleAcceleratorKey(key, mask))
-		||(gLoginMenuBarView && gLoginMenuBarView->handleAcceleratorKey(key, mask)))
+	// give floaters first chance to handle TAB key
+	// so frontmost floater gets focus
+	if (key == KEY_TAB)
+	{
+		// if nothing has focus, go to first or last UI element as appropriate
+		if (mask & MASK_CONTROL || gFocusMgr.getKeyboardFocus() == NULL)
+		{
+			if (gMenuHolder) gMenuHolder->hideMenus();
+
+			// if CTRL-tabbing (and not just TAB with no focus), go into window cycle mode
+			gFloaterView->setCycleMode((mask & MASK_CONTROL) != 0);
+
+			// do CTRL-TAB and CTRL-SHIFT-TAB logic
+			if (mask & MASK_SHIFT)
+			{
+				mRootView->focusPrevRoot();
+			}
+			else
+			{
+				mRootView->focusNextRoot();
+			}
+			return TRUE;
+		}
+	}
+	
+	// give menus a chance to handle keys
+	if (gMenuBarView && gMenuBarView->handleAcceleratorKey(key, mask))
+	{
+		return TRUE;
+	}
+	
+	// give menus a chance to handle keys
+	if (gLoginMenuBarView && gLoginMenuBarView->handleAcceleratorKey(key, mask))
 	{
 		return TRUE;
 	}
@@ -2370,7 +2425,7 @@ void LLViewerWindow::handleScrollWheel(S32 clicks)
 	// Zoom the camera in and out behavior
 
 	if(top_ctrl == 0 && getWorldViewRectScaled().pointInRect(mCurrentMousePoint.mX, mCurrentMousePoint.mY) )
-		gAgentCamera.handleScrollWheel(clicks);
+		gAgent.handleScrollWheel(clicks);
 
 	return;
 }
@@ -3094,7 +3149,7 @@ void LLViewerWindow::renderSelections( BOOL for_gl_pick, BOOL pick_parcel_walls,
 		// setup HUD render
 		if (selection->getSelectType() == SELECT_TYPE_HUD && LLSelectMgr::getInstance()->getSelection()->getObjectCount())
 		{
-			LLBBox hud_bbox = gAgentAvatarp->getHUDBBox();
+			LLBBox hud_bbox = gAgent.getAvatarObject()->getHUDBBox();
 
 			// set up transform to encompass bounding box of HUD
 			glMatrixMode(GL_PROJECTION);
@@ -3121,7 +3176,7 @@ void LLViewerWindow::renderSelections( BOOL for_gl_pick, BOOL pick_parcel_walls,
 			glPushMatrix();
 			if (selection->getSelectType() == SELECT_TYPE_HUD)
 			{
-				F32 zoom = gAgentCamera.mHUDCurZoom;
+				F32 zoom = gAgent.mHUDCurZoom;
 				glScalef(zoom, zoom, zoom);
 			}
 
@@ -3240,7 +3295,7 @@ LLVector3d LLViewerWindow::clickPointInWorldGlobal(S32 x, S32 y_from_bot, LLView
 	// world at the location of the mouse click
 	LLVector3 mouse_direction_global = mouseDirectionGlobal( x, y_from_bot );
 
-	LLVector3d relative_object = clicked_object->getPositionGlobal() - gAgentCamera.getCameraPositionGlobal();
+	LLVector3d relative_object = clicked_object->getPositionGlobal() - gAgent.getCameraPositionGlobal();
 
 	// make mouse vector as long as object vector, so it touchs a point near
 	// where the user clicked on the object
@@ -3249,7 +3304,7 @@ LLVector3d LLViewerWindow::clickPointInWorldGlobal(S32 x, S32 y_from_bot, LLView
 	LLVector3d new_pos;
 	new_pos.setVec(mouse_direction_global);
 	// transform mouse vector back to world coords
-	new_pos += gAgentCamera.getCameraPositionGlobal();
+	new_pos += gAgent.getCameraPositionGlobal();
 
 	return new_pos;
 }
@@ -3516,7 +3571,7 @@ LLVector3 LLViewerWindow::mousePointHUD(const S32 x, const S32 y) const
 	F32 hud_x = -((F32)x - center_x)  / height;
 	F32 hud_y = ((F32)y - center_y) / height;
 
-	return LLVector3(0.f, hud_x/gAgentCamera.mHUDCurZoom, hud_y/gAgentCamera.mHUDCurZoom);
+	return LLVector3(0.f, hud_x/gAgent.mHUDCurZoom, hud_y/gAgent.mHUDCurZoom);
 }
 
 // Returns unit vector relative to camera in camera space
@@ -3563,7 +3618,7 @@ BOOL LLViewerWindow::mousePointOnPlaneGlobal(LLVector3d& point, const S32 x, con
 	LLVector3d	plane_normal_global_d;
 	plane_normal_global_d.setVec(plane_normal_global);
 	F64 plane_mouse_dot = (plane_normal_global_d * mouse_direction_global_d);
-	LLVector3d plane_origin_camera_rel = plane_point_global - gAgentCamera.getCameraPositionGlobal();
+	LLVector3d plane_origin_camera_rel = plane_point_global - gAgent.getCameraPositionGlobal();
 	F64	mouse_look_at_scale = (plane_normal_global_d * plane_origin_camera_rel)
 								/ plane_mouse_dot;
 	if (llabs(plane_mouse_dot) < 0.00001)
@@ -3577,7 +3632,7 @@ BOOL LLViewerWindow::mousePointOnPlaneGlobal(LLVector3d& point, const S32 x, con
 		mouse_look_at_scale = plane_origin_camera_rel.magVec() / (plane_origin_dir * mouse_direction_global_d);
 	}
 
-	point = gAgentCamera.getCameraPositionGlobal() + mouse_look_at_scale * mouse_direction_global_d;
+	point = gAgent.getCameraPositionGlobal() + mouse_look_at_scale * mouse_direction_global_d;
 
 	return mouse_look_at_scale > 0.0;
 }
@@ -3595,12 +3650,12 @@ BOOL LLViewerWindow::mousePointOnLandGlobal(const S32 x, const S32 y, LLVector3d
 	const F32	SECOND_PASS_STEP = 0.1f;	// meters
 	LLVector3d	camera_pos_global;
 
-	camera_pos_global = gAgentCamera.getCameraPositionGlobal();
+	camera_pos_global = gAgent.getCameraPositionGlobal();
 	LLVector3d		probe_point_global;
 	LLVector3		probe_point_region;
 
 	// walk forwards to find the point
-	for (mouse_dir_scale = FIRST_PASS_STEP; mouse_dir_scale < gAgentCamera.mDrawDistance; mouse_dir_scale += FIRST_PASS_STEP)
+	for (mouse_dir_scale = FIRST_PASS_STEP; mouse_dir_scale < gAgent.mDrawDistance; mouse_dir_scale += FIRST_PASS_STEP)
 	{
 		LLVector3d mouse_direction_global_d;
 		mouse_direction_global_d.setVec(mouse_direction_global * mouse_dir_scale);
@@ -4985,9 +5040,9 @@ bool LLViewerWindow::onAlert(const LLSD& notify)
 
 	// If we're in mouselook, the mouse is hidden and so the user can't click 
 	// the dialog buttons.  In that case, change to First Person instead.
-	if( gAgentCamera.cameraMouselook() )
+	if( gAgent.cameraMouselook() )
 	{
-		gAgentCamera.changeCameraToDefault();
+		gAgent.changeCameraToDefault();
 	}
 	return false;
 }
@@ -5099,7 +5154,7 @@ void LLPickInfo::fetchResults()
 			{
 				mPickType = PICK_OBJECT;
 			}
-			mObjectOffset = gAgentCamera.calcFocusOffset(objectp, intersection, mPickPt.mX, mPickPt.mY);
+			mObjectOffset = gAgent.calcFocusOffset(objectp, intersection, mPickPt.mX, mPickPt.mY);
 			mObjectID = objectp->mID;
 			mObjectFace = (te_offset == NO_FACE) ? -1 : (S32)te_offset;
 

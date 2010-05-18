@@ -131,7 +131,6 @@ Maximum 200 per group daily
             Subject:
         </text>
         <line_editor
-         follows="left|top|right"
          border_style="line"
          border_thickness="1"
          height="16"
@@ -154,7 +153,6 @@ Maximum 200 per group daily
             Message:
         </text>
         <text_editor
-         follows="left|top|right"
          height="90"
          layout="topleft"
          left_pad="3"
@@ -175,7 +173,6 @@ Maximum 200 per group daily
             Attach:
         </text>
         <line_editor
-         follows="left|top|right"
          enabled="false"
          height="19"
          layout="topleft"
@@ -225,7 +222,7 @@ Maximum 200 per group daily
          label="Send"
          label_selected="Send"
          layout="topleft"
-         right="-25"
+         right="-10"
          top_pad="10"
          name="send_notice"
          width="100" />

@@ -36,9 +36,8 @@
 
 #include <string>
 #include "llrect.h"
-#include "lluictrl.h"
-#include "lluicolor.h"
 
+class LLUICtrl;
 class LLUICtrlFactory;
 class LLUIImage;
 class LLButton;
@@ -114,12 +113,6 @@ public:
 	void		setAccordionView(LLView* panel);
 	LLView*		getAccordionView() { return mContainerPanel; };
 
-	// Set text in LLAccordionCtrlTabHeader
-	void setTitle(const std::string& title);
-
-	boost::signals2::connection setFocusReceivedCallback(const focus_signal_t::slot_type& cb);
-	boost::signals2::connection setFocusLostCallback(const focus_signal_t::slot_type& cb);
-
 	bool getCollapsible() {return mCollapsible;};
 
 	void setCollapsible(bool collapsible) {mCollapsible = collapsible;};
@@ -154,8 +147,6 @@ public:
 
 	virtual BOOL handleMouseUp(S32 x, S32 y, MASK mask);
 	virtual BOOL handleKey(KEY key, MASK mask, BOOL called_from_parent);
-
-	virtual BOOL handleToolTip(S32 x, S32 y, MASK mask);
 
 	virtual bool addChild(LLView* child, S32 tab_group);
 

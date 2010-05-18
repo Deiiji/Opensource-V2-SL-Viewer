@@ -105,10 +105,6 @@ void LLFloaterScriptDebug::addScriptLine(const std::string &utf8mesg, const std:
 	LLViewerObject* objectp = gObjectList.findObject(source_id);
 	std::string floater_label;
 
-	// Handle /me messages.
-	std::string prefix = utf8mesg.substr(0, 4);
-	std::string message = (prefix == "/me " || prefix == "/me'") ? user_name + utf8mesg.substr(3) : utf8mesg;
-
 	if (objectp)
 	{
 		objectp->setIcon(LLViewerTextureManager::getFetchedTextureFromFile("script_error.j2c", TRUE, LLViewerTexture::BOOST_UI));
@@ -126,14 +122,14 @@ void LLFloaterScriptDebug::addScriptLine(const std::string &utf8mesg, const std:
 	LLFloaterScriptDebugOutput* floaterp = 	LLFloaterReg::getTypedInstance<LLFloaterScriptDebugOutput>("script_debug_output", LLUUID::null);
 	if (floaterp)
 	{
-		floaterp->addLine(message, user_name, color);
+		floaterp->addLine(utf8mesg, user_name, color);
 	}
 	
 	// add to specific script instance floater
 	floaterp = LLFloaterReg::getTypedInstance<LLFloaterScriptDebugOutput>("script_debug_output", source_id);
 	if (floaterp)
 	{
-		floaterp->addLine(message, floater_label, color);
+		floaterp->addLine(utf8mesg, floater_label, color);
 	}
 }
 

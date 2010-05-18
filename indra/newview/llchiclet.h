@@ -429,30 +429,11 @@ public:
 
 	virtual void setToggleState(bool toggle);
 
-	/**
-	 * Displays popup menu.
-	 */
-	virtual BOOL handleRightMouseDown(S32 x, S32 y, MASK mask);
-
 protected:
 
 	LLIMChiclet(const LLIMChiclet::Params& p);
 
 protected:
-
-	/**
-	 * Creates chiclet popup menu.
-	 */
-	virtual void createPopupMenu() = 0;
-
-	/** 
-	 * Enables/disables menus.
-	 */
-	virtual void updateMenuItems() {};
-
-	bool canCreateMenu();
-
-	LLMenuGL* mPopupMenu;
 
 	bool mShowSpeaker;
 	bool mCounterEnabled;
@@ -539,6 +520,11 @@ protected:
 	 */
 	virtual void onMenuItemClicked(const LLSD& user_data);
 
+	/**
+	 * Displays popup menu.
+	 */
+	/*virtual*/ BOOL handleRightMouseDown(S32 x, S32 y, MASK mask);
+
 	/** 
 	 * Enables/disables menus based on relationship with other participant.
 	 * Enables/disables "show session" menu item depending on visible IM floater existence.
@@ -548,6 +534,7 @@ protected:
 private:
 
 	LLChicletAvatarIconCtrl* mChicletIconCtrl;
+	LLMenuGL* mPopupMenu;
 };
 
 /**
@@ -612,6 +599,11 @@ protected:
 	virtual void onMenuItemClicked(const LLSD& user_data);
 
 	/**
+	 * Displays popup menu.
+	 */
+	virtual BOOL handleRightMouseDown(S32 x, S32 y, MASK mask);
+
+	/**
 	 * Finds a current speaker and resets the SpeakerControl with speaker's ID
 	 */
 	/*virtual*/ void switchToCurrentSpeaker();
@@ -619,6 +611,7 @@ protected:
 private:
 
 	LLChicletAvatarIconCtrl* mChicletIconCtrl;
+	LLMenuGL* mPopupMenu;
 };
 
 /**
@@ -654,16 +647,6 @@ protected:
 
 	LLScriptChiclet(const Params&);
 	friend class LLUICtrlFactory;
-
-	/**
-	 * Creates chiclet popup menu.
-	 */
-	virtual void createPopupMenu();
-
-	/**
-	 * Processes clicks on chiclet popup menu.
-	 */
-	virtual void onMenuItemClicked(const LLSD& user_data);
 
 private:
 
@@ -702,16 +685,6 @@ public:
 protected:
 	LLInvOfferChiclet(const Params&);
 	friend class LLUICtrlFactory;
-
-	/**
-	 * Creates chiclet popup menu.
-	 */
-	virtual void createPopupMenu();
-
-	/**
-	 * Processes clicks on chiclet popup menu.
-	 */
-	virtual void onMenuItemClicked(const LLSD& user_data);
 
 private:
 	LLChicletInvOfferIconCtrl* mChicletIconCtrl;
@@ -795,9 +768,15 @@ protected:
 	 */
 	virtual void updateMenuItems();
 
+	/**
+	 * Displays popup menu.
+	 */
+	/*virtual*/ BOOL handleRightMouseDown(S32 x, S32 y, MASK mask);
+
 private:
 
 	LLChicletGroupIconCtrl* mChicletIconCtrl;
+	LLMenuGL* mPopupMenu;
 };
 
 /**
@@ -821,6 +800,16 @@ public:
 		 * Otherwise 9+ will be shown (for default value).
 		 */
 		Optional<S32> max_displayed_count;
+
+		/**
+		 * How many time chiclet should flash before set "Lit" state. Default value is 3.
+		 */
+		Optional<S32> flash_to_lit_count;
+
+		/**
+		 * Period of flashing while setting "Lit" state, in seconds. Default value is 0.5.
+		 */
+		Optional<F32> flash_period;
 
 		Params();
 	};
@@ -922,9 +911,6 @@ protected:
 class LLNotificationChiclet : public LLSysWellChiclet
 {
 	friend class LLUICtrlFactory;
-public:
-	struct Params : public LLInitParam::Block<Params, LLSysWellChiclet::Params>{};
-
 protected:
 	LLNotificationChiclet(const Params& p);
 

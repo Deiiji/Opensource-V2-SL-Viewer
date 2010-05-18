@@ -296,7 +296,7 @@ private:
 // class, by allowing another method to be specified which determines
 // if the menu item should consider itself checked as true or not.  Be
 // careful that the provided callback is fast - it needs to be VERY
-// EFFICIENT because it may need to be checked a lot.
+// FUCKING EFFICIENT, because it may need to be checked a lot.
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 class LLMenuItemCheckGL 

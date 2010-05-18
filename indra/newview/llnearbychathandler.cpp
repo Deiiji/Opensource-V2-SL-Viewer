@@ -57,6 +57,7 @@ LLToastPanelBase* createToastPanel()
 	return item;
 }
 
+
 class LLNearbyChatScreenChannel: public LLScreenChannelBase
 {
 public:
@@ -88,7 +89,11 @@ public:
 	{
 		for(std::vector<LLToast*>::iterator it = m_active_toasts.begin(); it != m_active_toasts.end(); ++it)
 		{
-			addToToastPool((*it));
+			LLToast* toast = (*it);
+			toast->setVisible(FALSE);
+			toast->stopTimer();
+			m_toast_pool.push_back(toast);
+
 		}
 		m_active_toasts.clear();
 	};
@@ -101,14 +106,6 @@ public:
 	}
 
 protected:
-	void	addToToastPool(LLToast* toast)
-	{
-		toast->setVisible(FALSE);
-		toast->stopTimer();
-		toast->setIsHidden(true);
-		m_toast_pool.push_back(toast);
-	}
-
 	void	createOverflowToast(S32 bottom, F32 timer);
 
 	create_toast_panel_callback_t m_create_toast_panel_callback_t;
@@ -136,12 +133,11 @@ void LLNearbyChatScreenChannel::onToastFade(LLToast* toast)
 	//fade mean we put toast to toast pool
 	if(!toast)
 		return;
+	m_toast_pool.push_back(toast);
 
 	std::vector<LLToast*>::iterator pos = std::find(m_active_toasts.begin(),m_active_toasts.end(),toast);
 	if(pos!=m_active_toasts.end())
 		m_active_toasts.erase(pos);
-
-	addToToastPool(toast);
 	
 	arrangeToasts();
 }
@@ -233,7 +229,7 @@ void LLNearbyChatScreenChannel::addNotification(LLSD& notification)
 	toast->reshapeToPanel();
 	toast->resetTimer();
 	
-	m_active_toasts.push_back(toast);
+	m_active_toasts.insert(m_active_toasts.begin(),toast);
 
 	arrangeToasts();
 }
@@ -245,14 +241,7 @@ void LLNearbyChatScreenChannel::arrangeToasts()
 
 	hideToastsFromScreen();
 
-	showToastsBottom();
-}
-
-int sort_toasts_predicate(LLToast* first,LLToast* second)
-{
-	F32 v1 = first->getTimer()->getEventTimer().getElapsedTimeF32();
-	F32 v2 = second->getTimer()->getEventTimer().getElapsedTimeF32();
-	return v1 < v2;
+	showToastsBottom();					
 }
 
 void LLNearbyChatScreenChannel::showToastsBottom()
@@ -264,41 +253,39 @@ void LLNearbyChatScreenChannel::showToastsBottom()
 	S32		bottom = getRect().mBottom;
 	S32		margin = gSavedSettings.getS32("ToastGap");
 
-	//sort active toasts
-	std::sort(m_active_toasts.begin(),m_active_toasts.end(),sort_toasts_predicate);
-
-	//calc max visible item and hide other toasts.
-
 	for(std::vector<LLToast*>::iterator it = m_active_toasts.begin(); it != m_active_toasts.end(); ++it)
 	{
-		S32 toast_top = bottom + (*it)->getRect().getHeight() + margin;
+		LLToast* toast = (*it);
+		S32 toast_top = bottom + toast->getRect().getHeight() + margin;
 
 		if(toast_top > gFloaterView->getRect().getHeight())
 		{
 			while(it!=m_active_toasts.end())
 			{
-				addToToastPool((*it));
+				toast->setVisible(FALSE);
+				toast->stopTimer();
+				m_toast_pool.push_back(toast);
 				it=m_active_toasts.erase(it);
 			}
 			break;
 		}
-		LLToast* toast = (*it);
-
-		toast_rect = toast->getRect();
-		toast_rect.setLeftTopAndSize(getRect().mLeft , bottom + toast_rect.getHeight(), toast_rect.getWidth() ,toast_rect.getHeight());
-
-		toast->setRect(toast_rect);
-		bottom += toast_rect.getHeight() + margin;
+		bottom = toast_top - toast->getTopPad();
 	}
-	
+
 	// use reverse order to provide correct z-order and avoid toast blinking
-	
 	for(std::vector<LLToast*>::reverse_iterator it = m_active_toasts.rbegin(); it != m_active_toasts.rend(); ++it)
 	{
 		LLToast* toast = (*it);
+		S32 toast_top = bottom + toast->getTopPad();
+
+		toast_rect = toast->getRect();
+		toast_rect.setLeftTopAndSize(getRect().mLeft , toast_top, toast_rect.getWidth() ,toast_rect.getHeight());
+
+		toast->setRect(toast_rect);
 		toast->setIsHidden(false);
 		toast->setVisible(TRUE);
 
+		bottom = toast->getRect().mBottom - margin;
 	}
 }
 

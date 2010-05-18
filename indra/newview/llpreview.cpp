@@ -37,7 +37,7 @@
 #include "llpreview.h"
 
 #include "lllineeditor.h"
-#include "llinventorydefines.h"
+#include "llinventory.h"
 #include "llinventorymodel.h"
 #include "llresmgr.h"
 #include "lltextbox.h"
@@ -139,7 +139,7 @@ void LLPreview::onCommit()
 	const LLViewerInventoryItem *item = dynamic_cast<const LLViewerInventoryItem*>(getItem());
 	if(item)
 	{
-		if (!item->isFinished())
+		if (!item->isComplete())
 		{
 			// We are attempting to save an item that was never loaded
 			llwarns << "LLPreview::onCommit() called with mIsComplete == FALSE"
@@ -180,9 +180,10 @@ void LLPreview::onCommit()
 			// update the object itself.
 			if( item->getType() == LLAssetType::AT_OBJECT )
 			{
-				if (isAgentAvatarValid())
+				LLVOAvatarSelf* avatar = gAgent.getAvatarObject();
+				if( avatar )
 				{
-					LLViewerObject* obj = gAgentAvatarp->getWornAttachment( item->getUUID() );
+					LLViewerObject* obj = avatar->getWornAttachment( item->getUUID() );
 					if( obj )
 					{
 						LLSelectMgr::getInstance()->deselectAll();

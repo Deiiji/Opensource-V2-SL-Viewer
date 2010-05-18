@@ -108,7 +108,7 @@ LLChatBar::LLChatBar()
 
 LLChatBar::~LLChatBar()
 {
-	LLGestureMgr::instance().removeObserver(mObserver);
+	LLGestureManager::instance().removeObserver(mObserver);
 	delete mObserver;
 	mObserver = NULL;
 	// LLView destructor cleans up children
@@ -210,8 +210,8 @@ void LLChatBar::refreshGestures()
 
 		// collect list of unique gestures
 		std::map <std::string, BOOL> unique;
-		LLGestureMgr::item_map_t::const_iterator it;
-		const LLGestureMgr::item_map_t& active_gestures = LLGestureMgr::instance().getActiveGestures();
+		LLGestureManager::item_map_t::const_iterator it;
+		const LLGestureManager::item_map_t& active_gestures = LLGestureManager::instance().getActiveGestures();
 		for (it = active_gestures.begin(); it != active_gestures.end(); ++it)
 		{
 			LLMultiGesture* gesture = (*it).second;
@@ -297,7 +297,7 @@ void LLChatBar::setGestureCombo(LLComboBox* combo)
 
 		// now register observer since we have a place to put the results
 		mObserver = new LLChatBarGestureObserver(this);
-		LLGestureMgr::instance().addObserver(mObserver);
+		LLGestureManager::instance().addObserver(mObserver);
 
 		// refresh list from current active gestures
 		refreshGestures();
@@ -378,7 +378,7 @@ void LLChatBar::sendChat( EChatType type )
 			if (0 == channel)
 			{
 				// discard returned "found" boolean
-				LLGestureMgr::instance().triggerAndReviseString(utf8text, &utf8_revised_text);
+				LLGestureManager::instance().triggerAndReviseString(utf8text, &utf8_revised_text);
 			}
 			else
 			{
@@ -517,7 +517,7 @@ void LLChatBar::onInputEditorKeystroke( LLLineEditor* caller, void* userdata )
 		std::string utf8_trigger = wstring_to_utf8str(raw_text);
 		std::string utf8_out_str(utf8_trigger);
 
-		if (LLGestureMgr::instance().matchPrefix(utf8_trigger, &utf8_out_str))
+		if (LLGestureManager::instance().matchPrefix(utf8_trigger, &utf8_out_str))
 		{
 			if (self->mInputEditor)
 			{
@@ -654,7 +654,7 @@ void LLChatBar::onCommitGesture(LLUICtrl* ctrl)
 		// substitution and logging.
 		std::string text(trigger);
 		std::string revised_text;
-		LLGestureMgr::instance().triggerAndReviseString(text, &revised_text);
+		LLGestureManager::instance().triggerAndReviseString(text, &revised_text);
 
 		revised_text = utf8str_trim(revised_text);
 		if (!revised_text.empty())

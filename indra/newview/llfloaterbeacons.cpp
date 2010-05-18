@@ -72,7 +72,7 @@ void LLFloaterBeacons::onClickUICheck(LLUICtrl *ctrl)
 {
 	LLCheckBoxCtrl *check = (LLCheckBoxCtrl *)ctrl;
 	std::string name = check->getName();
-	if(name == "touch_only")
+	if(     name == "touch_only")
 	{
 		LLPipeline::toggleRenderScriptedTouchBeacons(NULL);
 		// Don't allow both to be ON at the same time. Toggle the other one off if both now on.
@@ -82,9 +82,7 @@ void LLFloaterBeacons::onClickUICheck(LLUICtrl *ctrl)
 		{
 			LLPipeline::setRenderScriptedBeacons(FALSE);
 			getChild<LLCheckBoxCtrl>("scripted")->setControlValue(LLSD(FALSE));
-			getChild<LLCheckBoxCtrl>("scripted")->setValue(FALSE);
 			getChild<LLCheckBoxCtrl>("touch_only")->setControlValue(LLSD(TRUE)); // just to be sure it's in sync with llpipeline
-			getChild<LLCheckBoxCtrl>("touch_only")->setValue(TRUE);
 		}
 	}
 	else if(name == "scripted")
@@ -97,9 +95,7 @@ void LLFloaterBeacons::onClickUICheck(LLUICtrl *ctrl)
 		{
 			LLPipeline::setRenderScriptedTouchBeacons(FALSE);
 			getChild<LLCheckBoxCtrl>("touch_only")->setControlValue(LLSD(FALSE));
-			getChild<LLCheckBoxCtrl>("touch_only")->setValue(FALSE);
 			getChild<LLCheckBoxCtrl>("scripted")->setControlValue(LLSD(TRUE)); // just to be sure it's in sync with llpipeline
-			getChild<LLCheckBoxCtrl>("scripted")->setValue(TRUE);
 		}
 	}
 	else if(name == "physical")       LLPipeline::setRenderPhysicalBeacons(check->get());
@@ -115,9 +111,7 @@ void LLFloaterBeacons::onClickUICheck(LLUICtrl *ctrl)
 		{
 			LLPipeline::setRenderBeacons(TRUE);
 			getChild<LLCheckBoxCtrl>("beacons")->setControlValue(LLSD(TRUE));
-			getChild<LLCheckBoxCtrl>("beacons")->setValue(TRUE);
 			getChild<LLCheckBoxCtrl>("highlights")->setControlValue(LLSD(FALSE)); // just to be sure it's in sync with llpipeline
-			getChild<LLCheckBoxCtrl>("highlights")->setValue(FALSE); 
 		}
 	}
 	else if(name == "beacons")
@@ -130,9 +124,7 @@ void LLFloaterBeacons::onClickUICheck(LLUICtrl *ctrl)
 		{
 			LLPipeline::setRenderHighlights(TRUE);
 			getChild<LLCheckBoxCtrl>("highlights")->setControlValue(LLSD(TRUE));
-			getChild<LLCheckBoxCtrl>("highlights")->setValue(TRUE);
 			getChild<LLCheckBoxCtrl>("beacons")->setControlValue(LLSD(FALSE)); // just to be sure it's in sync with llpipeline
-			getChild<LLCheckBoxCtrl>("beacons")->setValue(FALSE); 
 		}
 	}
 }

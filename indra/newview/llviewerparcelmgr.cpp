@@ -2186,8 +2186,7 @@ bool LLViewerParcelMgr::canAgentBuyParcel(LLParcel* parcel, bool forGroup) const
 		return true;	// change this if want to make it gods only
 	}
 	
-	LLVector3 parcel_coord = parcel->getCenterpoint();
-	LLViewerRegion* regionp = LLWorld::getInstance()->getRegionFromPosAgent(parcel_coord);
+	LLViewerRegion* regionp = LLViewerParcelMgr::getInstance()->getSelectionRegion();
 	if (regionp)
 	{
 		U8 sim_access = regionp->getSimAccess();

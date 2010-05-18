@@ -36,7 +36,6 @@
 
 #include "llagent.h"
 #include "llaudioengine.h"
-#include "llmimetypes.h"
 #include "llviewercontrol.h"
 #include "llviewermedia.h"
 #include "llviewerregion.h"
@@ -214,7 +213,7 @@ void LLViewerParcelMedia::play(LLParcel* parcel)
 	}
 	
 	// Don't ever try to play if the media type is set to "none/none"
-	if(stricmp(mime_type.c_str(), LLMIMETypes::getDefaultMimeType().c_str()) != 0)
+	if(stricmp(mime_type.c_str(), "none/none") != 0)
 	{
 		if(!sMediaImpl)
 		{
@@ -308,7 +307,7 @@ LLPluginClassMediaOwner::EMediaStatus LLViewerParcelMedia::getStatus()
 // static
 std::string LLViewerParcelMedia::getMimeType()
 {
-	return sMediaImpl.notNull() ? sMediaImpl->getMimeType() : LLMIMETypes::getDefaultMimeType();
+	return sMediaImpl.notNull() ? sMediaImpl->getMimeType() : "none/none";
 }
 
 //static 
@@ -318,7 +317,7 @@ std::string LLViewerParcelMedia::getURL()
 	if(sMediaImpl.notNull())
 		url = sMediaImpl->getMediaURL();
 	
-	if(stricmp(LLViewerParcelMgr::getInstance()->getAgentParcel()->getMediaType().c_str(), LLMIMETypes::getDefaultMimeType().c_str()) != 0)
+	if(stricmp(LLViewerParcelMgr::getInstance()->getAgentParcel()->getMediaType().c_str(), "none/none") != 0)
 	{
 		if (url.empty())
 			url = LLViewerParcelMgr::getInstance()->getAgentParcel()->getMediaCurrentURL();

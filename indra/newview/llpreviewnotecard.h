@@ -80,11 +80,8 @@ public:
 
 protected:
 
-	void updateTitleButtons();
 	virtual void loadAsset();
 	bool saveIfNeeded(LLInventoryItem* copyitem = NULL);
-
-	void deleteNotecard();
 
 	static void onLoadComplete(LLVFS *vfs,
 							   const LLUUID& asset_uuid,
@@ -92,8 +89,6 @@ protected:
 							   void* user_data, S32 status, LLExtStat ext_status);
 
 	static void onClickSave(void* data);
-
-	static void onClickDelete(void* data);
 
 	static void onSaveComplete(const LLUUID& asset_uuid,
 							   void* user_data,

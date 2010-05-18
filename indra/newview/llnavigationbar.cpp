@@ -376,6 +376,7 @@ void LLNavigationBar::draw()
 	if(mPurgeTPHistoryItems)
 	{
 		LLTeleportHistory::getInstance()->purgeItems();
+		onTeleportHistoryChanged();
 		mPurgeTPHistoryItems = false;
 	}
 

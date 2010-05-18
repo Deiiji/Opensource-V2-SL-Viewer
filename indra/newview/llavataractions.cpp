@@ -36,8 +36,6 @@
 
 #include "llavataractions.h"
 
-#include "boost/lambda/lambda.hpp"	// for lambda::constant
-
 #include "llsd.h"
 #include "lldarray.h"
 #include "llnotifications.h"
@@ -49,7 +47,6 @@
 #include "llappviewer.h"		// for gLastVersionChannel
 #include "llcachename.h"
 #include "llcallingcard.h"		// for LLAvatarTracker
-#include "llfloateravatarpicker.h"	// for LLFloaterAvatarPicker
 #include "llfloatergroupinvite.h"
 #include "llfloatergroups.h"
 #include "llfloaterreg.h"
@@ -58,7 +55,6 @@
 #include "llinventorymodel.h"	// for gInventory.findCategoryUUIDForType
 #include "llimview.h"			// for gIMMgr
 #include "llmutelist.h"
-#include "llnotificationsutil.h"	// for LLNotificationsUtil
 #include "llrecentpeople.h"
 #include "llsidetray.h"
 #include "lltrans.h"
@@ -118,13 +114,13 @@ void LLAvatarActions::removeFriendDialog(const LLUUID& id)
 	if (id.isNull())
 		return;
 
-	uuid_vec_t ids;
+	std::vector<LLUUID> ids;
 	ids.push_back(id);
 	removeFriendsDialog(ids);
 }
 
 // static
-void LLAvatarActions::removeFriendsDialog(const uuid_vec_t& ids)
+void LLAvatarActions::removeFriendsDialog(const std::vector<LLUUID>& ids)
 {
 	if(ids.size() == 0)
 		return;
@@ -149,7 +145,7 @@ void LLAvatarActions::removeFriendsDialog(const uuid_vec_t& ids)
 	}
 
 	LLSD payload;
-	for (uuid_vec_t::const_iterator it = ids.begin(); it != ids.end(); ++it)
+	for (std::vector<LLUUID>::const_iterator it = ids.begin(); it != ids.end(); ++it)
 	{
 		payload["ids"].append(*it);
 	}
@@ -166,21 +162,13 @@ void LLAvatarActions::offerTeleport(const LLUUID& invitee)
 	if (invitee.isNull())
 		return;
 
-	//waiting until Name Cache gets updated with corresponding avatar name
-	std::string just_to_request_name;
-	if (!gCacheName->getFullName(invitee, just_to_request_name))
-	{
-		gCacheName->get(invitee, FALSE, boost::bind((void (*)(const LLUUID&)) &LLAvatarActions::offerTeleport, invitee));
-		return;
-	}
-
 	LLDynamicArray<LLUUID> ids;
 	ids.push_back(invitee);
 	offerTeleport(ids);
 }
 
 // static
-void LLAvatarActions::offerTeleport(const uuid_vec_t& ids) 
+void LLAvatarActions::offerTeleport(const std::vector<LLUUID>& ids) 
 {
 	if (ids.size() == 0)
 		return;
@@ -241,7 +229,7 @@ void LLAvatarActions::startCall(const LLUUID& id)
 }
 
 // static
-void LLAvatarActions::startAdhocCall(const uuid_vec_t& ids)
+void LLAvatarActions::startAdhocCall(const std::vector<LLUUID>& ids)
 {
 	if (ids.size() == 0)
 	{
@@ -250,7 +238,7 @@ void LLAvatarActions::startAdhocCall(const uuid_vec_t& ids)
 
 	// convert vector into LLDynamicArray for addSession
 	LLDynamicArray<LLUUID> id_array;
-	for (uuid_vec_t::const_iterator it = ids.begin(); it != ids.end(); ++it)
+	for (std::vector<LLUUID>::const_iterator it = ids.begin(); it != ids.end(); ++it)
 	{
 		id_array.push_back(*it);
 	}
@@ -291,11 +279,11 @@ bool LLAvatarActions::canCall()
 }
 
 // static
-void LLAvatarActions::startConference(const uuid_vec_t& ids)
+void LLAvatarActions::startConference(const std::vector<LLUUID>& ids)
 {
 	// *HACK: Copy into dynamic array
 	LLDynamicArray<LLUUID> id_array;
-	for (uuid_vec_t::const_iterator it = ids.begin(); it != ids.end(); ++it)
+	for (std::vector<LLUUID>::const_iterator it = ids.begin(); it != ids.end(); ++it)
 	{
 		id_array.push_back(*it);
 	}
@@ -430,16 +418,6 @@ void LLAvatarActions::share(const LLUUID& id)
 	}
 }
 
-//static
-void LLAvatarActions::shareWithAvatars()
-{
-	LLFloaterAvatarPicker* picker =
-		LLFloaterAvatarPicker::show(NULL, FALSE, TRUE);
-	picker->setOkBtnEnableCb(boost::lambda::constant(false));
-
-	LLNotificationsUtil::add("ShareNotification");
-}
-
 // static
 void LLAvatarActions::toggleBlock(const LLUUID& id)
 {
@@ -456,20 +434,6 @@ void LLAvatarActions::toggleBlock(const LLUUID& id)
 	{
 		LLMuteList::getInstance()->add(mute);
 	}
-}
-// static
-bool LLAvatarActions::canOfferTeleport(const LLUUID& id)
-{
-	// First use LLAvatarTracker::isBuddy()
-	// If LLAvatarTracker::instance().isBuddyOnline function only is used
-	// then for avatars that are online and not a friend it will return false.
-	// But we should give an ability to offer a teleport for such avatars.
-	if(LLAvatarTracker::instance().isBuddy(id))
-	{
-		return LLAvatarTracker::instance().isBuddyOnline(id);
-	}
-
-	return true;
 }
 
 void LLAvatarActions::inviteToGroup(const LLUUID& id)
@@ -536,7 +500,7 @@ bool LLAvatarActions::handlePay(const LLSD& notification, const LLSD& response, 
 // static
 void LLAvatarActions::callback_invite_to_group(LLUUID group_id, LLUUID id)
 {
-	uuid_vec_t agent_ids;
+	std::vector<LLUUID> agent_ids;
 	agent_ids.push_back(id);
 	
 	LLFloaterGroupInvite::showForGroup(group_id, &agent_ids);

@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<floater label="(sconosciuto)" name="im_floater" title="(SCONOSCIUTO)">
+	<string name="ringing">
+		Collegamento alla chiamata vocale...
+	</string>
+	<string name="connected">
+		Connesso, clicca &quot;Termina chiamata&quot; per riagganciare
+	</string>
+	<string name="hang_up">
+		Chiusa la chiamata
+	</string>
+	<string name="voice_icon">
+		icn_voice-groupfocus.tga
+	</string>
+	<string name="live_help_dialog">
+		*** Benvenuti alla richiesta di aiuto ***
+    	Consulta prima le pagine dell&apos;Aiuto di SL premendo F1, oppure accedi alla Base conoscenze http://secondlife.com/knowledgebase/
+    	Se non trovi una risposta, digita la tua domanda per iniziare, quindi attendi alcuni istanti affinché uno degli assistenti disponibili possa rispondere.
+    	-=-=- Il tempo di risposta puà variare, specialmente durante le ore di punta -=-=-
+	</string>
+	<string name="title_string">
+		Instant Message (IM) con [NAME]
+	</string>
+	<string name="typing_start_string">
+		[NAME] sta scrivendo...
+	</string>
+	<string name="session_start_string">
+		Inizio sessione con [NAME], attendi per favore.
+	</string>
+	<string name="moderated_chat_label">
+		(Chat Moderata: Voice disabilitato di default)
+	</string>
+	<string name="default_text_label">
+		Clicca qui per un instant message.
+	</string>
+	<string name="muted_text_label">
+		La tua chat di testo è stata disabilitata da un moderatore del gruppo.
+	</string>
+	<layout_stack name="panels">
+		<layout_panel name="im_contents_panel">
+			<button label="Informazioni sul gruppo" name="group_info_btn" width="146"/>
+			<button label="Unisciti alla chiamata" left_delta="151" name="start_call_btn" width="160"/>
+			<button label="Termina la chiamata" name="end_call_btn" width="160"/>
+			<button label="&lt; &lt;" label_selected="&gt; &gt;" name="toggle_active_speakers_btn" tool_tip="Clicca qui per attivare una lista di partecipanti attivi in questa sessione IM"/>
+			<button label="Invia" name="send_btn"/>
+		</layout_panel>
+	</layout_stack>
+</floater>

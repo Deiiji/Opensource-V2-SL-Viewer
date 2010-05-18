@@ -55,7 +55,7 @@ public:
 	virtual void changed() = 0;
 };
 
-class LLGestureMgr : public LLSingleton<LLGestureMgr>, public LLInventoryFetchItemsObserver
+class LLGestureManager : public LLSingleton<LLGestureManager>, public LLInventoryFetchObserver
 {
 public:
 
@@ -64,8 +64,8 @@ public:
 	typedef std::map<LLUUID, LLMultiGesture*> item_map_t;
 	typedef std::map<LLUUID, gesture_loaded_callback_t> callback_map_t;
 
-	LLGestureMgr();
-	~LLGestureMgr();
+	LLGestureManager();
+	~LLGestureManager();
 
 	void init();
 
@@ -147,7 +147,7 @@ public:
 	BOOL matchPrefix(const std::string& in_str, std::string* out_str);
 
 	// Copy item ids into the vector
-	void getItemIDs(uuid_vec_t* ids);
+	void getItemIDs(std::vector<LLUUID>* ids);
 
 protected:
 	// Handle the processing of a single gesture

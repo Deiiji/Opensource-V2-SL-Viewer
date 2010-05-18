@@ -544,13 +544,14 @@ S32 LLAPRFile::readEx(const std::string& filename, void *buf, S32 offset, S32 nb
 		return 0;
 	}
 
-	llassert(offset >= 0);
-
-	if (offset > 0)
-		offset = LLAPRFile::seek(file_handle, APR_SET, offset);
+	S32 off;
+	if (offset < 0)
+		off = LLAPRFile::seek(file_handle, APR_END, 0);
+	else
+		off = LLAPRFile::seek(file_handle, APR_SET, offset);
 	
 	apr_size_t bytes_read;
-	if (offset < 0)
+	if (off < 0)
 	{
 		bytes_read = 0;
 	}

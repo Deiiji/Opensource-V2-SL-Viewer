@@ -76,13 +76,12 @@ public:
 			return false;
 		}
 
+		//*TODO by what to replace showing groups floater?
 		if (tokens[0].asString() == "list")
 		{
 			if (tokens[1].asString() == "show")
 			{
-				LLSD params;
-				params["people_panel_tab_name"] = "groups_panel";
-				LLSideTray::getInstance()->showPanel("panel_people", params);
+				//LLFloaterReg::showInstance("contacts", "groups");
 				return true;
 			}
             return false;
@@ -107,7 +106,7 @@ public:
 		{
 			if (group_id.isNull())
 				return true;
-			LLGroupActions::inspect(group_id);
+			LLGroupActions::show(group_id);
 			return true;
 		}
 		return false;
@@ -246,12 +245,6 @@ static bool isGroupUIVisible()
 	if(!panel)
 		return false;
 	return panel->isInVisibleChain();
-}
-
-// static 
-void LLGroupActions::inspect(const LLUUID& group_id)
-{
-	LLFloaterReg::showInstance("inspect_group", LLSD().with("group_id", group_id));
 }
 
 // static

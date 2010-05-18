@@ -108,9 +108,7 @@ BOOL LLNearbyChat::postBuild()
 			getDockTongue(), LLDockControl::TOP, boost::bind(&LLNearbyChat::getAllowedRect, this, _1)));
 	}
 
-        //fix for EXT-4621 
-        //chrome="true" prevents floater from stilling capture
-        setIsChrome(true);
+	setIsChrome(true);
 	//chrome="true" hides floater caption 
 	if (mDragHandle)
 		mDragHandle->setTitleVisible(TRUE);
@@ -354,14 +352,3 @@ void LLNearbyChat::onFocusLost()
 	LLPanel::onFocusLost();
 }
 
-BOOL	LLNearbyChat::handleMouseDown(S32 x, S32 y, MASK mask)
-{
-	//fix for EXT-6625
-	//highlight NearbyChat history whenever mouseclick happen in NearbyChat
-	//setting focus to eidtor will force onFocusLost() call that in its turn will change 
-	//background opaque. This all happenn since NearByChat is "chrome" and didn't process focus change.
-	
-	if(mChatHistory)
-		mChatHistory->setFocus(TRUE);
-	return LLDockableFloater::handleMouseDown(x, y, mask);
-}

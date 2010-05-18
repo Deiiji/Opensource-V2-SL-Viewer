@@ -46,8 +46,7 @@ class LLMute
 {
 public:
 	// Legacy mutes are BY_NAME and have null UUID.
-	// EXTERNAL mutes are only processed through an external system (e.g. Voice) and not stored.
-	enum EType { BY_NAME = 0, AGENT = 1, OBJECT = 2, GROUP = 3, EXTERNAL = 4, COUNT = 5 };
+	enum EType { BY_NAME = 0, AGENT = 1, OBJECT = 2, GROUP = 3, COUNT = 4 };
 	
 	// Bits in the mute flags.  For backwards compatibility (since any mute list entries that were created before the flags existed
 	// will have a flags field of 0), some of the flags are "inverted".

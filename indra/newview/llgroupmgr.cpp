@@ -161,7 +161,7 @@ LLGroupRoleData::~LLGroupRoleData()
 {	
 }
 
-S32 LLGroupRoleData::getMembersInRole(uuid_vec_t members,
+S32 LLGroupRoleData::getMembersInRole(std::vector<LLUUID> members,
 									  BOOL needs_sort)
 {
 	if (mRoleID.isNull())
@@ -185,8 +185,8 @@ S32 LLGroupRoleData::getMembersInRole(uuid_vec_t members,
 
 	// Return the number of members in the intersection.
 	S32 max_size = llmin( members.size(), mMemberIDs.size() );
-	uuid_vec_t in_role( max_size );
-	uuid_vec_t::iterator in_role_end;
+	std::vector<LLUUID> in_role( max_size );
+	std::vector<LLUUID>::iterator in_role_end;
 	in_role_end = std::set_intersection(mMemberIDs.begin(), mMemberIDs.end(),
 									members.begin(), members.end(),
 									in_role.begin());
@@ -201,7 +201,7 @@ void LLGroupRoleData::addMember(const LLUUID& member)
 
 bool LLGroupRoleData::removeMember(const LLUUID& member)
 {
-	uuid_vec_t::iterator it = std::find(mMemberIDs.begin(),mMemberIDs.end(),member);
+	std::vector<LLUUID>::iterator it = std::find(mMemberIDs.begin(),mMemberIDs.end(),member);
 
 	if (it != mMemberIDs.end())
 	{
@@ -1737,7 +1737,7 @@ void LLGroupMgr::sendGroupMemberInvites(const LLUUID& group_id, std::map<LLUUID,
 
 //static
 void LLGroupMgr::sendGroupMemberEjects(const LLUUID& group_id,
-									   uuid_vec_t& member_ids)
+									   std::vector<LLUUID>& member_ids)
 {
 	bool start_message = true;
 	LLMessageSystem* msg = gMessageSystem;
@@ -1747,7 +1747,7 @@ void LLGroupMgr::sendGroupMemberEjects(const LLUUID& group_id,
 	LLGroupMgrGroupData* group_datap = LLGroupMgr::getInstance()->getGroupData(group_id);
 	if (!group_datap) return;
 
-	for (uuid_vec_t::iterator it = member_ids.begin();
+	for (std::vector<LLUUID>::iterator it = member_ids.begin();
 		 it != member_ids.end(); ++it)
 	{
 		LLUUID& ejected_member_id = (*it);

@@ -275,7 +275,6 @@
              layout="topleft"
              left="5"
              name="description"
-             textbox.label="More"
              top_pad="10"
              value="Du waltz die spritz"
              width="300" />
@@ -321,7 +320,6 @@
              follows="all"
              height="223"
              layout="topleft"
-             single_expansion="true"
              left="0"
              name="advanced_info_accordion"
              top_pad="10"
@@ -744,6 +742,7 @@
                          bg_focus_color="DkGray2"
                          bg_readonly_color="DkGray2"
                          follows="left|top|right"
+                         handle_edit_keys_directly="true"
                          height="90"
                          layout="topleft"
                          left="10"

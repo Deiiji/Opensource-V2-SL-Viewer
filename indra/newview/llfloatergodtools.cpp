@@ -829,6 +829,7 @@ const F32 HOURS_TO_RADIANS = (2.f*F_PI)/24.f;
 LLPanelGridTools::LLPanelGridTools() :
 	LLPanel()
 {
+	mCommitCallbackRegistrar.add("GridTools.KickAll",		boost::bind(&LLPanelGridTools::onClickKickAll, this));	
 	mCommitCallbackRegistrar.add("GridTools.FlushMapVisibilityCaches",		boost::bind(&LLPanelGridTools::onClickFlushMapVisibilityCaches, this));	
 }
 
@@ -844,6 +845,46 @@ BOOL LLPanelGridTools::postBuild()
 
 void LLPanelGridTools::refresh()
 {
+}
+
+void LLPanelGridTools::onClickKickAll()
+{
+	LLNotificationsUtil::add("KickAllUsers", LLSD(), LLSD(), LLPanelGridTools::confirmKick);
+}
+
+
+bool LLPanelGridTools::confirmKick(const LLSD& notification, const LLSD& response)
+{
+	if (LLNotificationsUtil::getSelectedOption(notification, response) == 0)
+	{
+		LLSD payload;
+		payload["kick_message"] = response["message"].asString();
+		LLNotificationsUtil::add("ConfirmKick", LLSD(), payload, LLPanelGridTools::finishKick);
+	}
+	return false;
+}
+
+
+// static
+bool LLPanelGridTools::finishKick(const LLSD& notification, const LLSD& response)
+{
+	S32 option = LLNotificationsUtil::getSelectedOption(notification, response);
+
+
+	if (option == 0)
+	{
+		LLMessageSystem* msg = gMessageSystem;
+
+		msg->newMessageFast(_PREHASH_GodKickUser);
+		msg->nextBlockFast(_PREHASH_UserInfo);
+		msg->addUUIDFast(_PREHASH_GodID, gAgent.getID());
+		msg->addUUIDFast(_PREHASH_GodSessionID, gAgent.getSessionID());
+		msg->addUUIDFast(_PREHASH_AgentID,   LL_UUID_ALL_AGENTS );
+		msg->addU32("KickFlags", KICK_FLAGS_DEFAULT );
+		msg->addStringFast(_PREHASH_Reason,    notification["payload"]["kick_message"].asString());
+		gAgent.sendReliableMessage();
+	}
+	return false;
 }
 
 void LLPanelGridTools::onClickFlushMapVisibilityCaches()
@@ -923,7 +964,6 @@ LLPanelObjectTools::~LLPanelObjectTools()
 
 BOOL LLPanelObjectTools::postBuild()
 {
-	refresh();
 	return TRUE;
 }
 
@@ -1152,7 +1192,7 @@ void LLPanelObjectTools::onClickSetBySelection(void* data)
 	panelp->childSetValue("target_avatar_name", name);
 }
 
-void LLPanelObjectTools::callbackAvatarID(const std::vector<std::string>& names, const uuid_vec_t& ids)
+void LLPanelObjectTools::callbackAvatarID(const std::vector<std::string>& names, const std::vector<LLUUID>& ids)
 {
 	if (ids.empty() || names.empty()) return;
 	mTargetAvatar = ids[0];

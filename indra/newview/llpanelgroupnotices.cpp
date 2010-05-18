@@ -39,7 +39,6 @@
 
 #include "llinventory.h"
 #include "llviewerinventory.h"
-#include "llinventorydefines.h"
 #include "llinventoryfunctions.h"
 #include "llinventorymodel.h"
 #include "llfloaterinventory.h"
@@ -331,7 +330,7 @@ void LLPanelGroupNotices::setItem(LLPointer<LLInventoryItem> inv_item)
 	mInventoryItem = inv_item;
 
 	BOOL item_is_multi = FALSE;
-	if ( inv_item->getFlags() & LLInventoryItemFlags::II_FLAGS_OBJECT_HAS_MULTIPLE_ITEMS )
+	if ( inv_item->getFlags() & LLInventoryItem::II_FLAGS_OBJECT_HAS_MULTIPLE_ITEMS )
 	{
 		item_is_multi = TRUE;
 	};
@@ -518,11 +517,6 @@ void LLPanelGroupNotices::processNotices(LLMessageSystem* msg)
 
 	mNoticesList->setEnabled(TRUE);
 
-	//save sort state and set unsorted state to prevent unnecessary 
-	//sorting while adding notices
-	bool save_sort = mNoticesList->isSorted();
-	mNoticesList->setNeedsSort(false);
-
 	for (;i<count;++i)
 	{
 		msg->getUUID("Data","NoticeID",id,i);
@@ -533,13 +527,6 @@ void LLPanelGroupNotices::processNotices(LLMessageSystem* msg)
 			mNoticesList->setEnabled(FALSE);
 			return;
 		}
-
-		//with some network delays we can receive notice list more then once...
-		//so add only unique notices
-		S32 pos = mNoticesList->getItemIndex(id);
-
-		if(pos!=-1)//if items with this ID already in the list - skip it
-			continue;
 			
 		msg->getString("Data","Subject",subj,i);
 		msg->getString("Data","FromName",name,i);
@@ -575,7 +562,6 @@ void LLPanelGroupNotices::processNotices(LLMessageSystem* msg)
 		mNoticesList->addElement(row, ADD_BOTTOM);
 	}
 
-	mNoticesList->setNeedsSort(save_sort);
 	mNoticesList->updateSort();
 }
 
@@ -670,9 +656,6 @@ void LLPanelGroupNotices::setGroupID(const LLUUID& id)
 
 	if(mViewMessage) 
 		mViewMessage->clear();
-
-	if(mViewInventoryName)
-		mViewInventoryName->clear();
 	
 	activate();
 }

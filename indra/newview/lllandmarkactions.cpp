@@ -37,7 +37,6 @@
 #include "roles_constants.h"
 
 #include "llinventory.h"
-#include "llinventoryfunctions.h"
 #include "lllandmark.h"
 #include "llparcel.h"
 #include "llregionhandle.h"

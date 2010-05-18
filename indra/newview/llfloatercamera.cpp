@@ -39,11 +39,11 @@
 #include "llfloaterreg.h"
 
 // Viewer includes
-#include "llagentcamera.h"
 #include "lljoystickbutton.h"
 #include "llviewercontrol.h"
 #include "llviewercamera.h"
 #include "llbottomtray.h"
+#include "llagent.h"
 #include "lltoolmgr.h"
 #include "lltoolfocus.h"
 #include "llslider.h"
@@ -105,7 +105,7 @@ BOOL LLPanelCameraZoom::postBuild()
 
 void LLPanelCameraZoom::draw()
 {
-	mSlider->setValue(gAgentCamera.getCameraZoomFraction());
+	mSlider->setValue(gAgent.getCameraZoomFraction());
 	LLPanel::draw();
 }
 
@@ -132,7 +132,7 @@ void LLPanelCameraZoom::onZoomMinusHeldDown()
 void  LLPanelCameraZoom::onSliderValueChanged()
 {
 	F32 zoom_level = mSlider->getValueF32();
-	gAgentCamera.setCameraZoomFraction(zoom_level);
+	gAgent.setCameraZoomFraction(zoom_level);
 }
 
 void activate_camera_tool()
@@ -147,7 +147,7 @@ void activate_camera_tool()
 /*static*/ bool LLFloaterCamera::inFreeCameraMode()
 {
 	LLFloaterCamera* floater_camera = LLFloaterCamera::findInstance();
-	if (floater_camera && floater_camera->mCurrMode == CAMERA_CTRL_MODE_FREE_CAMERA && gAgentCamera.getCameraMode() != CAMERA_MODE_MOUSELOOK)
+	if (floater_camera && floater_camera->mCurrMode == CAMERA_CTRL_MODE_FREE_CAMERA && gAgent.getCameraMode() != CAMERA_MODE_MOUSELOOK)
 	{
 		return true;
 	}
@@ -266,7 +266,7 @@ ECameraControlMode LLFloaterCamera::determineMode()
 		return CAMERA_CTRL_MODE_FREE_CAMERA;
 	} 
 
-	if (gAgentCamera.getCameraMode() == CAMERA_MODE_MOUSELOOK)
+	if (gAgent.getCameraMode() == CAMERA_MODE_MOUSELOOK)
 	{
 		return CAMERA_CTRL_MODE_AVATAR_VIEW;
 	}
@@ -422,7 +422,7 @@ void LLFloaterCamera::updateCameraPresetButtons()
 	childSetValue("rear_view",		preset == CAMERA_PRESET_REAR_VIEW);
 	childSetValue("group_view",		preset == CAMERA_PRESET_GROUP_VIEW);
 	childSetValue("front_view",		preset == CAMERA_PRESET_FRONT_VIEW);
-	childSetValue("mouselook_view",	gAgentCamera.cameraMouselook());
+	childSetValue("mouselook_view",	gAgent.cameraMouselook());
 }
 
 void LLFloaterCamera::onClickCameraPresets(const LLSD& param)
@@ -431,19 +431,19 @@ void LLFloaterCamera::onClickCameraPresets(const LLSD& param)
 
 	if ("rear_view" == name)
 	{
-		gAgentCamera.switchCameraPreset(CAMERA_PRESET_REAR_VIEW);
+		gAgent.switchCameraPreset(CAMERA_PRESET_REAR_VIEW);
 	}
 	else if ("group_view" == name)
 	{
-		gAgentCamera.switchCameraPreset(CAMERA_PRESET_GROUP_VIEW);
+		gAgent.switchCameraPreset(CAMERA_PRESET_GROUP_VIEW);
 	}
 	else if ("front_view" == name)
 	{
-		gAgentCamera.switchCameraPreset(CAMERA_PRESET_FRONT_VIEW);
+		gAgent.switchCameraPreset(CAMERA_PRESET_FRONT_VIEW);
 	}
 	else if ("mouselook_view" == name)
 	{
-		gAgentCamera.changeCameraToMouselook();
+		gAgent.changeCameraToMouselook();
 	}
 
 	LLFloaterCamera* camera_floater = LLFloaterCamera::findInstance();

@@ -521,7 +521,7 @@ void LLScriptExecuteLSL2::callNextQueuedEventHandler(U64 event_register, const L
 		}
 		else
 		{
-			llwarns << "Somehow got an event that we're not registered for!" << llendl;
+			llwarns << "Shit, somehow got an event that we're not registered for!" << llendl;
 		}
 		delete eventdata;
 	}

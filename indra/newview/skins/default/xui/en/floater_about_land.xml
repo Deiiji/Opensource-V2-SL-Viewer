@@ -636,6 +636,7 @@ Leyla Linden               </text>
              length="1"
              enabled="false"
              follows="all"
+             handle_edit_keys_directly="true"
              height="200"
              layout="topleft"
              left="10"
@@ -1061,8 +1062,7 @@ Leyla Linden               </text>
              left="10"
              name="Autoreturn"
              top_pad="0"
-             width="412"
-             wrap="true">
+             width="310">
                 Auto return other Residents&apos; objects (minutes, 0 for off):
             </text>
             <line_editor
@@ -1074,9 +1074,9 @@ Leyla Linden               </text>
              layout="topleft"
              max_length="6"
              name="clean other time"
-             left_pad="0"
-             width="46"
-             top_delta="-2"/>
+             right="-72"
+             width="56"
+             top_delta="-6"/>
             <text
              type="string"
              length="1"

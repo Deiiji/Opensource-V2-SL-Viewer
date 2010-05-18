@@ -82,7 +82,7 @@ void LLNameListCtrl::addNameItem(const LLUUID& agent_id, EAddPosition pos,
 	item.enabled = enabled;
 	item.target = INDIVIDUAL;
 
-	addNameItemRow(item, pos, suffix);
+	addNameItemRow(item, pos);
 }
 
 // virtual, public
@@ -149,30 +149,16 @@ void	LLNameListCtrl::mouseOverHighlightNthItem( S32 target_index )
 		if(0 <= cur_index && cur_index < (S32)getItemList().size())
 		{
 			LLScrollListItem* item = getItemList()[cur_index];
-			if (item)
-			{
-				LLScrollListText* cell = dynamic_cast<LLScrollListText*>(item->getColumn(mNameColumnIndex));
-				if (cell)
-					cell->setTextWidth(cell->getTextWidth() + info_icon_size);
-			}
-			else
-			{
-				llwarns << "highlighted name list item is NULL" << llendl;
-			}
+			LLScrollListText* cell = dynamic_cast<LLScrollListText*>(item->getColumn(mNameColumnIndex));
+			if(cell)
+				cell->setTextWidth(cell->getTextWidth() + info_icon_size);
 		}
 		if(target_index != -1)
 		{
 			LLScrollListItem* item = getItemList()[target_index];
 			LLScrollListText* cell = dynamic_cast<LLScrollListText*>(item->getColumn(mNameColumnIndex));
-			if (item)
-			{
-				if (cell)
-					cell->setTextWidth(cell->getTextWidth() - info_icon_size);
-			}
-			else
-			{
-				llwarns << "target name item is NULL" << llendl;
-			}
+			if(cell)
+				cell->setTextWidth(cell->getTextWidth() - info_icon_size);
 		}
 	}
 

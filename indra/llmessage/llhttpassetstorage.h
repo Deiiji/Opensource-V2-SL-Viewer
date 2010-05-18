@@ -49,14 +49,13 @@ class LLHTTPAssetStorage : public LLAssetStorage
 {
 public:
 	LLHTTPAssetStorage(LLMessageSystem *msg, LLXferManager *xfer,
-					   LLVFS *vfs, LLVFS *static_vfs,
-					   const LLHost &upstream_host,
+					   LLVFS *vfs, const LLHost &upstream_host,
 					   const std::string& web_host,
 					   const std::string& local_web_host,
 					   const std::string& host_name);
 
 	LLHTTPAssetStorage(LLMessageSystem *msg, LLXferManager *xfer,
-					   LLVFS *vfs, LLVFS *static_vfs,
+					   LLVFS *vfs,
 					   const std::string& web_host,
 					   const std::string& local_web_host,
 					   const std::string& host_name);

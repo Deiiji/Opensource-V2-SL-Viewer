@@ -1,41 +1,33 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes" ?>
  <panel
-     background_visible="true"
 	 follows="all"
 	 height="400"
 	 layout="topleft"
-	 left="0"
+	 left="10"
 	 name="edit_alpha_panel"
 	 top_pad="10"
-	 width="333" >
+	 width="313" >
    <panel
-      border="false"
-      bg_alpha_color="DkGray2"
-      bg_opaque_color="DkGray2"
-      background_visible="true"
-      background_opaque="true"
-      follows="top|left|right"
-      height="400" 
+      border="true"
+      follows="left|top|right" 
+      height="180" 
       left="10" 
       layout="topleft" 
       name="avatar_alpha_color_panel"
       top="0"
-      width="313" >
+      width="293" >
        <texture_picker
         can_apply_immediately="true"
         default_image_name="Default"
         follows="left|top"
-        height="100"
+        height="80"
         label="Lower Alpha"
         layout="topleft"
-        left="30"
+        left="10"
         name="Lower Alpha"
         tool_tip="Click to choose a picture"
         top="10"
-        width="94" >
-         <texture_picker.commit_callback
-             function="TexturePicker.Commit" />
-       </texture_picker>
+        width="64" />
        <check_box
         control_name="LowerAlphaTextureInvisible"
         follows="left"
@@ -49,17 +41,14 @@
         can_apply_immediately="true"
         default_image_name="Default"
         follows="left|top"
-        height="100"
+        height="80"
         label="Upper Alpha"
         layout="topleft"
-        left_pad="20"
+        left_pad="10"
         name="Upper Alpha"
         tool_tip="Click to choose a picture"
         top="10"
-        width="94">
-         <texture_picker.commit_callback
-             function="TexturePicker.Commit" />
-       </texture_picker>
+        width="64" />
        <check_box
         control_name="UpperAlphaTextureInvisible"
         follows="left"
@@ -73,17 +62,14 @@
         can_apply_immediately="true"
         default_image_name="Default"
         follows="left|top"
-        height="100"
+        height="80"
         label="Head Alpha"
         layout="topleft"
-        left="30"
+        left_pad="10"
         name="Head Alpha"
         tool_tip="Click to choose a picture"
-        top="120"
-        width="94" >
-         <texture_picker.commit_callback
-             function="TexturePicker.Commit" />
-       </texture_picker>
+        top="10"
+        width="64" />
        <check_box
         control_name="HeadAlphaTextureInvisible"
         follows="left"
@@ -97,17 +83,14 @@
         can_apply_immediately="true"
         default_image_name="Default"
         follows="left|top"
-        height="100"
+        height="80"
         label="Eye Alpha"
         layout="topleft"
-        left_pad="20"
+        left="10"
         name="Eye Alpha"
         tool_tip="Click to choose a picture"
-        top="120"
-        width="94" >
-         <texture_picker.commit_callback
-             function="TexturePicker.Commit" />
-       </texture_picker>
+        top="100"
+        width="64" />
        <check_box
         control_name="Eye AlphaTextureInvisible"
         follows="left"
@@ -121,17 +104,14 @@
         can_apply_immediately="true"
         default_image_name="Default"
         follows="left|top"
-        height="100"
+        height="80"
         label="Hair Alpha"
         layout="topleft"
-        left="30"
+        left_pad="10"
         name="Hair Alpha"
         tool_tip="Click to choose a picture"
-        top="230"
-        width="94" >
-         <texture_picker.commit_callback
-             function="TexturePicker.Commit" />
-       </texture_picker>
+        top_delta="-4"
+        width="64" />
        <check_box
         control_name="HairAlphaTextureInvisible"
         follows="left"

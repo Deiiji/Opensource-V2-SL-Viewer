@@ -37,7 +37,7 @@
 
 #include "llpanel.h"
 #include "llmodaldialog.h"
-#include "lleventtimer.h"
+#include "lltimer.h"
 #include "llnotificationptr.h"
 
 #include "llviewercontrol.h"
@@ -49,34 +49,12 @@
 namespace LLNotificationsUI
 {
 
-class LLToast;
-/**
- * Timer for toasts.
- */
-class LLToastLifeTimer: public LLEventTimer
-{
-public:
-	LLToastLifeTimer(LLToast* toast, F32 period) : mToast(toast), LLEventTimer(period){}
-
-	/*virtual*/
-	BOOL tick();
-	void stop() { mEventTimer.stop(); }
-	void start() { mEventTimer.start(); }
-	void restart() {mEventTimer.reset(); }
-	BOOL getStarted() { return mEventTimer.getStarted(); }
-
-	LLTimer&  getEventTimer() { return mEventTimer;}
-private :
-	LLToast* mToast;
-};
-
 /**
  * Represents toast pop-up.
  * This is a parent view for all toast panels.
  */
 class LLToast : public LLModalDialog
 {
-	friend class LLToastLifeTimer;
 public:
 	typedef boost::function<void (LLToast* toast)> toast_callback_t;
 	typedef boost::signals2::signal<void (LLToast* toast)> toast_signal_t;
@@ -130,12 +108,12 @@ public:
 	LLPanel* getPanel() { return mPanel; }
 	// enable/disable Toast's Hide button
 	void setHideButtonEnabled(bool enabled);
+	// initialize and start Toast's timer
+	void setAndStartTimer(F32 period);
 	// 
-	void resetTimer() { mTimer->start(); }
+	void resetTimer() { mTimer.start(); }
 	//
-	void stopTimer() { mTimer->stop(); }
-	//
-	LLToastLifeTimer* getTimer() { return mTimer.get();}
+	void stopTimer() { mTimer.stop(); }
 	//
 	virtual void draw();
 	//
@@ -191,15 +169,18 @@ public:
 	boost::signals2::connection setMouseEnterCallback( const commit_signal_t::slot_type& cb ) { return mToastMouseEnterSignal.connect(cb); };
 	boost::signals2::connection setMouseLeaveCallback( const commit_signal_t::slot_type& cb ) { return mToastMouseLeaveSignal.connect(cb); };
 
-	virtual S32	notifyParent(const LLSD& info);
-
 private:
 
 	void onToastMouseEnter();
 
 	void onToastMouseLeave();
 
-	void	expire();
+	void handleTipToastClick(S32 x, S32 y, MASK mask);
+
+	// check timer
+	bool	lifetimeHasExpired();
+	// on timer finished function
+	void	tick();
 
 	LLUUID				mNotificationID;
 	LLUUID				mSessionID;
@@ -208,13 +189,13 @@ private:
 	LLPanel* mWrapperPanel;
 
 	// timer counts a lifetime of a toast
-	std::auto_ptr<LLToastLifeTimer> mTimer;
-
+	LLTimer		mTimer;
 	F32			mToastLifetime; // in seconds
 	F32			mToastFadingTime; // in seconds
 
 	LLPanel*		mPanel;
 	LLButton*		mHideBtn;
+	LLTextEditor*	mTextEditor;
 
 	LLColor4	mBgColor;
 	bool		mCanFade;

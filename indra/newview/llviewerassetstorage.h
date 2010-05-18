@@ -43,10 +43,10 @@ class LLViewerAssetStorage : public LLAssetStorage
 {
 public:
 	LLViewerAssetStorage(LLMessageSystem *msg, LLXferManager *xfer,
-				   LLVFS *vfs, LLVFS *static_vfs, const LLHost &upstream_host);
+				   LLVFS *vfs, const LLHost &upstream_host);
 
 	LLViewerAssetStorage(LLMessageSystem *msg, LLXferManager *xfer,
-				   LLVFS *vfs, LLVFS *static_vfs);
+				   LLVFS *vfs);
 
 	using LLAssetStorage::storeAssetData;
 	virtual void storeAssetData(

@@ -166,8 +166,6 @@ class LLMediaPluginTest : public LLPluginClassMediaOwner
 		int mRandomBookmarks;
 		int mIdDisableTimeout;
 		int mDisableTimeout;
-		int mIdUsePluginReadThread;
-		int mUsePluginReadThread;
 		int mIdLargePanelSpacing;
 		int mLargePanelSpacing;
 		int mIdControlCrashPlugin;

@@ -55,7 +55,6 @@
 #include "llstatusbar.h"
 #include "lltextbox.h"
 #include "lltexturectrl.h"
-#include "lltrans.h"
 #include "llviewchildren.h"
 #include "llviewercontrol.h"
 #include "lluictrlfactory.h"
@@ -1174,13 +1173,13 @@ void LLFloaterBuyLandUI::refreshUI()
 		
 		if (!mParcelValid)
 		{
-			message += LLTrans::getString("sentences_separator") + getString("no_parcel_selected");
+			message += getString("no_parcel_selected");
 		}
 		else if (mParcelBillableArea == mParcelActualArea)
 		{
 			LLStringUtil::format_map_t string_args;
 			string_args["[AMOUNT]"] = llformat("%d ", mParcelActualArea);
-			message += LLTrans::getString("sentences_separator") + getString("parcel_meters", string_args);
+			message += getString("parcel_meters", string_args);
 		}
 		else
 		{
@@ -1189,13 +1188,13 @@ void LLFloaterBuyLandUI::refreshUI()
 			{	
 				LLStringUtil::format_map_t string_args;
 				string_args["[AMOUNT]"] = llformat("%d ", mParcelBillableArea);
-				message += LLTrans::getString("sentences_separator") + getString("premium_land", string_args);
+				message += getString("premium_land", string_args);
 			}
 			else
 			{
 				LLStringUtil::format_map_t string_args;
 				string_args["[AMOUNT]"] = llformat("%d ", mParcelBillableArea);
-				message += LLTrans::getString("sentences_separator") + getString("discounted_land", string_args);
+				message += getString("discounted_land", string_args);
 			}
 		}
 

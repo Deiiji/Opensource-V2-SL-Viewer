@@ -134,7 +134,6 @@ public:
 	U8 mData[UUID_BYTES];
 };
 
-typedef std::vector<LLUUID> uuid_vec_t;
 
 // Construct
 inline LLUUID::LLUUID()

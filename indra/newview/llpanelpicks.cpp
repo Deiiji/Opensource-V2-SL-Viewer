@@ -289,8 +289,7 @@ void LLPanelPicks::processProperties(void* data, EAvatarProcessorType type)
 		LLAvatarClassifieds* c_info = static_cast<LLAvatarClassifieds*>(data);
 		if(c_info && getAvatarId() == c_info->target_id)
 		{
-			// do not clear classified list in case we will receive two or more data packets.
-			// list has been cleared in updateData(). (fix for EXT-6436)
+			mClassifiedsList->clear();
 
 			LLAvatarClassifieds::classifieds_list_t::const_iterator it = c_info->classifieds_list.begin();
 			for(; c_info->classifieds_list.end() != it; ++it)

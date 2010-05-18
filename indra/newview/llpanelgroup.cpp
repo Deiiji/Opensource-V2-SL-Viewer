@@ -60,8 +60,6 @@
 #include "llaccordionctrltab.h"
 #include "llaccordionctrl.h"
 
-#include "lltrans.h"
-
 static LLRegisterPanelClassWrapper<LLPanelGroup> t_panel_group("panel_group_info_sidetray");
 
 
@@ -336,9 +334,8 @@ void LLPanelGroup::update(LLGroupChange gc)
 	LLGroupMgrGroupData* gdatap = LLGroupMgr::getInstance()->getGroupData(mID);
 	if(gdatap)
 	{
-		std::string group_name =  gdatap->mName.empty() ? LLTrans::getString("LoadingData") : gdatap->mName;
-		childSetValue("group_name", group_name);
-		childSetToolTip("group_name",group_name);
+		childSetValue("group_name", gdatap->mName);
+		childSetToolTip("group_name",gdatap->mName);
 		
 		LLGroupData agent_gdatap;
 		bool is_member = gAgent.getGroupData(mID,agent_gdatap) || gAgent.isGodlike();
@@ -383,9 +380,8 @@ void LLPanelGroup::setGroupID(const LLUUID& group_id)
 	LLGroupMgrGroupData* gdatap = LLGroupMgr::getInstance()->getGroupData(mID);
 	if(gdatap)
 	{
-		std::string group_name =  gdatap->mName.empty() ? LLTrans::getString("LoadingData") : gdatap->mName;
-		childSetValue("group_name", group_name);
-		childSetToolTip("group_name",group_name);
+		childSetValue("group_name", gdatap->mName);
+		childSetToolTip("group_name",gdatap->mName);
 	}
 
 	LLButton* button_apply = findChild<LLButton>("btn_apply");

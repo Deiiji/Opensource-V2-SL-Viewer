@@ -35,7 +35,6 @@
 #include "llviewerprecompiledheaders.h"
 
 #include "llurlsimstring.h"
-#include "llslurl.h"
 
 #include "llpanellogin.h"
 #include "llviewercontrol.h"
@@ -61,10 +60,6 @@ void LLURLSimString::setString(const std::string& sim_string)
 	else if (sim_string == "")
 	{
 		sInstance.mSimString = "";
-	}
-	else if (LLSLURL::isSLURL(sim_string))
-	{
-		sInstance.mSimString = LLURLSimString::unescapeRegionName(LLSLURL::stripProtocol(sim_string));
 	}
 	else
 	{
@@ -148,14 +143,9 @@ bool LLURLSimString::parse()
 
 // static
 bool LLURLSimString::parse(const std::string& sim_string,
-			   std::string *region_name,
-			   S32 *x, S32 *y, S32 *z)
+						   std::string *region_name,
+						   S32 *x, S32 *y, S32 *z)
 {
-	llassert(NULL != region_name);
-	llassert(NULL != x);
-	llassert(NULL != y);
-	llassert(NULL != z);
-
 	// strip any bogus initial '/'
 	std::string::size_type idx0 = sim_string.find_first_not_of('/');
 	if (idx0 == std::string::npos) idx0 = 0;
@@ -173,19 +163,6 @@ bool LLURLSimString::parse(const std::string& sim_string,
 			idx1 = parseGridIdx(sim_string, idx1, &xs);
 			idx1 = parseGridIdx(sim_string, idx1, &ys);
 			idx1 = parseGridIdx(sim_string, idx1, &zs);
-
-			// If position data exists but it's outside of currently-understood bounds then return failure.  Don't just clamp-and-continue etc. because this would change the behaviour of invalid SLURLs that are built to expect clamping, if they become valid one day (i.e. sim dimension limits change) which would be setting us up for subtle content breakage.
-			if (F32(xs) > REGION_WIDTH_METERS || // consts from indra_constants.h
-			    F32(ys) > REGION_WIDTH_METERS ||
-			    F32(zs) > REGION_HEIGHT_METERS ||
-			    F32(xs) < 0.f ||
-			    F32(ys) < 0.f ||
-			    F32(zs) < 0.f)
-			{
-				LL_WARNS("SLURL") << "SLURL " << sim_string << "contains out-of-bounds co-ordinates.  Rejecting." << LL_ENDL;
-				return false;
-			}
-
 			*x = xs;
 			*y = ys;
 			*z = zs;

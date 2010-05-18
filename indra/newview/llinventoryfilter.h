@@ -85,7 +85,6 @@ public:
 
 	void 				setFilterSubString(const std::string& string);
 	const std::string& 	getFilterSubString(BOOL trim = FALSE) const;
-	const std::string& 	getFilterSubStringOrig() const { return mFilterSubStringOrig; } 
 	BOOL 				hasFilterString() const;
 
 	void 				setFilterPermissions(PermissionMask perms);
@@ -183,7 +182,6 @@ private:
 
 	std::string::size_type	mSubStringMatchOffset;
 	std::string				mFilterSubString;
-	std::string				mFilterSubStringOrig;
 	const std::string		mName;
 
 	S32						mFilterGeneration;

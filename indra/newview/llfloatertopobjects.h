@@ -90,7 +90,7 @@ private:
 	std::string mMethod;
 
 	LLSD mObjectListData;
-	uuid_vec_t mObjectListIDs;
+	std::vector<LLUUID> mObjectListIDs;
 
 	U32 mCurrentMode;
 	U32 mFlags;

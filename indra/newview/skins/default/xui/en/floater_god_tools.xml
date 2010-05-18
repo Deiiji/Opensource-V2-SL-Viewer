@@ -31,6 +31,19 @@
             <button
              follows="left|top"
              height="20"
+             label="Kick all Residents"
+             label_selected="Kick all Residents"
+             layout="topleft"
+             left="10"
+             name="Kick all users"
+             top="30"
+             width="120">
+				<button.commit_callback
+				function="GridTools.KickAll" />
+			</button>
+            <button
+             follows="left|top"
+             height="20"
              label="Flush This Region&apos;s Map Visibility Caches"
              label_selected="Flush This Region&apos;s Map Visibility Caches"
              layout="topleft"
@@ -61,10 +74,10 @@
              height="10"
              layout="topleft"
              left="10"
-             name="Region Name:"
+             name="Sim Name:"
              top="12"
              width="80">
-                Region Name:
+                Sim Name:
             </text>
             <line_editor
              border_style="line"
@@ -481,10 +494,10 @@
              height="10"
              layout="topleft"
              left="10"
-             name="Region Name:"
+             name="Sim Name:"
              top="10"
              width="80">
-                Region Name:
+                Sim Name:
             </text>
             <text
              type="string"

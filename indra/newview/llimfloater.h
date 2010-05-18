@@ -130,7 +130,7 @@ private:
 	BOOL dropCategory(LLInventoryCategory* category, BOOL drop);
 
 	BOOL isInviteAllowed() const;
-	BOOL inviteToSession(const uuid_vec_t& agent_ids);
+	BOOL inviteToSession(const std::vector<LLUUID>& agent_ids);
 	
 	static void		onInputEditorFocusReceived( LLFocusableElement* caller, void* userdata );
 	static void		onInputEditorFocusLost(LLFocusableElement* caller, void* userdata);
@@ -148,8 +148,6 @@ private:
 
 	// Remove the "User is typing..." indicator.
 	void removeTypingIndicator(const LLIMInfo* im_info = NULL);
-
-	static void closeHiddenIMToasts();
 
 	LLPanelChatControlPanel* mControlPanel;
 	LLUUID mSessionID;

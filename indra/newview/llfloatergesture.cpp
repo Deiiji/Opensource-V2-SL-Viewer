@@ -37,7 +37,6 @@
 
 #include "llinventory.h"
 #include "llinventorybridge.h"
-#include "llinventoryfunctions.h"
 #include "llinventorymodel.h"
 #include "llinventoryclipboard.h"
 
@@ -108,7 +107,7 @@ LLFloaterGesture::LLFloaterGesture(const LLSD& key)
 	: LLFloater(key)
 {
 	mObserver = new LLFloaterGestureObserver(this);
-	LLGestureMgr::instance().addObserver(mObserver);
+	LLGestureManager::instance().addObserver(mObserver);
 
 	mCommitCallbackRegistrar.add("Gesture.Action.ToogleActiveState", boost::bind(&LLFloaterGesture::onActivateBtnClick, this));
 	mCommitCallbackRegistrar.add("Gesture.Action.ShowPreview", boost::bind(&LLFloaterGesture::onClickEdit, this));
@@ -127,7 +126,7 @@ void LLFloaterGesture::done()
 		// we load only gesture folder without childred.
 		LLInventoryModel::cat_array_t* categories;
 		LLInventoryModel::item_array_t* items;
-		uuid_vec_t unloaded_folders;
+		LLInventoryFetchDescendentsObserver::folder_ref_t unloaded_folders;
 		LL_DEBUGS("Gesture")<< "Get subdirs of Gesture Folder...." << LL_ENDL;
 		gInventory.getDirectDescendentsOf(mGestureFolderID, categories, items);
 		if (categories->empty())
@@ -149,8 +148,7 @@ void LLFloaterGesture::done()
 		if (!unloaded_folders.empty())
 		{
 			LL_DEBUGS("Gesture")<< "Fetching subdirectories....." << LL_ENDL;
-			setFetchIDs(unloaded_folders);
-			startFetch();
+			fetchDescendents(unloaded_folders);
 		}
 		else
 		{
@@ -168,7 +166,7 @@ void LLFloaterGesture::done()
 // virtual
 LLFloaterGesture::~LLFloaterGesture()
 {
-	LLGestureMgr::instance().removeObserver(mObserver);
+	LLGestureManager::instance().removeObserver(mObserver);
 	delete mObserver;
 	mObserver = NULL;
 	gInventory.removeObserver(this);
@@ -200,12 +198,11 @@ BOOL LLFloaterGesture::postBuild()
 	setDefaultBtn("play_btn");
 	mGestureFolderID = gInventory.findCategoryUUIDForType(LLFolderType::FT_GESTURE, false);
 
-	uuid_vec_t folders;
+	folder_ref_t folders;
 	folders.push_back(mGestureFolderID);
 	//perform loading Gesture directory anyway to make sure that all subdirectory are loaded too. See method done() for details.
 	gInventory.addObserver(this);
-	setFetchIDs(folders);
-	startFetch();
+	fetchDescendents(folders);
 
 	if (mGestureList)
 	{
@@ -250,13 +247,13 @@ void LLFloaterGesture::refreshAll()
 void LLFloaterGesture::buildGestureList()
 {
 	S32 scroll_pos = mGestureList->getScrollPos();
-	uuid_vec_t selected_items;
+	std::vector<LLUUID> selected_items;
 	getSelectedIds(selected_items);
 	LL_DEBUGS("Gesture")<< "Rebuilding gesture list "<< LL_ENDL;
 	mGestureList->deleteAllItems();
 
-	LLGestureMgr::item_map_t::const_iterator it;
-	const LLGestureMgr::item_map_t& active_gestures = LLGestureMgr::instance().getActiveGestures();
+	LLGestureManager::item_map_t::const_iterator it;
+	const LLGestureManager::item_map_t& active_gestures = LLGestureManager::instance().getActiveGestures();
 	for (it = active_gestures.begin(); it != active_gestures.end(); ++it)
 	{
 		addGesture(it->first,it->second, mGestureList);
@@ -282,7 +279,7 @@ void LLFloaterGesture::buildGestureList()
 
 	// attempt to preserve scroll position through re-builds
 	// since we do re-build whenever something gets dirty
-	for(uuid_vec_t::iterator it = selected_items.begin(); it != selected_items.end(); it++)
+	for(std::vector<LLUUID>::iterator it = selected_items.begin(); it != selected_items.end(); it++)
 	{
 		mGestureList->selectByID(*it);
 	}
@@ -358,10 +355,10 @@ void LLFloaterGesture::addGesture(const LLUUID& item_id , LLMultiGesture* gestur
 		element["columns"][0]["value"] = "";
 		element["columns"][0]["font"]["name"] = "SANSSERIF";
 		element["columns"][0]["font"]["style"] = font_style;
-		element["columns"][1]["column"] = "shortcut";
-		element["columns"][1]["value"] = "---";
-		element["columns"][1]["font"]["name"] = "SANSSERIF";
-		element["columns"][1]["font"]["style"] = font_style;
+		element["columns"][0]["column"] = "trigger";
+		element["columns"][0]["value"] = "---";
+		element["columns"][0]["font"]["name"] = "SANSSERIF";
+		element["columns"][0]["font"]["style"] = font_style;
 		element["columns"][2]["column"] = "key";
 		element["columns"][2]["value"] = "~~~";
 		element["columns"][2]["font"]["name"] = "SANSSERIF";
@@ -375,13 +372,13 @@ void LLFloaterGesture::addGesture(const LLUUID& item_id , LLMultiGesture* gestur
 	LLScrollListItem* sl_item = list->addElement(element, ADD_BOTTOM);
 	if(sl_item)
 	{
-		LLFontGL::StyleFlags style = LLGestureMgr::getInstance()->isGestureActive(item_id) ? LLFontGL::BOLD : LLFontGL::NORMAL;
+		LLFontGL::StyleFlags style = LLGestureManager::getInstance()->isGestureActive(item_id) ? LLFontGL::BOLD : LLFontGL::NORMAL;
 		// *TODO find out why ["font"]["style"] does not affect font style
 		((LLScrollListText*)sl_item->getColumn(0))->setFontStyle(style);
 	}
 }
 
-void LLFloaterGesture::getSelectedIds(uuid_vec_t& ids)
+void LLFloaterGesture::getSelectedIds(std::vector<LLUUID>& ids)
 {
 	std::vector<LLScrollListItem*> items = mGestureList->getAllSelected();
 	for(std::vector<LLScrollListItem*>::const_iterator it = items.begin(); it != items.end(); it++)
@@ -425,17 +422,17 @@ void LLFloaterGesture::onClickPlay()
 	if(item_id.isNull()) return;
 
 	LL_DEBUGS("Gesture")<<" Trying to play gesture id: "<< item_id <<LL_ENDL;
-	if(!LLGestureMgr::instance().isGestureActive(item_id))
+	if(!LLGestureManager::instance().isGestureActive(item_id))
 	{
 		// we need to inform server about gesture activating to be consistent with LLPreviewGesture and  LLGestureComboList.
 		BOOL inform_server = TRUE;
 		BOOL deactivate_similar = FALSE;
-		LLGestureMgr::instance().setGestureLoadedCallback(item_id, boost::bind(&LLFloaterGesture::playGesture, this, item_id));
+		LLGestureManager::instance().setGestureLoadedCallback(item_id, boost::bind(&LLFloaterGesture::playGesture, this, item_id));
 		LLViewerInventoryItem *item = gInventory.getItem(item_id);
 		llassert(item);
 		if (item)
 		{
-			LLGestureMgr::instance().activateGestureWithAsset(item_id, item->getAssetUUID(), inform_server, deactivate_similar);
+			LLGestureManager::instance().activateGestureWithAsset(item_id, item->getAssetUUID(), inform_server, deactivate_similar);
 			LL_DEBUGS("Gesture")<< "Activating gesture with inventory ID: " << item_id <<LL_ENDL;
 		}
 	}
@@ -455,13 +452,13 @@ void LLFloaterGesture::onClickNew()
 
 void LLFloaterGesture::onActivateBtnClick()
 {
-	uuid_vec_t ids;
+	std::vector<LLUUID> ids;
 	getSelectedIds(ids);
 	if(ids.empty())
 		return;
 
-	LLGestureMgr* gm = LLGestureMgr::getInstance();
-	uuid_vec_t::const_iterator it = ids.begin();
+	LLGestureManager* gm = LLGestureManager::getInstance();
+	std::vector<LLUUID>::const_iterator it = ids.begin();
 	BOOL first_gesture_state = gm->isGestureActive(*it);
 	BOOL is_mixed = FALSE;
 	while( ++it != ids.end() )
@@ -472,7 +469,7 @@ void LLFloaterGesture::onActivateBtnClick()
 			break;
 		}
 	}
-	for(uuid_vec_t::const_iterator it = ids.begin(); it != ids.end(); it++)
+	for(std::vector<LLUUID>::const_iterator it = ids.begin(); it != ids.end(); it++)
 	{
 		if(is_mixed)
 		{
@@ -498,11 +495,11 @@ void LLFloaterGesture::onCopyPasteAction(const LLSD& command)
 	// since we select this comman inventory item had  already arrived .
 	if("copy_gesture" == command_name)
 	{
-		uuid_vec_t ids;
+		std::vector<LLUUID> ids;
 		getSelectedIds(ids);
 		// make sure that clopboard is empty
 		LLInventoryClipboard::instance().reset();
-		for(uuid_vec_t::iterator it = ids.begin(); it != ids.end(); it++)
+		for(std::vector<LLUUID>::iterator it = ids.begin(); it != ids.end(); it++)
 		{
 			LLInventoryItem* item = gInventory.getItem(*it);
 			if(item  && item->getInventoryType() == LLInventoryType::IT_GESTURE)
@@ -562,7 +559,7 @@ void LLFloaterGesture::onCommitList()
 	const LLUUID& item_id = mGestureList->getCurrentID();
 
 	mSelectedID = item_id;
-	if (LLGestureMgr::instance().isGesturePlaying(item_id))
+	if (LLGestureManager::instance().isGesturePlaying(item_id))
 	{
 		childSetVisible("play_btn", false);
 		childSetVisible("stop_btn", true);
@@ -576,14 +573,14 @@ void LLFloaterGesture::onCommitList()
 
 void LLFloaterGesture::onDeleteSelected()
 {
-	uuid_vec_t ids;
+	std::vector<LLUUID> ids;
 	getSelectedIds(ids);
 	if(ids.empty())
 		return;
 
 	const LLUUID trash_id = gInventory.findCategoryUUIDForType(LLFolderType::FT_TRASH);
-	LLGestureMgr* gm = LLGestureMgr::getInstance();
-	for(uuid_vec_t::const_iterator it = ids.begin(); it != ids.end(); it++)
+	LLGestureManager* gm = LLGestureManager::getInstance();
+	for(std::vector<LLUUID>::const_iterator it = ids.begin(); it != ids.end(); it++)
 	{
 		const LLUUID& selected_item = *it;
 		LLInventoryItem* inv_item = gInventory.getItem(selected_item);
@@ -614,10 +611,10 @@ void LLFloaterGesture::onDeleteSelected()
 
 void LLFloaterGesture::addToCurrentOutFit()
 {
-	uuid_vec_t ids;
+	std::vector<LLUUID> ids;
 	getSelectedIds(ids);
-	LLAppearanceMgr* am = LLAppearanceMgr::getInstance();
-	for(uuid_vec_t::const_iterator it = ids.begin(); it != ids.end(); it++)
+	LLAppearanceManager* am = LLAppearanceManager::getInstance();
+	for(std::vector<LLUUID>::const_iterator it = ids.begin(); it != ids.end(); it++)
 	{
 		am->addCOFItemLink(*it);
 	}
@@ -627,12 +624,12 @@ void LLFloaterGesture::playGesture(LLUUID item_id)
 {
 	LL_DEBUGS("Gesture")<<"Playing gesture "<< item_id<<LL_ENDL;
 
-	if (LLGestureMgr::instance().isGesturePlaying(item_id))
+	if (LLGestureManager::instance().isGesturePlaying(item_id))
 	{
-		LLGestureMgr::instance().stopGesture(item_id);
+		LLGestureManager::instance().stopGesture(item_id);
 	}
 	else
 	{
-		LLGestureMgr::instance().playGesture(item_id);
+		LLGestureManager::instance().playGesture(item_id);
 	}
 }

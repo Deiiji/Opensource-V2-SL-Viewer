@@ -64,13 +64,13 @@ private:
 	// This is the callback method for the viewer object currently
 	// being worked on.
 	/*virtual*/ void inventoryChanged(LLViewerObject* obj,
-								 LLInventoryObject::object_list_t* inv,
+								 InventoryObjectList* inv,
 								 S32 serial_num,
 								 void* queue);
 	
 	// This is called by inventoryChanged
 	void handleInventory(LLViewerObject* viewer_obj,
-								LLInventoryObject::object_list_t* inv);
+								InventoryObjectList* inv);
 
 
 	void updateInventory(LLViewerObject* object,

@@ -330,32 +330,12 @@ void LLAccordionCtrl::addCollapsibleCtrl(LLView* view)
 	LLAccordionCtrlTab* accordion_tab = dynamic_cast<LLAccordionCtrlTab*>(view);
 	if(!accordion_tab)
 		return;
-	if(std::find(beginChild(), endChild(), accordion_tab) == endChild())
+	if(std::find(getChildList()->begin(),getChildList()->end(),accordion_tab) == getChildList()->end())
 		addChild(accordion_tab);
 	mAccordionTabs.push_back(accordion_tab);
-
+	
 	accordion_tab->setDropDownStateChangedCallback( boost::bind(&LLAccordionCtrl::onCollapseCtrlCloseOpen, this, mAccordionTabs.size() - 1) );
 
-}
-
-void LLAccordionCtrl::removeCollapsibleCtrl(LLView* view)
-{
-	LLAccordionCtrlTab* accordion_tab = dynamic_cast<LLAccordionCtrlTab*>(view);
-	if(!accordion_tab)
-		return;
-
-	if(std::find(beginChild(), endChild(), accordion_tab) != endChild())
-		removeChild(accordion_tab);
-
-	for (std::vector<LLAccordionCtrlTab*>::iterator iter = mAccordionTabs.begin();
-			iter != mAccordionTabs.end(); ++iter)
-	{
-		if (accordion_tab == (*iter))
-		{
-			mAccordionTabs.erase(iter);
-			break;
-		}
-	}
 }
 
 void	LLAccordionCtrl::arrangeSinge()
@@ -393,33 +373,11 @@ void	LLAccordionCtrl::arrangeSinge()
 		}
 		else
 		{
-			if(mFitParent)
-			{
-				panel_height = expanded_height;
-			}
-			else
-			{
-				if(accordion_tab->getAccordionView())
-				{
-					panel_height = accordion_tab->getAccordionView()->getRect().getHeight() + 
-						accordion_tab->getHeaderHeight() + 2*BORDER_MARGIN;
-				}
-				else
-				{
-					panel_height = accordion_tab->getRect().getHeight();
-				}
-			}
+			panel_height = expanded_height;
 		}
-
-		// make sure at least header is shown
-		panel_height = llmax(panel_height, accordion_tab->getHeaderHeight());
-
 		ctrlSetLeftTopAndSize(mAccordionTabs[i], panel_left, panel_top, panel_width, panel_height);
 		panel_top-=mAccordionTabs[i]->getRect().getHeight();
 	}
-
-	show_hide_scrollbar(getRect().getWidth(), getRect().getHeight());
-	updateLayout(getRect().getWidth(), getRect().getHeight());
 }
 
 void	LLAccordionCtrl::arrangeMultiple()
@@ -669,23 +627,15 @@ S32	LLAccordionCtrl::notifyParent(const LLSD& info)
 				LLAccordionCtrlTab* accordion_tab = dynamic_cast<LLAccordionCtrlTab*>(mAccordionTabs[i]);
 				if(accordion_tab->hasFocus() && i>0)
 				{
-					bool prev_visible_tab_found = false;
 					while(i>0)
 					{
 						if(mAccordionTabs[--i]->getVisible())
-						{
-							prev_visible_tab_found = true;
 							break;
-						}
 					}
-
-					if (prev_visible_tab_found)
-					{
-						accordion_tab = dynamic_cast<LLAccordionCtrlTab*>(mAccordionTabs[i]);
-						accordion_tab->notify(LLSD().with("action","select_last"));
-						return 1;
-					}
-					break;
+					
+					accordion_tab = dynamic_cast<LLAccordionCtrlTab*>(mAccordionTabs[i]);
+					accordion_tab->notify(LLSD().with("action","select_last"));
+					return 1;
 				}
 			}
 			return 0;

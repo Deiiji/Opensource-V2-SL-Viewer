@@ -108,11 +108,6 @@ private:
 	LLTimer mHeartbeat;
 	F64		mSleepTime;
 	F64		mCPUElapsed;
-	bool	mBlockingRequest;
-	bool	mBlockingResponseReceived;
-	std::queue<std::string> mMessageQueue;
-	
-	void deliverQueuedMessages();
 	
 };
 

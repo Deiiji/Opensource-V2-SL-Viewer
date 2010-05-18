@@ -61,13 +61,13 @@ public:
 	 * Show a friend removal dialog.
 	 */
 	static void removeFriendDialog(const LLUUID& id);
-	static void removeFriendsDialog(const uuid_vec_t& ids);
+	static void removeFriendsDialog(const std::vector<LLUUID>& ids);
 	
 	/**
 	 * Show teleport offer dialog.
 	 */
 	static void offerTeleport(const LLUUID& invitee);
-	static void offerTeleport(const uuid_vec_t& ids);
+	static void offerTeleport(const std::vector<LLUUID>& ids);
 
 	/**
 	 * Start instant messaging session.
@@ -87,12 +87,12 @@ public:
 	/**
 	 * Start an ad-hoc conference voice call with multiple users
 	 */
-	static void startAdhocCall(const uuid_vec_t& ids);
+	static void startAdhocCall(const std::vector<LLUUID>& ids);
 
 	/**
 	 * Start conference chat with the given avatars.
 	 */
-	static void startConference(const uuid_vec_t& ids);
+	static void startConference(const std::vector<LLUUID>& ids);
 
 	/**
 	 * Show avatar profile.
@@ -113,11 +113,6 @@ public:
 	 * Share items with the avatar.
 	 */
 	static void share(const LLUUID& id);
-
-	/**
-	 * Share items with the picked avatars.
-	 */
-	static void shareWithAvatars();
 
 	/**
 	 * Block/unblock the avatar.
@@ -176,12 +171,6 @@ public:
 	 * Open csr page for avatar
 	 */	
 	static void csr(const LLUUID& id, std::string name);
-
-	/**
-	 * Checks whether can offer teleport to the avatar
-	 * Can't offer only for offline friends
-	 */
-	static bool canOfferTeleport(const LLUUID& id);
 
 	
 private:

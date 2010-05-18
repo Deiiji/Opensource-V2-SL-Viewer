@@ -45,11 +45,9 @@
 #include "pipeline.h"
 
 #include "llagent.h" //  Get state values from here
-#include "llagentcamera.h"
 #include "llagentwearables.h"
 #include "llhudeffecttrail.h"
 #include "llhudmanager.h"
-#include "llinventoryfunctions.h"
 #include "llselectmgr.h"
 #include "lltoolgrab.h"	// for needsRenderBeam
 #include "lltoolmgr.h" // for needsRenderBeam
@@ -69,14 +67,6 @@
 
 #include <boost/lexical_cast.hpp>
 
-LLVOAvatarSelf *gAgentAvatarp = NULL;
-BOOL isAgentAvatarValid()
-{
-	return (gAgentAvatarp &&
-			(gAgentAvatarp->getRegion() != NULL) &&
-			(!gAgentAvatarp->isDead()));
-}
-
 using namespace LLVOAvatarDefines;
 
 /*********************************************************************************
@@ -88,14 +78,14 @@ using namespace LLVOAvatarDefines;
 struct LocalTextureData
 {
 	LocalTextureData() : 
-		mIsBakedReady(false), 
+		mIsBakedReady(FALSE), 
 		mDiscard(MAX_DISCARD_LEVEL+1), 
 		mImage(NULL), 
 		mWearableID(IMG_DEFAULT_AVATAR),
 		mTexEntry(NULL)
 	{}
 	LLPointer<LLViewerFetchedTexture> mImage;
-	bool mIsBakedReady;
+	BOOL mIsBakedReady;
 	S32 mDiscard;
 	LLUUID mWearableID;	// UUID of the wearable that this texture belongs to, not of the image itself
 	LLTextureEntry *mTexEntry;
@@ -143,6 +133,7 @@ LLVOAvatarSelf::LLVOAvatarSelf(const LLUUID& id,
 	mLastRegionHandle(0),
 	mRegionCrossingCount(0)
 {
+	gAgent.setAvatarObject(this);
 	gAgentWearables.setAvatarObject(this);
 	
 	lldebugs << "Marking avatar as self " << id << llendl;
@@ -520,17 +511,16 @@ BOOL LLVOAvatarSelf::buildMenus()
 	return TRUE;
 }
 
-void LLVOAvatarSelf::cleanup()
-{
-	markDead();
- 	delete mScreenp;
- 	mScreenp = NULL;
-	mRegionp = NULL;
-}
-
 LLVOAvatarSelf::~LLVOAvatarSelf()
 {
-	cleanup();
+	// gAgents pointer might have been set to a different Avatar Self, don't get rid of it if so.
+	if (gAgent.getAvatarObject() == this)
+	{
+		gAgent.setAvatarObject(NULL);
+		gAgentWearables.setAvatarObject(NULL);
+	}
+	delete mScreenp;
+	mScreenp = NULL;
 }
 
 /**
@@ -621,17 +611,6 @@ BOOL LLVOAvatarSelf::updateCharacter(LLAgent &agent)
 }
 
 // virtual
-BOOL LLVOAvatarSelf::idleUpdate(LLAgent &agent, LLWorld &world, const F64 &time)
-{
-	if (!isAgentAvatarValid())
-	{
-		return TRUE;
-	}
-	LLVOAvatar::idleUpdate(agent, world, time);
-	return TRUE;
-}
-
-// virtual
 LLJoint *LLVOAvatarSelf::getJoint(const std::string &name)
 {
 	if (mScreenp)
@@ -642,8 +621,7 @@ LLJoint *LLVOAvatarSelf::getJoint(const std::string &name)
 	return LLVOAvatar::getJoint(name);
 }
 
-// virtual
-BOOL LLVOAvatarSelf::setVisualParamWeight(LLVisualParam *which_param, F32 weight, BOOL upload_bake )
+/*virtual*/ BOOL LLVOAvatarSelf::setVisualParamWeight(LLVisualParam *which_param, F32 weight, BOOL upload_bake )
 {
 	if (!which_param)
 	{
@@ -653,8 +631,7 @@ BOOL LLVOAvatarSelf::setVisualParamWeight(LLVisualParam *which_param, F32 weight
 	return setParamWeight(param,weight,upload_bake);
 }
 
-// virtual
-BOOL LLVOAvatarSelf::setVisualParamWeight(const char* param_name, F32 weight, BOOL upload_bake )
+/*virtual*/ BOOL LLVOAvatarSelf::setVisualParamWeight(const char* param_name, F32 weight, BOOL upload_bake )
 {
 	if (!param_name)
 	{
@@ -664,8 +641,7 @@ BOOL LLVOAvatarSelf::setVisualParamWeight(const char* param_name, F32 weight, BO
 	return setParamWeight(param,weight,upload_bake);
 }
 
-// virtual
-BOOL LLVOAvatarSelf::setVisualParamWeight(S32 index, F32 weight, BOOL upload_bake )
+/*virtual*/ BOOL LLVOAvatarSelf::setVisualParamWeight(S32 index, F32 weight, BOOL upload_bake )
 {
 	LLViewerVisualParam *param = (LLViewerVisualParam*) LLCharacter::getVisualParam(index);
 	return setParamWeight(param,weight,upload_bake);
@@ -799,8 +775,7 @@ void LLVOAvatarSelf::removeMissingBakedTextures()
 //virtual
 void LLVOAvatarSelf::updateRegion(LLViewerRegion *regionp)
 {
-	setRegion(regionp);
-	if (!regionp || (regionp->getHandle() != mLastRegionHandle))
+	if (regionp->getHandle() != mLastRegionHandle)
 	{
 		if (mLastRegionHandle != 0)
 		{
@@ -814,10 +789,7 @@ void LLVOAvatarSelf::updateRegion(LLViewerRegion *regionp)
 			max = llmax(delta, max);
 			LLViewerStats::getInstance()->setStat(LLViewerStats::ST_CROSSING_MAX, max);
 		}
-		if (regionp)
-		{
-			mLastRegionHandle = regionp->getHandle();
-		}
+		mLastRegionHandle = regionp->getHandle();
 	}
 	mRegionCrossingTimer.reset();
 }
@@ -846,10 +818,10 @@ void LLVOAvatarSelf::idleUpdateTractorBeam()
 	{
 		LLObjectSelectionHandle selection = LLSelectMgr::getInstance()->getSelection();
 
-		if (gAgentCamera.mPointAt.notNull())
+		if (gAgent.mPointAt.notNull())
 		{
 			// get point from pointat effect
-			mBeam->setPositionGlobal(gAgentCamera.mPointAt->getPointAtPosGlobal());
+			mBeam->setPositionGlobal(gAgent.mPointAt->getPointAtPosGlobal());
 			mBeam->triggerLocal();
 		}
 		else if (selection->getFirstRootObject() && 
@@ -900,7 +872,7 @@ void LLVOAvatarSelf::restoreMeshData()
 	//llinfos << "Restoring" << llendl;
 	mMeshValid = TRUE;
 	updateJointLODs();
-	updateAttachmentVisibility(gAgentCamera.getCameraMode());
+	updateAttachmentVisibility(gAgent.getCameraMode());
 
 	// force mesh update as LOD might not have changed to trigger this
 	gPipeline.markRebuild(mDrawable, LLDrawable::REBUILD_GEOMETRY, TRUE);
@@ -965,7 +937,7 @@ void LLVOAvatarSelf::wearableUpdated( EWearableType type, BOOL upload_result )
 
 		// if we're editing our appearance, ensure that we're not using baked textures
 		// The baked texture for alpha masks is set explicitly when you hit "save"
-		if (gAgentCamera.cameraCustomizeAvatar())
+		if (gAgent.cameraCustomizeAvatar())
 		{
 			setNewBakedTexture(index,IMG_DEFAULT_AVATAR);
 		}
@@ -1054,7 +1026,7 @@ const LLViewerJointAttachment *LLVOAvatarSelf::attachObject(LLViewerObject *view
 		return 0;
 	}
 
-	updateAttachmentVisibility(gAgentCamera.getCameraMode());
+	updateAttachmentVisibility(gAgent.getCameraMode());
 	
 	// Then make sure the inventory is in sync with the avatar.
 
@@ -1062,7 +1034,7 @@ const LLViewerJointAttachment *LLVOAvatarSelf::attachObject(LLViewerObject *view
 	if (attachment->isObjectAttached(viewer_object))
 	{
 		const LLUUID& attachment_id = viewer_object->getItemID();
-		LLAppearanceMgr::instance().registerAttachment(attachment_id);
+		LLAppearanceManager::instance().registerAttachment(attachment_id);
 	}
 
 	return attachment;
@@ -1095,13 +1067,13 @@ BOOL LLVOAvatarSelf::detachObject(LLViewerObject *viewer_object)
 		// Make sure the inventory is in sync with the avatar.
 
 		// Update COF contents, don't trigger appearance update.
-		if (!isAgentAvatarValid())
+		if (gAgent.getAvatarObject() == NULL)
 		{
 			llinfos << "removeItemLinks skipped, avatar is under destruction" << llendl;
 		}
 		else
 		{
-			LLAppearanceMgr::instance().unregisterAttachment(attachment_id);
+			LLAppearanceManager::instance().unregisterAttachment(attachment_id);
 		}
 		
 		return TRUE;
@@ -1142,11 +1114,11 @@ void LLVOAvatarSelf::localTextureLoaded(BOOL success, LLViewerFetchedTexture *sr
 			discard_level < local_tex_obj->getDiscard())
 		{
 			local_tex_obj->setDiscard(discard_level);
-			if (!gAgentCamera.cameraCustomizeAvatar())
+			if (!gAgent.cameraCustomizeAvatar())
 			{
 				requestLayerSetUpdate(index);
 			}
-			else if (gAgentCamera.cameraCustomizeAvatar())
+			else if (gAgent.cameraCustomizeAvatar())
 			{
 				LLVisualParamHint::requestHintUpdates();
 			}
@@ -1550,11 +1522,11 @@ void LLVOAvatarSelf::setLocalTexture(ETextureIndex type, LLViewerTexture* src_te
 				if (tex_discard >= 0 && tex_discard <= desired_discard)
 				{
 					local_tex_obj->setDiscard(tex_discard);
-					if (isSelf() && !gAgentCamera.cameraCustomizeAvatar())
+					if (isSelf() && !gAgent.cameraCustomizeAvatar())
 					{
 						requestLayerSetUpdate(type);
 					}
-					else if (isSelf() && gAgentCamera.cameraCustomizeAvatar())
+					else if (isSelf() && gAgent.cameraCustomizeAvatar())
 					{
 						LLVisualParamHint::requestHintUpdates();
 					}
@@ -1694,7 +1666,7 @@ void LLVOAvatarSelf::onLocalTextureLoaded(BOOL success, LLViewerFetchedTexture *
 void LLVOAvatarSelf::dumpTotalLocalTextureByteCount()
 {
 	S32 gl_bytes = 0;
-	gAgentAvatarp->getLocalTextureByteCount(&gl_bytes);
+	gAgent.getAvatarObject()->getLocalTextureByteCount(&gl_bytes);
 	llinfos << "Total Avatar LocTex GL:" << (gl_bytes/1024) << "KB" << llendl;
 }
 
@@ -1949,7 +1921,9 @@ void LLVOAvatarSelf::processRebakeAvatarTextures(LLMessageSystem* msg, void**)
 {
 	LLUUID texture_id;
 	msg->getUUID("TextureData", "TextureID", texture_id);
-	if (!isAgentAvatarValid()) return;
+
+	LLVOAvatarSelf* self = gAgent.getAvatarObject();
+	if (!self) return;
 
 	// If this is a texture corresponding to one of our baked entries, 
 	// just rebake that layer set.
@@ -1966,13 +1940,13 @@ void LLVOAvatarSelf::processRebakeAvatarTextures(LLMessageSystem* msg, void**)
 		const LLVOAvatarDictionary::TextureEntry *texture_dict = iter->second;
 		if (texture_dict->mIsBakedTexture)
 		{
-			if (texture_id == gAgentAvatarp->getTEImage(index)->getID())
+			if (texture_id == self->getTEImage(index)->getID())
 			{
-				LLTexLayerSet* layer_set = gAgentAvatarp->getLayerSet(index);
+				LLTexLayerSet* layer_set = self->getLayerSet(index);
 				if (layer_set)
 				{
 					llinfos << "TAT: rebake - matched entry " << (S32)index << llendl;
-					gAgentAvatarp->invalidateComposite(layer_set, TRUE);
+					self->invalidateComposite(layer_set, TRUE);
 					found = TRUE;
 					LLViewerStats::getInstance()->incStat(LLViewerStats::ST_TEX_REBAKES);
 				}
@@ -1983,12 +1957,12 @@ void LLVOAvatarSelf::processRebakeAvatarTextures(LLMessageSystem* msg, void**)
 	// If texture not found, rebake all entries.
 	if (!found)
 	{
-		gAgentAvatarp->forceBakeAllTextures();
+		self->forceBakeAllTextures();
 	}
 	else
 	{
 		// Not sure if this is necessary, but forceBakeAllTextures() does it.
-		gAgentAvatarp->updateMeshTextures();
+		self->updateMeshTextures();
 	}
 }
 
@@ -2068,9 +2042,10 @@ void LLVOAvatarSelf::onCustomizeStart()
 // static
 void LLVOAvatarSelf::onCustomizeEnd()
 {
-	if (isAgentAvatarValid())
+	LLVOAvatarSelf *avatarp = gAgent.getAvatarObject();
+	if (avatarp)
 	{
-		gAgentAvatarp->invalidateAll();
+		avatarp->invalidateAll();
 	}
 }
 

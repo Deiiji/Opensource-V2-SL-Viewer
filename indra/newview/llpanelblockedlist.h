@@ -79,7 +79,7 @@ private:
 	void onPickBtnClick();
 	void onBlockByNameClick();
 
-	void callbackBlockPicked(const std::vector<std::string>& names, const uuid_vec_t& ids);
+	void callbackBlockPicked(const std::vector<std::string>& names, const std::vector<LLUUID>& ids);
 	static void callbackBlockByName(const std::string& text);
 
 private:

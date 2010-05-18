@@ -41,7 +41,7 @@
 #include "message.h"
 #include "v2math.h"
 
-#include "llagentcamera.h"
+#include "llagent.h"
 #include "lldrawable.h"
 #include "llface.h"
 #include "llsky.h"
@@ -137,7 +137,7 @@ F32 LLVOPartGroup::getPartSize(S32 idx)
 
 LLVector3 LLVOPartGroup::getCameraPosition() const
 {
-	return gAgentCamera.getCameraPositionAgent();
+	return gAgent.getCameraPositionAgent();
 }
 
 static LLFastTimer::DeclareTimer FTM_UPDATE_PARTICLES("Update Particles");

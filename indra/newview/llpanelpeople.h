@@ -74,18 +74,17 @@ private:
 	} ESortOrder;
 
 	// methods indirectly called by the updaters
-	void					updateFriendListHelpText();
 	void					updateFriendList();
 	void					updateNearbyList();
 	void					updateRecentList();
 
 	bool					isFriendOnline(const LLUUID& id);
-	bool					isItemsFreeOfFriends(const uuid_vec_t& uuids);
+	bool					isItemsFreeOfFriends(const std::vector<LLUUID>& uuids);
 
 	void					updateButtons();
 	std::string				getActiveTabName() const;
 	LLUUID					getCurrentItemID() const;
-	void					getCurrentItemIDs(uuid_vec_t& selected_uuids) const;
+	void					getCurrentItemIDs(std::vector<LLUUID>& selected_uuids) const;
 	void					buttonSetVisible(std::string btn_name, BOOL visible);
 	void					buttonSetEnabled(const std::string& btn_name, bool enabled);
 	void					buttonSetAction(const std::string& btn_name, const commit_signal_t::slot_type& cb);
@@ -136,7 +135,7 @@ private:
 	// misc callbacks
 	static void				onAvatarPicked(
 								const std::vector<std::string>& names,
-								const uuid_vec_t& ids);
+								const std::vector<LLUUID>& ids);
 
 	void					onFriendsAccordionExpandedCollapsed(LLUICtrl* ctrl, const LLSD& param, LLAvatarList* avatar_list);
 
@@ -170,7 +169,6 @@ private:
 	Updater*				mRecentListUpdater;
 
 	std::string				mFilterSubString;
-	std::string				mFilterSubStringOrig;
 };
 
 #endif //LL_LLPANELPEOPLE_H

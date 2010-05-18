@@ -40,7 +40,6 @@ class LLComboBox;
 class LLDragHandle;
 class LLFloater;
 class LLIconCtrl;
-class LLLoadingIndicator;
 class LLLineEditor;
 class LLMenuGL;
 class LLPanel;

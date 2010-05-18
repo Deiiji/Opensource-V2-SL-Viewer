@@ -426,9 +426,6 @@ bool LLAccordionCtrlTab::addChild(LLView* child, S32 tab_group)
 			setDisplayChildren(getDisplayChildren());	
 	}
 
-	if (!mContainerPanel)
-		mContainerPanel = findContainerView();
-
 	return res;
 }
 
@@ -437,34 +434,6 @@ void LLAccordionCtrlTab::setAccordionView(LLView* panel)
 	addChild(panel,0);
 }
 
-void LLAccordionCtrlTab::setTitle(const std::string& title)
-{
-	LLAccordionCtrlTabHeader* header = findChild<LLAccordionCtrlTabHeader>(DD_HEADER_NAME);
-	if (header)
-	{
-		header->setTitle(title);
-	}
-}
-
-boost::signals2::connection LLAccordionCtrlTab::setFocusReceivedCallback(const focus_signal_t::slot_type& cb)
-{
-	LLAccordionCtrlTabHeader* header = findChild<LLAccordionCtrlTabHeader>(DD_HEADER_NAME);
-	if (header)
-	{
-		return header->setFocusReceivedCallback(cb);
-	}
-	return boost::signals2::connection();
-}
-
-boost::signals2::connection LLAccordionCtrlTab::setFocusLostCallback(const focus_signal_t::slot_type& cb)
-{
-	LLAccordionCtrlTabHeader* header = findChild<LLAccordionCtrlTabHeader>(DD_HEADER_NAME);
-	if (header)
-	{
-		return header->setFocusLostCallback(cb);
-	}
-	return boost::signals2::connection();
-}
 
 LLView*	LLAccordionCtrlTab::findContainerView()
 {
@@ -497,11 +466,10 @@ void LLAccordionCtrlTab::setHeaderVisible(bool value)
 	reshape(getRect().getWidth(), getRect().getHeight(), FALSE);
 };
 
-//virtual
+//vurtual
 BOOL LLAccordionCtrlTab::postBuild()
 {
-	if(mHeader)
-		mHeader->setVisible(mHeaderVisible);
+	mHeader->setVisible(mHeaderVisible);
 	
 	static LLUICachedControl<S32> scrollbar_size ("UIScrollbarSize", 0);
 
@@ -537,8 +505,7 @@ BOOL LLAccordionCtrlTab::postBuild()
 		mScrollbar->setVisible(false);
 	}
 
-	if(mContainerPanel)
-		mContainerPanel->setVisible(mDisplayChildren);
+	mContainerPanel->setVisible(mDisplayChildren);
 
 	return LLUICtrl::postBuild();
 }
@@ -583,8 +550,7 @@ S32	LLAccordionCtrlTab::notifyParent(const LLSD& info)
 			}
 			
 			//LLAccordionCtrl should rearrange accodion tab if one of accordion change its size
-			if (getParent()) // A parent may not be set if tabs are added dynamically.
-				getParent()->notifyParent(info);
+			getParent()->notifyParent(info);
 			return 1;
 		}
 		else if(str_action == "select_prev") 
@@ -892,17 +858,6 @@ void LLAccordionCtrlTab::ctrlSetLeftTopAndSize(LLView* panel, S32 left, S32 top,
 	panel_rect.setLeftTopAndSize( left, top, width, height);
 	panel->reshape( width, height, 1);
 	panel->setRect(panel_rect);
-}
-BOOL LLAccordionCtrlTab::handleToolTip(S32 x, S32 y, MASK mask)
-{
-	//header may be not the first child but we need to process it first
-	if(y >= (getRect().getHeight() - HEADER_HEIGHT - HEADER_HEIGHT/2) )
-	{
-		//inside tab header
-		//fix for EXT-6619
-		return TRUE;
-	}
-	return LLUICtrl::handleToolTip(x, y, mask);
 }
 
 

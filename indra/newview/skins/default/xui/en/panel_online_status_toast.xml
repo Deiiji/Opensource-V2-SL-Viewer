@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes" ?>
 <panel
  background_visible="false"
- height="40"
+ height="152"
  label="friend_online_status"
  layout="topleft"
  left="0"
  name="friend_online_status"
  top="0"
- width="220">
+ width="305">
     <avatar_icon
 	 follows="top|left"
 	 height="18"
@@ -21,7 +21,7 @@
     <text
      font="SansSerifSmall"
      follows="all"
-     height="13"
+     height="137"
      layout="topleft"
      left_pad="5"
      name="message"
@@ -29,7 +29,7 @@
      top="15"
      use_ellipses="true"
      value=""
-     width="189"
+     width="285"
      word_wrap="true"
      max_length="350" />
 </panel>

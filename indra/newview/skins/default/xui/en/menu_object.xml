@@ -18,16 +18,16 @@
      name="Edit...">
         <menu_item_call.on_click
          function="Object.Edit" />
-    <menu_item_call.on_visible
+        <menu_item_call.on_visible
          function="EnableEdit"/>
     </menu_item_call>
     <menu_item_call
       label="Build"
       name="Build">
       <menu_item_call.on_click
-        function="Object.Build" />
-        <menu_item_call.on_visible
-         function="EnableEdit"/>
+       function="Object.Edit" />
+      <menu_item_call.on_visible
+       function="VisibleBuild"/>
     </menu_item_call>
    <menu_item_call
      enabled="false"
@@ -138,13 +138,26 @@
     </context_menu>
    <menu_item_separator layout="topleft" />
    <menu_item_call
+    label="Buy"
+    layout="topleft"
+    name="Pie Object Bye">
+      <menu_item_call.on_click
+       function="Tools.BuyOrTake"/>
+      <menu_item_call.on_visible
+       function="Tools.VisibleBuyObject"/>
+      <menu_item_call.on_enable
+       function="Tools.EnableBuyOrTake"/>
+   </menu_item_call>
+   <menu_item_call
      label="Take"
      layout="topleft"
      name="Pie Object Take">
       <menu_item_call.on_click
-       function="Object.Take"/>
+       function="Tools.BuyOrTake"/>
+      <menu_item_call.on_visible
+       function="Tools.VisibleTakeObject"/>
       <menu_item_call.on_enable
-       function="Object.VisibleTake"/>
+       function="Tools.EnableBuyOrTake"/>
    </menu_item_call>
    <menu_item_call
    enabled="false"

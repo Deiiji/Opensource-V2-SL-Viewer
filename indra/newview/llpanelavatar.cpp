@@ -52,7 +52,6 @@
 #include "llnotificationsutil.h"
 #include "llvoiceclient.h"
 #include "llnamebox.h"
-#include "lltrans.h"
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // Class LLDropTarget
@@ -647,11 +646,7 @@ void LLPanelAvatarProfile::fillCommonData(const LLAvatarData* avatar_data)
 	LLAvatarIconIDCache::getInstance()->remove(avatar_data->avatar_id);
 
 	LLStringUtil::format_map_t args;
-	{
-		std::string birth_date = LLTrans::getString("AvatarBirthDateFormat");
-		LLStringUtil::format(birth_date, LLSD().with("datetime", (S32) avatar_data->born_on.secondsSinceEpoch()));
-		args["[REG_DATE]"] = birth_date;
-	}
+	args["[REG_DATE]"] = avatar_data->born_on;
 	args["[AGE]"] = LLDateUtil::ageFromDate( avatar_data->born_on, LLDate::now());
 	std::string register_date = getString("RegisterDateFormat", args);
 	childSetValue("register_date", register_date );

@@ -61,7 +61,7 @@ void LLTransferSourceAsset::initTransfer()
 		// to the simulator. This is subset of assets we allow to be
 		// simply pulled straight from the asset system.
 		LLUUID* tidp;
-		if(LLAssetType::lookupIsAssetFetchByIDAllowed(mParams.getAssetType()))
+		if(is_asset_fetch_by_id_allowed(mParams.getAssetType()))
 		{
 			tidp = new LLUUID(getID());
 			gAssetStorage->getAssetData(
@@ -132,7 +132,7 @@ LLTSCode LLTransferSourceAsset::dataCallback(const S32 packet_id,
 	*data_handle = tmpp;
 	if (!vf.read(tmpp, max_bytes))		/* Flawfinder: Ignore */
 	{
-		// Read failure, need to deal with it.
+		// Crap, read failure, need to deal with it.
 		delete[] tmpp;
 		*data_handle = NULL;
 		returned_bytes = 0;
@@ -257,4 +257,51 @@ BOOL LLTransferSourceParamsAsset::unpackParams(LLDataPacker &dp)
 	mAssetType = (LLAssetType::EType)tmp_at;
 
 	return TRUE;
+}
+
+/**
+ * Helper functions
+ */
+bool is_asset_fetch_by_id_allowed(LLAssetType::EType type)
+{
+	// *FIX: Make this list smaller.
+	bool rv = false;
+	switch(type)
+	{
+		case LLAssetType::AT_SOUND:
+		case LLAssetType::AT_LANDMARK:
+		case LLAssetType::AT_CLOTHING:
+		case LLAssetType::AT_BODYPART:
+		case LLAssetType::AT_ANIMATION:
+		case LLAssetType::AT_GESTURE:
+			rv = true;
+			break;
+		default:
+			break;
+	}
+	return rv;
+}
+
+bool is_asset_id_knowable(LLAssetType::EType type)
+{
+	// *FIX: Make this list smaller.
+	bool rv = false;
+	switch(type)
+	{
+		case LLAssetType::AT_TEXTURE:
+		case LLAssetType::AT_SOUND:
+		case LLAssetType::AT_LANDMARK:
+		case LLAssetType::AT_CLOTHING:
+		case LLAssetType::AT_NOTECARD:
+		case LLAssetType::AT_BODYPART:
+		case LLAssetType::AT_ANIMATION:
+		case LLAssetType::AT_GESTURE:
+		case LLAssetType::AT_LINK:
+		case LLAssetType::AT_LINK_FOLDER:
+			rv = true;
+			break;
+		default:
+			break;
+	}
+	return rv;
 }

@@ -82,6 +82,7 @@ public:
 										background_image_focused;
 
 		Optional<bool>					select_on_focus,
+										handle_edit_keys_directly,
 										revert_on_esc,
 										commit_on_focus_lost,
 										ignore_tab;
@@ -215,6 +216,7 @@ public:
 	void			extendSelection(S32 new_cursor_pos);
 	void			deleteSelection();
 
+	void			setHandleEditKeysDirectly( BOOL b ) { mHandleEditKeysDirectly = b; }
 	void			setSelectAllonFocusReceived(BOOL b);
 	
 	typedef boost::function<void (LLLineEditor* caller, void* user_data)> callback_t;
@@ -246,6 +248,7 @@ private:
 	void			addChar(const llwchar c);
 	void			setCursorAtLocalPos(S32 local_mouse_x);
 	S32				findPixelNearestPos(S32 cursor_offset = 0) const;
+	void			reportBadKeystroke();
 	BOOL			handleSpecialKey(KEY key, MASK mask);
 	BOOL			handleSelectionKey(KEY key, MASK mask);
 	BOOL			handleControlKey(KEY key, MASK mask);
@@ -323,6 +326,7 @@ protected:
 	BOOL		mIgnoreTab;
 	BOOL		mDrawAsterixes;
 
+	BOOL		mHandleEditKeysDirectly;  // If true, the standard edit keys (Ctrl-X, Delete, etc,) are handled here instead of routed by the menu system
 	BOOL		mSelectAllonFocusReceived;
 	BOOL		mPassDelete;
 

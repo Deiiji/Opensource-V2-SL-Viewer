@@ -38,8 +38,7 @@
 // viewer includes
 #include "llfoldervieweventlistener.h"
 #include "llfolderviewitem.h"
-#include "llinventorymodel.h"
-#include "llinventorymodelbackgroundfetch.h"
+#include "llinventorymodel.h"	// gInventory.backgroundFetchActive()
 #include "llviewercontrol.h"
 #include "llfolderview.h"
 
@@ -330,10 +329,9 @@ void LLInventoryFilter::setFilterSubString(const std::string& string)
 		// appending new characters
 		const BOOL more_restrictive = mFilterSubString.size() < string.size() && !string.substr(0, mFilterSubString.size()).compare(mFilterSubString);
 
-		mFilterSubStringOrig = string;
-		LLStringUtil::trimHead(mFilterSubStringOrig);
-		mFilterSubString = mFilterSubStringOrig;
+		mFilterSubString = string;
 		LLStringUtil::toUpper(mFilterSubString);
+		LLStringUtil::trimHead(mFilterSubString);
 		if (less_restrictive)
 		{
 			setModified(FILTER_LESS_RESTRICTIVE);
@@ -716,7 +714,7 @@ const std::string& LLInventoryFilter::getFilterText()
 		filtered_by_all_types = FALSE;
 	}
 
-	if (!LLInventoryModelBackgroundFetch::instance().backgroundFetchActive()
+	if (!gInventory.backgroundFetchActive()
 		&& filtered_by_type
 		&& !filtered_by_all_types)
 	{

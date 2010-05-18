@@ -28,7 +28,7 @@
 		[VOICE_CHANNEL_NAME] への接続が切れました。  [RECONNECT_NEARBY]
 	</text>
 	<text name="nearby_P2P_by_other">
-		コールを切りました。  [RECONNECT_NEARBY]
+		[VOICE_CHANNEL_NAME] がコールを終了しました。  [RECONNECT_NEARBY]
 	</text>
 	<text name="nearby_P2P_by_agent">
 		コールを終了しました。  [RECONNECT_NEARBY]

@@ -41,7 +41,6 @@
 #include "lluuid.h"
 #include "message.h"
 #include "stdenums.h"
-#include "llnotifications.h"
 
 //
 // Forward declarations
@@ -131,7 +130,7 @@ void process_frozen_message(LLMessageSystem* msg, void**);
 
 void process_derez_container(LLMessageSystem *msg, void**);
 void container_inventory_arrived(LLViewerObject* object,
-								 std::list<LLPointer<LLInventoryObject> >* inventory, //LLInventoryObject::object_list_t
+								 std::list<LLPointer<LLInventoryObject> >* inventory, //InventoryObjectList
 								 S32 serial_num,
 								 void* data);
 
@@ -159,7 +158,7 @@ void send_group_notice(const LLUUID& group_id,
 					   const LLInventoryItem* item);
 
 void handle_lure(const LLUUID& invitee);
-void handle_lure(const uuid_vec_t& ids);
+void handle_lure(const std::vector<LLUUID>& ids);
 
 // always from gAgent and 
 // routes through the gAgent's current simulator
@@ -203,19 +202,18 @@ void invalid_message_callback(LLMessageSystem*, void*, EMessageException);
 
 void process_initiate_download(LLMessageSystem* msg, void**);
 void start_new_inventory_observer();
-void open_inventory_offer(const uuid_vec_t& items, const std::string& from_name);
+void open_inventory_offer(const std::vector<LLUUID>& items, const std::string& from_name);
 
 // Returns true if item is not in certain "quiet" folder which don't need UI
 // notification (e.g. trash, cof, lost-and-found) and agent is not AFK, false otherwise.
 // Returns false if item is not found.
 bool highlight_offered_item(const LLUUID& item_id);
 
-void set_dad_inventory_item(LLInventoryItem* inv_item, const LLUUID& into_folder_uuid);
-
-class LLOfferInfo : public LLNotificationResponderInterface
+struct LLOfferInfo
 {
-public:
-	LLOfferInfo();
+        LLOfferInfo()
+	:	mFromGroup(FALSE), mFromObject(FALSE),
+		mIM(IM_NOTHING_SPECIAL), mType(LLAssetType::AT_NONE) {};
 	LLOfferInfo(const LLSD& sd);
 
 	LLOfferInfo(const LLOfferInfo& info);
@@ -233,27 +231,12 @@ public:
 	std::string mFromName;
 	std::string mDesc;
 	LLHost mHost;
-	bool mPersist;
 
-	// LLNotificationResponderInterface implementation
-	/*virtual*/ LLSD asLLSD();
-	/*virtual*/ void fromLLSD(const LLSD& params);
-	/*virtual*/ void handleRespond(const LLSD& notification, const LLSD& response);
-
+	LLSD asLLSD();
 	void send_auto_receive_response(void);
-
-	// TODO - replace all references with handleRespond()
 	bool inventory_offer_callback(const LLSD& notification, const LLSD& response);
 	bool inventory_task_offer_callback(const LLSD& notification, const LLSD& response);
 
-private:
-
-	void initRespondFunctionMap();
-
-	typedef boost::function<bool (const LLSD&, const LLSD&)> respond_function_t;
-	typedef std::map<std::string, respond_function_t> respond_function_map_t;
-
-	respond_function_map_t mRespondFunctions;
 };
 
 void process_feature_disabled_message(LLMessageSystem* msg, void**);

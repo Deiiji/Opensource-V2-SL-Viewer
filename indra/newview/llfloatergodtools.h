@@ -199,6 +199,9 @@ public:
 
 	void refresh();
 
+	void onClickKickAll();
+	static bool confirmKick(const LLSD& notification, const LLSD& response);
+	static bool finishKick(const LLSD& notification, const LLSD& response);
 	static void onDragSunPhase(LLUICtrl *ctrl, void *userdata);
 	void onClickFlushMapVisibilityCaches();
 	static bool flushMapVisibilityCachesConfirm(const LLSD& notification, const LLSD& response);
@@ -232,7 +235,7 @@ public:
 	void onChangeAnything();
 	void onApplyChanges();
 	void onClickSet();
-	void callbackAvatarID(const std::vector<std::string>& names, const uuid_vec_t& ids);
+	void callbackAvatarID(const std::vector<std::string>& names, const std::vector<LLUUID>& ids);
 	void onClickDeletePublicOwnedBy();
 	void onClickDeleteAllScriptedOwnedBy();
 	void onClickDeleteAllOwnedBy();

@@ -154,7 +154,7 @@ void LLPanelLandMedia::refresh()
 		std::string mime_type = parcel->getMediaType();
 		if (mime_type.empty())
 		{
-			mime_type = LLMIMETypes::getDefaultMimeTypeTranslation();
+			mime_type = "none/none";
 		}
 		setMediaType(mime_type);
 		mMediaTypeCombo->setEnabled( can_change_media );
@@ -219,7 +219,7 @@ void LLPanelLandMedia::refresh()
 
 void LLPanelLandMedia::populateMIMECombo()
 {
-	std::string default_mime_type = LLMIMETypes::getDefaultMimeType();
+	std::string default_mime_type = "none/none";
 	std::string default_label;
 	LLMIMETypes::mime_widget_set_map_t::const_iterator it;
 	for (it = LLMIMETypes::sWidgetMap.begin(); it != LLMIMETypes::sWidgetMap.end(); ++it)
@@ -236,7 +236,8 @@ void LLPanelLandMedia::populateMIMECombo()
 			mMediaTypeCombo->add(info.mLabel, mime_type);
 		}
 	}
-
+	// *TODO: The sort order is based on std::map key, which is
+	// ASCII-sorted and is wrong in other languages.  TRANSLATE
 	mMediaTypeCombo->add( default_label, default_mime_type, ADD_BOTTOM );
 }
 
@@ -248,15 +249,7 @@ void LLPanelLandMedia::setMediaType(const std::string& mime_type)
 
 	std::string media_key = LLMIMETypes::widgetType(mime_type);
 	mMediaTypeCombo->setValue(media_key);
-
-	std::string mime_str = mime_type;
-	if(LLMIMETypes::getDefaultMimeType() == mime_type)
-	{
-		// Instead of showing predefined "none/none" we are going to show something 
-		// localizable - "none" for example (see EXT-6542)
-		mime_str = LLMIMETypes::getDefaultMimeTypeTranslation();
-	}
-	childSetText("mime_type", mime_str);
+	childSetText("mime_type", mime_type);
 }
 
 void LLPanelLandMedia::setMediaURL(const std::string& media_url)

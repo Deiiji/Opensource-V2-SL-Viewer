@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
 <panel label="Apariencias" name="Skins panel">
 	<text name="muting_text">
-		Elige una apariencia (requiere reiniciar):
+		Elija una apariencia (requiere reiniciar):
 	</text>
 	<radio_group name="skin_selection">
 		<radio_item label="Por defecto" name="default"/>

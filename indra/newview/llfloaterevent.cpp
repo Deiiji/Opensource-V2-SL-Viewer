@@ -114,6 +114,7 @@ BOOL LLFloaterEvent::postBuild()
 	mTBDuration = getChild<LLTextBox>("event_duration");
 
 	mTBDesc = getChild<LLExpandableTextBox>("event_desc");
+	mTBDesc->setEnabled(FALSE);
 
 	mTBRunBy = getChild<LLTextBox>("event_runby");
 	mTBLocation = getChild<LLTextBox>("event_location");

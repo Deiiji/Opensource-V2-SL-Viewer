@@ -43,7 +43,6 @@
 
 // Viewer includes
 #include "llagent.h"
-#include "llagentcamera.h"
 #include "llbutton.h"
 #include "llviewercontrol.h"
 #include "lldrawable.h"
@@ -169,17 +168,19 @@ void LLToolCamera::pickCallback(const LLPickInfo& pick_info)
 		}
 	}
 
-	if( CAMERA_MODE_CUSTOMIZE_AVATAR == gAgentCamera.getCameraMode() )
+	if( CAMERA_MODE_CUSTOMIZE_AVATAR == gAgent.getCameraMode() )
 	{
 		BOOL good_customize_avatar_hit = FALSE;
 		if( hit_obj )
 		{
-			if (isAgentAvatarValid() && (hit_obj == gAgentAvatarp))
+			LLVOAvatar* avatar = gAgent.getAvatarObject();
+			if( hit_obj == avatar) 
 			{
 				// It's you
 				good_customize_avatar_hit = TRUE;
 			}
-			else if (hit_obj->isAttachment() && hit_obj->permYouOwner())
+			else
+			if( hit_obj->isAttachment() && hit_obj->permYouOwner() )
 			{
 				// It's an attachment that you're wearing
 				good_customize_avatar_hit = TRUE;
@@ -207,23 +208,23 @@ void LLToolCamera::pickCallback(const LLPickInfo& pick_info)
 			// ...clicked on a world object, so focus at its position
 			if (!hit_obj->isHUDAttachment())
 			{
-				gAgentCamera.setFocusOnAvatar(FALSE, ANIMATE);
-				gAgentCamera.setFocusGlobal(pick_info);
+				gAgent.setFocusOnAvatar(FALSE, ANIMATE);
+				gAgent.setFocusGlobal(pick_info);
 			}
 		}
 		else if (!pick_info.mPosGlobal.isExactlyZero())
 		{
 			// Hit the ground
-			gAgentCamera.setFocusOnAvatar(FALSE, ANIMATE);
-			gAgentCamera.setFocusGlobal(pick_info);
+			gAgent.setFocusOnAvatar(FALSE, ANIMATE);
+			gAgent.setFocusGlobal(pick_info);
 		}
 
 		if (!(pick_info.mKeyMask & MASK_ALT) &&
-			gAgentCamera.cameraThirdPerson() &&
+			gAgent.cameraThirdPerson() &&
 			gViewerWindow->getLeftMouseDown() && 
 			!gSavedSettings.getBOOL("FreezeTime") &&
-			(hit_obj == gAgentAvatarp || 
-			 (hit_obj && hit_obj->isAttachment() && LLVOAvatar::findAvatarFromAttachment(hit_obj)->isSelf())))
+			(hit_obj == gAgent.getAvatarObject() || 
+				(hit_obj && hit_obj->isAttachment() && LLVOAvatar::findAvatarFromAttachment(hit_obj)->isSelf())))
 		{
 			LLToolCamera::getInstance()->mMouseSteering = TRUE;
 		}
@@ -232,14 +233,14 @@ void LLToolCamera::pickCallback(const LLPickInfo& pick_info)
 
 	LLToolCamera::getInstance()->mValidClickPoint = TRUE;
 
-	if( CAMERA_MODE_CUSTOMIZE_AVATAR == gAgentCamera.getCameraMode() )
+	if( CAMERA_MODE_CUSTOMIZE_AVATAR == gAgent.getCameraMode() )
 	{
-		gAgentCamera.setFocusOnAvatar(FALSE, FALSE);
+		gAgent.setFocusOnAvatar(FALSE, FALSE);
 		
-		LLVector3d cam_pos = gAgentCamera.getCameraPositionGlobal();
-		cam_pos -= LLVector3d(LLViewerCamera::getInstance()->getLeftAxis() * gAgentCamera.calcCustomizeAvatarUIOffset( cam_pos ));
+		LLVector3d cam_pos = gAgent.getCameraPositionGlobal();
+		cam_pos -= LLVector3d(LLViewerCamera::getInstance()->getLeftAxis() * gAgent.calcCustomizeAvatarUIOffset( cam_pos ));
 
-		gAgentCamera.setCameraPosAndFocusGlobal( cam_pos, pick_info.mPosGlobal, pick_info.mObjectID);
+		gAgent.setCameraPosAndFocusGlobal( cam_pos, pick_info.mPosGlobal, pick_info.mObjectID);
 	}
 }
 
@@ -280,10 +281,10 @@ BOOL LLToolCamera::handleMouseUp(S32 x, S32 y, MASK mask)
 	{
 		if (mValidClickPoint)
 		{
-			if( CAMERA_MODE_CUSTOMIZE_AVATAR == gAgentCamera.getCameraMode() )
+			if( CAMERA_MODE_CUSTOMIZE_AVATAR == gAgent.getCameraMode() )
 			{
 				LLCoordGL mouse_pos;
-				LLVector3 focus_pos = gAgent.getPosAgentFromGlobal(gAgentCamera.getFocusGlobal());
+				LLVector3 focus_pos = gAgent.getPosAgentFromGlobal(gAgent.getFocusGlobal());
 				BOOL success = LLViewerCamera::getInstance()->projectPosAgentToScreen(focus_pos, mouse_pos);
 				if (success)
 				{
@@ -369,12 +370,12 @@ BOOL LLToolCamera::handleHover(S32 x, S32 y, MASK mask)
 
 				if (dx != 0)
 				{
-					gAgentCamera.cameraOrbitAround( -dx * RADIANS_PER_PIXEL );
+					gAgent.cameraOrbitAround( -dx * RADIANS_PER_PIXEL );
 				}
 
 				if (dy != 0)
 				{
-					gAgentCamera.cameraOrbitOver( -dy * RADIANS_PER_PIXEL );
+					gAgent.cameraOrbitOver( -dy * RADIANS_PER_PIXEL );
 				}
 
 				gViewerWindow->moveCursorToCenter();
@@ -388,8 +389,8 @@ BOOL LLToolCamera::handleHover(S32 x, S32 y, MASK mask)
 			// Pan tool
 			if (hasMouseCapture())
 			{
-				LLVector3d camera_to_focus = gAgentCamera.getCameraPositionGlobal();
-				camera_to_focus -= gAgentCamera.getFocusGlobal();
+				LLVector3d camera_to_focus = gAgent.getCameraPositionGlobal();
+				camera_to_focus -= gAgent.getFocusGlobal();
 				F32 dist = (F32) camera_to_focus.normVec();
 
 				// Fudge factor for pan
@@ -397,12 +398,12 @@ BOOL LLToolCamera::handleHover(S32 x, S32 y, MASK mask)
 
 				if (dx != 0)
 				{
-					gAgentCamera.cameraPanLeft( dx * meters_per_pixel );
+					gAgent.cameraPanLeft( dx * meters_per_pixel );
 				}
 
 				if (dy != 0)
 				{
-					gAgentCamera.cameraPanUp( -dy * meters_per_pixel );
+					gAgent.cameraPanUp( -dy * meters_per_pixel );
 				}
 
 				gViewerWindow->moveCursorToCenter();
@@ -419,7 +420,7 @@ BOOL LLToolCamera::handleHover(S32 x, S32 y, MASK mask)
 
 				if (dx != 0)
 				{
-					gAgentCamera.cameraOrbitAround( -dx * RADIANS_PER_PIXEL );
+					gAgent.cameraOrbitAround( -dx * RADIANS_PER_PIXEL );
 				}
 
 				const F32 IN_FACTOR = 0.99f;
@@ -428,11 +429,11 @@ BOOL LLToolCamera::handleHover(S32 x, S32 y, MASK mask)
 				{
 					if (mMouseSteering)
 					{
-						gAgentCamera.cameraOrbitOver( -dy * RADIANS_PER_PIXEL );
+						gAgent.cameraOrbitOver( -dy * RADIANS_PER_PIXEL );
 					}
 					else
 					{
-						gAgentCamera.cameraZoomIn( pow( IN_FACTOR, dy ) );
+						gAgent.cameraZoomIn( pow( IN_FACTOR, dy ) );
 					}
 				}
 

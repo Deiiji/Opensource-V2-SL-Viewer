@@ -139,7 +139,7 @@ public:
 	bool importFileLocal(LLFILE* fp);
 
 	// new methods
-	BOOL isFinished() const { return mIsComplete; }
+	BOOL isComplete() const { return mIsComplete; }
 	void setComplete(BOOL complete) { mIsComplete = complete; }
 	//void updateAssetOnServer() const;
 
@@ -213,7 +213,7 @@ public:
 	void setVersion(S32 version) { mVersion = version; }
 
 	// Returns true if a fetch was issued.
-	bool fetch();
+	bool fetchDescendents();
 
 	// used to help make cacheing more robust - for example, if
 	// someone is getting 4 packets but logs out after 3. the viewer
@@ -340,7 +340,6 @@ void link_inventory_item(
 	const LLUUID& item_id,
 	const LLUUID& parent_id,
 	const std::string& new_name,
-	const std::string& new_description,
 	const LLAssetType::EType asset_type,
 	LLPointer<LLInventoryCallback> cb);
 
@@ -358,7 +357,7 @@ void copy_inventory_from_notecard(const LLUUID& object_id,
 								  U32 callback_id = 0);
 
 
-void menu_create_inventory_item(LLFolderView* root,
+void menu_create_inventory_item(LLFolderView* folder,
 								LLFolderBridge* bridge,
 								const LLSD& userdata,
 								const LLUUID& default_parent_uuid = LLUUID::null);

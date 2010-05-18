@@ -84,11 +84,9 @@ public:
 	struct WearableEntry : public LLDictionaryEntry
 	{
 		WearableEntry(const std::string &name,
-					  const std::string& default_new_name,
 					  LLAssetType::EType assetType);
 		const LLAssetType::EType mAssetType;
 		const std::string mLabel;
-		const std::string mDefaultNewName;//keep mLabel for backward compatibility
 	};
 	struct Wearables : public LLDictionary<EWearableType, WearableEntry>
 	{
@@ -100,7 +98,6 @@ public:
 	
 	// Convenience functions
 	static const std::string& getTypeName(EWearableType type);
-	static const std::string& getTypeDefaultNewName(EWearableType type);
 	static const std::string& getTypeLabel(EWearableType type);
 	static LLAssetType::EType getAssetType(EWearableType type);
 	static EWearableType typeNameToType(const std::string& type_name);

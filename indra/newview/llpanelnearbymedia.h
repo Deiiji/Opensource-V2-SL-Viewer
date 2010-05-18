@@ -64,10 +64,6 @@ public:
 	// interaction with our buttons.
 	bool getParcelAudioAutoStart();
 
-	// callback for when the auto play media preference changes
-	// to update mParcelAudioAutoStart
-	void handleMediaAutoPlayChanged(const LLSD& newvalue);
-
 	LLPanelNearByMedia();
 	virtual ~LLPanelNearByMedia();
 
@@ -141,7 +137,7 @@ private:
 	
 	bool shouldShow(LLViewerMediaImpl* impl);
 	
-	void showBasicControls(bool playing, bool include_zoom, bool is_zoomed, bool muted, F32 volume);
+	void showBasicControls(bool playing, bool include_zoom, bool is_zoomed);
 	void showTimeBasedControls(bool playing, bool include_zoom, bool is_zoomed, bool muted, F32 volume);
 	void showDisabledControls();
 	void updateControls();

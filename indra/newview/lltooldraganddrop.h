@@ -82,7 +82,7 @@ public:
 				   const LLUUID& source_id = LLUUID::null,
 				   const LLUUID& object_id = LLUUID::null);
 	void beginMultiDrag(const std::vector<EDragAndDropType> types,
-						const uuid_vec_t& cargo_ids,
+						const std::vector<LLUUID>& cargo_ids,
 						ESource source,
 						const LLUUID& source_id = LLUUID::null);
 	void endDrag();
@@ -126,7 +126,7 @@ protected:
 	
 	std::vector<EDragAndDropType> mCargoTypes;
 	//void*			mCargoData;
-	uuid_vec_t mCargoIDs;
+	std::vector<LLUUID> mCargoIDs;
 	ESource mSource;
 	LLUUID mSourceID;
 	LLUUID mObjectID;

@@ -161,7 +161,7 @@ public:
 	virtual void setLanguageTextInput( const LLCoordGL & pos ) {};
 	virtual void updateLanguageTextInputArea() {}
 	virtual void interruptLanguageTextInput() {}
-	virtual void spawnWebBrowser(const std::string& escaped_url, bool async) {};
+	virtual void spawnWebBrowser(const std::string& escaped_url) {};
 
 	static std::vector<std::string> getDynamicFallbackFontList();
 	

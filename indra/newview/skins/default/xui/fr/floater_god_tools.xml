@@ -2,11 +2,12 @@
 <floater name="godtools floater" title="OUTILS DIVINS">
 	<tab_container name="GodTools Tabs">
 		<panel label="Grille" name="grid">
+			<button label="Éjecter tous les résidents" label_selected="Éjecter tous les résidents" name="Kick all users" width="175"/>
 			<button label="Vider le cache cartographique de la région" label_selected="Vider le cache cartographique de la région" name="Flush This Region&apos;s Map Visibility Caches" width="285"/>
 		</panel>
 		<panel label="Région" name="region">
-			<text name="Region Name:">
-				Nom de la région :
+			<text name="Sim Name:" width="70">
+				Nom du sim :
 			</text>
 			<line_editor left="85" name="region name" width="198"/>
 			<check_box label="Initiation" name="check prelude" tool_tip="Définir cette région comme zone d&apos;initiation."/>
@@ -54,8 +55,8 @@
 			<panel.string name="no_target">
 				(aucune cible)
 			</panel.string>
-			<text name="Region Name:">
-				Nom de la région :
+			<text name="Sim Name:" width="70">
+				Nom du sim :
 			</text>
 			<text left_delta="75" name="region name">
 				Welsh

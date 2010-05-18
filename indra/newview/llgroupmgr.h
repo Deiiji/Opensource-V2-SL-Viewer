@@ -140,8 +140,8 @@ public:
 
 	const LLUUID& getID() const { return mRoleID; }
 
-	const uuid_vec_t& getRoleMembers() const { return mMemberIDs; }
-	S32 getMembersInRole(uuid_vec_t members, BOOL needs_sort = TRUE);
+	const std::vector<LLUUID>& getRoleMembers() const { return mMemberIDs; }
+	S32 getMembersInRole(std::vector<LLUUID> members, BOOL needs_sort = TRUE);
 	S32 getTotalMembersInRole() { return mMemberIDs.size(); }
 
 	LLRoleData getRoleData() const { return mRoleData; }
@@ -151,10 +151,10 @@ public:
 	bool removeMember(const LLUUID& member);
 	void clearMembers();
 
-	const uuid_vec_t::const_iterator getMembersBegin() const
+	const std::vector<LLUUID>::const_iterator getMembersBegin() const
 	{ return mMemberIDs.begin(); }
 
-	const uuid_vec_t::const_iterator getMembersEnd() const
+	const std::vector<LLUUID>::const_iterator getMembersEnd() const
 	{ return mMemberIDs.end(); }
 
 
@@ -165,7 +165,7 @@ protected:
 	LLUUID mRoleID;
 	LLRoleData	mRoleData;
 
-	uuid_vec_t mMemberIDs;
+	std::vector<LLUUID> mMemberIDs;
 	S32	mMemberCount;
 
 private:
@@ -341,7 +341,7 @@ public:
 	static void sendGroupMemberJoin(const LLUUID& group_id);
 	static void sendGroupMemberInvites(const LLUUID& group_id, std::map<LLUUID,LLUUID>& role_member_pairs);
 	static void sendGroupMemberEjects(const LLUUID& group_id,
-									  uuid_vec_t& member_ids);
+									  std::vector<LLUUID>& member_ids);
 
 	void cancelGroupRoleChanges(const LLUUID& group_id);
 
