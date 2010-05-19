@@ -41,4 +41,8 @@ const S32 LL_VERSION_BUILD = 0;
 
 const char * const LL_CHANNEL = "Snowglobe Test Build";
 
+#if LL_DARWIN
+const char * const LL_VERSION_BUNDLE_ID = "com.secondlife.snowglobe.viewer";
+#endif
+
 #endif
