@@ -37,6 +37,7 @@
 
 // Viewer includes
 #include "llversioninfo.h"
+#include "llversionviewer.h"
 #include "llfeaturemanager.h"
 #include "lluictrlfactory.h"
 #include "lltexteditor.h"
