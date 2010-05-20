@@ -1387,7 +1387,7 @@ F32 LLFace::getTextureVirtualSize()
 	{
 		//apply texel area to face area to get accurate ratio
 		//face_area /= llclamp(texel_area, 1.f/64.f, 16.f);
-		face_area =  mPixelArea / llclamp(texel_area, 0.015625f, 1024.f);
+		face_area =  mPixelArea / llclamp(texel_area, 0.015625f, 128.f);
 	}
 
 	if(face_area > LLViewerTexture::sMaxSmallImageSize)
