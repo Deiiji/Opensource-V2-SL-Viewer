@@ -76,6 +76,7 @@ public:
 	static void updateAll();
 	static void renderAll();
 	static void renderAllForSelect();
+	static void renderAllForTimer();
 
 	static void cleanupHUDObjects();
 
@@ -107,6 +108,7 @@ protected:
 
 	virtual void render() = 0;
 	virtual void renderForSelect() {};
+	virtual void renderForTimer() {};
 	
 protected:
 	U8				mType;

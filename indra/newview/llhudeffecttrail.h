@@ -69,6 +69,7 @@ protected:
 	~LLHUDEffectSpiral();
 
 	/*virtual*/ void render();
+	/*virtual*/ void renderForTimer();
 	/*virtual*/ void packData(LLMessageSystem *mesgsys);
 	/*virtual*/ void unpackData(LLMessageSystem *mesgsys, S32 blocknum);
 private:
