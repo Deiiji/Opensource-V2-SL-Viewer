@@ -64,9 +64,6 @@
 //#include "llfirstuse.h"
 #include "llwindow.h"
 
-#include <boost/bind.hpp>	// for SkinFolder listener
-#include <boost/signals2.hpp>
-
 /*static*/ const char* LLViewerMedia::AUTO_PLAY_MEDIA_SETTING = "ParcelMediaAutoPlayEnable";
 /*static*/ const char* LLViewerMedia::SHOW_MEDIA_ON_OTHERS_SETTING = "MediaShowOnOthers";
 /*static*/ const char* LLViewerMedia::SHOW_MEDIA_WITHIN_PARCEL_SETTING = "MediaShowWithinParcel";
