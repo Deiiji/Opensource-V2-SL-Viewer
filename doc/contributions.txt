@@ -620,12 +620,16 @@ Teardrops Fall
 	VWR-5366
 Techwolf Lupindo
 	SNOW-92
+	SNOW-312
 	SNOW-517
 	SNOW-543
 	SNOW-592
 	SNOW-599
 	SNOW-649
 	SNOW-680
+	SNOW-682
+	SNOW-683
+	SNOW-684
 	VWR-12385
 tenebrous pau
 	VWR-247
