@@ -106,7 +106,7 @@ protected:
 		std::vector<LLUUID>& vadded,
 		std::vector<LLUUID>& vremoved);
 	void updateLastInteractionTimes();
-	void onItemDoucleClicked(LLUICtrl* ctrl, S32 x, S32 y, MASK mask);
+	void onItemDoubleClicked(LLUICtrl* ctrl, S32 x, S32 y, MASK mask);
 
 private:
 

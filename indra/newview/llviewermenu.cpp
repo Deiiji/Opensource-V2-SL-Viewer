@@ -5255,7 +5255,7 @@ class LLWorldSetHomeLocation : public view_listener_t
 	{
 		// we just send the message and let the server check for failure cases
 		// server will echo back a "Home position set." alert if it succeeds
-		// and the home location screencapture happens when that alert is recieved
+		// and the home location screencapture happens when that alert is received
 		gAgent.setStartPosition(START_LOCATION_ID_HOME);
 		return true;
 	}

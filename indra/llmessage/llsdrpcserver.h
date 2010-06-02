@@ -186,7 +186,7 @@ public:
 	 * @brief Call this method to return an rpc fault.
 	 *
 	 * @param channel The channel for output on the data buffer
-	 * @param data buffer which will recieve the final output 
+	 * @param data buffer which will receive the final output 
 	 * @param code The fault code 
 	 * @param msg The fault message 
 	 */
@@ -200,7 +200,7 @@ public:
 	 * @brief Call this method to build an rpc response.
 	 *
 	 * @param channel The channel for output on the data buffer
-	 * @param data buffer which will recieve the final output 
+	 * @param data buffer which will receive the final output 
 	 * @param response The return value from the method call
 	 */
 	static void buildResponse(

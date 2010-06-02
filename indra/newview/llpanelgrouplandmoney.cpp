@@ -1120,7 +1120,7 @@ void LLPanelGroupLandMoney::processGroupAccountDetailsReply(LLMessageSystem* msg
 	LLGroupMoneyTabEventHandler* selfp = LLGroupMoneyTabEventHandler::sInstanceIDs.getIfThere(request_id);
 	if (!selfp)
 	{
-		llwarns << "GroupAccountDetails recieved for non-existent group panel." << llendl;
+		llwarns << "GroupAccountDetails received for non-existent group panel." << llendl;
 		return;
 	}
 
@@ -1292,7 +1292,7 @@ void LLPanelGroupLandMoney::processGroupAccountTransactionsReply(LLMessageSystem
 	self = LLGroupMoneyTabEventHandler::sInstanceIDs.getIfThere(request_id);
 	if (!self)
 	{
-		llwarns << "GroupAccountTransactions recieved for non-existent group panel." << llendl;
+		llwarns << "GroupAccountTransactions received for non-existent group panel." << llendl;
 		return;
 	}
 
@@ -1461,7 +1461,7 @@ void LLPanelGroupLandMoney::processGroupAccountSummaryReply(LLMessageSystem* msg
 	self = LLGroupMoneyTabEventHandler::sInstanceIDs.getIfThere(request_id);
 	if (!self)
 	{
-		llwarns << "GroupAccountSummary recieved for non-existent group L$ planning tab." << llendl;
+		llwarns << "GroupAccountSummary received for non-existent group L$ planning tab." << llendl;
 		return;
 	}
 

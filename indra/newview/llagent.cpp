@@ -2239,7 +2239,9 @@ void LLAgent::startAutoPilotGlobal(const LLVector3d &target_global, const std::s
 		// Do not force flying for "Sit" behavior to prevent flying after pressing "Stand"
 		// from an object. See EXT-1655.
 		if ("Sit" != mAutoPilotBehaviorName)
+		{
 			mAutoPilotFlyOnStop = TRUE;
+		}
 	}
 
 	mAutoPilot = TRUE;
