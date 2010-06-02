@@ -3365,8 +3365,23 @@ class LLSelfStandUp : public view_listener_t
 
 bool enable_standup_self()
 {
-	bool new_value = gAgent.getAvatarObject() && gAgent.getAvatarObject()->isSitting();
-	return new_value;
+	LLVOAvatarSelf* my_avatar = gAgent.getAvatarObject();
+	return my_avatar && my_avatar->isSitting();
+}
+
+class LLSelfSitDown : public view_listener_t
+{
+	bool handleEvent(const LLSD& userdata)
+	{
+		gAgent.sitDown();
+		return true;
+	}
+};
+
+bool enable_sitdown_self()
+{
+	LLVOAvatarSelf* my_avatar = gAgent.getAvatarObject();
+	return my_avatar && !my_avatar->isSitting() && !gAgent.getFlying();
 }
 
 // Used from the login screen to aid in UI work on side tray
@@ -7973,11 +7988,13 @@ void initialize_menus()
 	// Admin top level
 	view_listener_t::addMenu(new LLAdminOnSaveState(), "Admin.OnSaveState");
 
-	// Self pie menu
+	// Self context menu
 	view_listener_t::addMenu(new LLSelfStandUp(), "Self.StandUp");
+	enable.add("Self.EnableStandUp", boost::bind(&enable_standup_self));
+	view_listener_t::addMenu(new LLSelfSitDown(), "Self.SitDown");
+	enable.add("Self.EnableSitDown", boost::bind(&enable_sitdown_self));
 	view_listener_t::addMenu(new LLSelfRemoveAllAttachments(), "Self.RemoveAllAttachments");
 
-	enable.add("Self.EnableStandUp", boost::bind(&enable_standup_self));
 	view_listener_t::addMenu(new LLSelfEnableRemoveAllAttachments(), "Self.EnableRemoveAllAttachments");
 
 	// we don't use boost::bind directly to delay side tray construction

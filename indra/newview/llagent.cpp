@@ -826,6 +826,14 @@ void LLAgent::standUp()
 	setControlFlags(AGENT_CONTROL_STAND_UP);
 }
 
+void LLAgent::sitDown()
+{
+	setControlFlags(AGENT_CONTROL_SIT_ON_GROUND);
+
+	// Might be first sit
+	//LLFirstUse::useSit(); // not in use anymore?
+}
+
 
 //-----------------------------------------------------------------------------
 // setRegion()
