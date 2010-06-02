@@ -277,6 +277,7 @@ Hamncheese Omlet
 HappySmurf Papp
 	CT-193
 Henri Beauchamp
+	SNOW-378
 	VWR-1320
 	VWR-1406
 	VWR-4157
@@ -635,6 +636,7 @@ Techwolf Lupindo
 	SNOW-683
 	SNOW-684
 	SNOW-685
+	SNOW-686
 	VWR-12385
 tenebrous pau
 	VWR-247
