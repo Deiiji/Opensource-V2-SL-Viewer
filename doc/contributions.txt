@@ -306,6 +306,7 @@ Iskar Ariantho
 	VWR-1223
 	VWR-11759
 Jacek Antonelli
+	SNOW-388
 	VWR-165
 	VWR-188
 	VWR-427
@@ -629,6 +630,7 @@ Techwolf Lupindo
 	SNOW-599
 	SNOW-649
 	SNOW-680
+	SNOW-681
 	SNOW-682
 	SNOW-683
 	SNOW-684
