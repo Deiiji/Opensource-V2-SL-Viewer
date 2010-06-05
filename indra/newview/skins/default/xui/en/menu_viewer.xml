@@ -2859,8 +2859,19 @@
                  function="ToggleControl"
                  parameter="DoubleClickAutoPilot" />
             </menu_item_check>
-
-            <menu_item_separator />
+            <menu_item_check
+             label="Double-ClickTeleport"
+             layout="topleft"
+             name="DoubleClickTeleport">
+                <menu_item_check.on_check
+                 function="CheckControl"
+                 parameter="DoubleClickTeleport" />
+                <menu_item_check.on_click
+                 function="ToggleControl"
+                 parameter="DoubleClickTeleport" />
+            </menu_item_check>
+          
+          <menu_item_separator />
             <menu_item_check
              label="Debug SelectMgr"
              layout="topleft"
