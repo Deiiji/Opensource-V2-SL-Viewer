@@ -371,7 +371,7 @@ U32 LLAudioBufferOpenAL::getLength()
 
 // ------------
 
-void LLAudioEngine_OpenAL::initWind()
+bool LLAudioEngine_OpenAL::initWind()
 {
 	ALenum error;
 	llinfos << "LLAudioEngine_OpenAL::initWind() start" << llendl;
@@ -398,10 +398,12 @@ void LLAudioEngine_OpenAL::initWind()
 	if(mWindBuf==NULL)
 	{
 		llerrs << "LLAudioEngine_OpenAL::initWind() Error creating wind memory buffer" << llendl;
-		mEnableWind=false;
+		return false;
 	}
 
 	llinfos << "LLAudioEngine_OpenAL::initWind() done" << llendl;
+
+	return true;
 }
 
 void LLAudioEngine_OpenAL::cleanupWind()
@@ -509,14 +511,14 @@ void LLAudioEngine_OpenAL::updateWind(LLVector3 wind_vec, F32 camera_altitude)
 		alGenBuffers(1,&buffer);
 		if((error=alGetError()) != AL_NO_ERROR)
 		{
-			llwarns << "LLAudioEngine_OpenAL::initWind() Error creating wind buffer: " << error << llendl;
+			llwarns << "LLAudioEngine_OpenAL::updateWind() Error creating wind buffer: " << error << llendl;
 			break;
 		}
 
 		alBufferData(buffer,
 			     AL_FORMAT_STEREO16,
 			     mWindGen->windGenerate(mWindBuf,
-						    mWindBufSamples, 2),
+						    mWindBufSamples),
 			     mWindBufBytes,
 			     mWindBufFreq);
 		error = alGetError();
