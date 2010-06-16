@@ -329,6 +329,7 @@ Jacek Antonelli
 	VWR-3605
 	VWR-8617
 JB Kraft
+	SNOW-424
 	VWR-5283
 	VWR-7802
 Joghert LeSabre

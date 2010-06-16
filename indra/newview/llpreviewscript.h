@@ -41,6 +41,7 @@
 #include "llcombobox.h"
 #include "lliconctrl.h"
 #include "llframetimer.h"
+#include "lleventtimer.h"
 
 class LLMessageSystem;
 class LLTextEditor;
@@ -56,7 +57,7 @@ class LLVFS;
 class LLViewerInventoryItem;
 
 // Inner, implementation class.  LLPreviewScript and LLLiveLSLEditor each own one of these.
-class LLScriptEdCore : public LLPanel
+class LLScriptEdCore : public LLPanel, public LLEventTimer
 {
 	friend class LLPreviewScript;
 	friend class LLPreviewLSL;
@@ -102,8 +103,12 @@ private:
 	bool		hasChanged();
 
 	void selectFirstError();
+	
+	void autoSave();
 
 	virtual BOOL handleKeyHere(KEY key, MASK mask);
+	
+	virtual BOOL tick();
 	
 	void enableSave(BOOL b) {mEnableSave = b;}
 
@@ -116,6 +121,7 @@ protected:
 
 private:
 	std::string		mSampleText;
+	std::string		mAutosaveFilename;
 	LLTextEditor*	mEditor;
 	void			(*mLoadCallback)(void* userdata);
 	void			(*mSaveCallback)(void* userdata, BOOL close_after_save);
