@@ -204,6 +204,9 @@ public:
 	static bool isQuitting();
 	static bool isError();
 	static bool isExiting(); // Either quitting or error (app is exiting, cleanly or not)
+	static void disableCrashlogger();		// Let the OS handle the crashes
+	static bool isCrashloggerDisabled();	// Get the here above set value
+
 #if !LL_WINDOWS
 	static U32  getSigChildCount();
 	static void incSigChildCount();
@@ -271,6 +274,7 @@ protected:
 	static void setStatus(EAppStatus status);		// Use this to change the application status.
 	static EAppStatus sStatus; // Reflects current application status
 	static BOOL sErrorThreadRunning; // Set while the error thread is running
+	static BOOL sDisableCrashlogger; // Let the OS handle crashes for us.
 
 #if !LL_WINDOWS
 	static LLAtomicU32* sSigChildCount; // Number of SIGCHLDs received.

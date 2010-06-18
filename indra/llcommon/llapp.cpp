@@ -75,6 +75,10 @@ S32 LL_HEARTBEAT_SIGNAL = (SIGRTMAX >= 0) ? (SIGRTMAX-0) : SIGUSR2;
 // the static application instance
 LLApp* LLApp::sApplication = NULL;
 
+// Allows the generation of core files for post mortem under gdb
+// and disables crashlogger
+BOOL LLApp::sDisableCrashlogger = FALSE; 
+
 // Local flag for whether or not to do logging in signal handlers.
 //static
 BOOL LLApp::sLogInSignal = FALSE;
@@ -405,10 +409,24 @@ bool LLApp::isQuitting()
 	return (APP_STATUS_QUITTING == sStatus);
 }
 
+// static
 bool LLApp::isExiting()
 {
 	return isQuitting() || isError();
 }
+
+// static
+void LLApp::disableCrashlogger()
+{
+	sDisableCrashlogger = TRUE;
+}
+
+// static
+bool LLApp::isCrashloggerDisabled()
+{
+	return (sDisableCrashlogger == TRUE); 
+}
+
 
 #if !LL_WINDOWS
 // static
@@ -742,6 +760,15 @@ void default_unix_signal_handler(int signum, siginfo_t *info, void *)
 			{
 				llwarns << "Signal handler - Flagging error status and waiting for shutdown" << llendl;
 			}
+									
+			if (LLApp::isCrashloggerDisabled())	// Don't gracefully handle any signal, crash and core for a gdb post mortem
+			{
+				clear_signals();
+				llwarns << "Fatal signal received, not handling the crash here, passing back to operating system" << llendl;
+				raise(signum);
+				return;
+			}		
+			
 			// Flag status to ERROR, so thread_error does its work.
 			LLApp::setError();
 			// Block in the signal handler until somebody says that we're done.
