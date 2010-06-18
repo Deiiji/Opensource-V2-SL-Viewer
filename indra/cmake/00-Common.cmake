@@ -124,7 +124,6 @@ if (LINUX)
   # gcc 4.3 and above don't like the LL boost and also
   # cause warnings due to our use of deprecated headers
   if(${CXX_VERSION_NUMBER} GREATER 429)
-    add_definitions(-Wno-parentheses)
     set(CMAKE_CXX_FLAGS "-Wno-deprecated ${CMAKE_CXX_FLAGS}")
   endif (${CXX_VERSION_NUMBER} GREATER 429)
 
