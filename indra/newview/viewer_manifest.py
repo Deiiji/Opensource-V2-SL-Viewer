@@ -331,8 +331,11 @@ class WindowsManifest(ViewerManifest):
         # For use in crash reporting (generates minidumps)
         self.path("dbghelp.dll")
 
-        # For using FMOD for sound... DJS
-        self.path("fmod.dll")
+        try:
+            # For using FMOD for sound... DJS
+            self.path("fmod.dll")
+        except:
+            print("Skipping FMOD not found")
 
         self.enable_no_crt_manifest_check()
         
