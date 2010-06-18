@@ -45,10 +45,13 @@
 ##   disable these by enabling this option:
 #export LL_DISABLE_GSTREAMER=x
 
-## - GStreamer is automatically disabled - for now - on 64-bit systems due
-##   to common fatal incompatibilities; remove/comment these lines if you want
-##   to try anyway.
-if [ "`uname -m`" = "x86_64" ]; then
+## - GStreamer is automatically disabled for 32-bit Viewers on 64-bit
+##   systems due to common fatal incompatibilities; remove/comment these
+##   lines if you want to try anyway.
+SCRIPTSRC=$(readlink -f "$0" || echo "$0")
+RUN_PATH=$(dirname "${SCRIPTSRC}" || echo .)
+BINARY_TYPE=$(expr match "$(file -b ${RUN_PATH}/bin/SLPlugin)" '\(.*executable\)')
+if [ "`uname -m`" == "x86_64" -a "${BINARY_TYPE}" == "ELF 32-bit LSB executable" ]; then
     export LL_DISABLE_GSTREAMER=x
     echo '64-bit Linux detected: Disabling GStreamer (streaming video and music) by default; edit ./snowglobe to re-enable.'
 fi
