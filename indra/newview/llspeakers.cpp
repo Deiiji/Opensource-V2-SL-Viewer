@@ -85,7 +85,7 @@ void LLSpeaker::onAvatarNameLookup(const LLUUID& id, const std::string& first, c
 
 bool LLSpeaker::isInVoiceChannel()
 {
-	return mStatus <= LLSpeaker::STATUS_VOICE_ACTIVE || mStatus == LLSpeaker::STATUS_MUTED;
+    return (mStatus != LLSpeaker::STATUS_TEXT_ONLY) && (mStatus != LLSpeaker::STATUS_NOT_IN_CHANNEL);
 }
 
 LLSpeakerUpdateModeratorEvent::LLSpeakerUpdateModeratorEvent(LLSpeaker* source)
@@ -740,7 +740,7 @@ void LLIMSpeakerMgr::moderateVoiceParticipant(const LLUUID& avatar_id, bool unmu
 
 	// *NOTE: mantipov: probably this condition will be incorrect when avatar will be blocked for
 	// text chat via moderation (LLSpeaker::mModeratorMutedText == TRUE)
-	bool is_in_voice = speakerp->mStatus <= LLSpeaker::STATUS_VOICE_ACTIVE || speakerp->mStatus == LLSpeaker::STATUS_MUTED;
+    bool is_in_voice = (speakerp->mStatus != LLSpeaker::STATUS_TEXT_ONLY) && (speakerp->mStatus != LLSpeaker::STATUS_NOT_IN_CHANNEL);
 
 	// do not send voice moderation changes for avatars not in voice channel
 	if (!is_in_voice) return;
